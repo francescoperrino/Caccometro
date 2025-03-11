@@ -1,8 +1,9 @@
 *.pyc
-venv/
+.venv/
 .env
 db/
 db/*.db
 charts/
 charts/*.png
 *.log
+__pycache__/

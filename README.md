@@ -8,7 +8,7 @@ Prima di iniziare a sperimentare con il codice, segui attentamente questi passag
 1. **Ambiente Virtuale**: È consigliato utilizzare un ambiente virtuale per isolare le dipendenze del progetto. Esegui il seguente comando per creare un ambiente virtuale:
 
    ```bash
-   $ python3 -m venv venv
+   $ python3 -m venv .venv
    ```
 
 2. **Attivazione dell'Ambiente Virtuale**: Attiva l'ambiente virtuale per garantire che le dipendenze del progetto siano installate in modo isolato. A seconda del sistema operativo, usa il comando appropriato:
@@ -16,13 +16,13 @@ Prima di iniziare a sperimentare con il codice, segui attentamente questi passag
    - Su Linux/MacOS:
 
      ```bash
-     $ source venv/bin/activate
+     $ source .venv/bin/activate
      ```
 
    - Su Windows:
 
      ```bash
-     $ .\venv\Scripts\activate
+     $ .\.venv\Scripts\activate
      ```
 
 3. **Installazione delle Dipendenze**: Ora installa i pacchetti necessari eseguendo il seguente comando:
