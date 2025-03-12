@@ -6,7 +6,7 @@ import pytz
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from database import STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER, init_database, get_count, update_count, get_rank, get_statistics, get_record, get_constipation_days
-from utils import generate_table_and_chart, analyze_user_record
+from utils import generate_rank_chart, generate_statistics_chart, analyze_user_record
 
 # Enable logging
 log_filename = "caccometro.log"
@@ -62,12 +62,12 @@ async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_
         else:
             message += f"{i}. @{username}: {total_count}\n"
 
-    generate_table_and_chart(rank, update.message.chat_id, 'month', date)
+    generate_rank_chart(rank, update.message.chat_id, 'month', date)
 
     date_parts = date.split('-')
     saving_date = f"{date_parts[1]}_{date_parts[0]}"
 
-    with open(os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{saving_date}.png'), 'rb') as chart:
+    with open(os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{saving_date}_chart.png'), 'rb') as chart:
         await update.message.reply_photo(chart)
 
     await update.message.reply_text(message, parse_mode='Markdown')
@@ -97,9 +97,9 @@ async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_
         else:
             message += f"{i}. @{username}: {total_count}\n"
 
-    generate_table_and_chart(rank, update.message.chat_id, 'year', year)
+    generate_rank_chart(rank, update.message.chat_id, 'year', year)
 
-    with open(os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{year}.png'), 'rb') as chart:
+    with open(os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{year}_chart.png'), 'rb') as chart:
         await update.message.reply_photo(chart)
 
     await update.message.reply_text(message, parse_mode='Markdown')
@@ -124,15 +124,24 @@ async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT
         return
 
     message = f"*Statistiche per il mese {date}*:\n"
-    for i, stats in enumerate(statistics, start=1):
+    for i, statistic in enumerate(statistics, start=1):
             if i == 1:
-                message += f"🥇 *@{stats['username']}*: Media: {stats['mean']:.2f}, Mediana: {stats['median']:.1f}, Var.: {stats['variance']:.2f}\n"
+                message += f"🥇 *@{statistic['username']}*: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
             elif i == 2:
-                message += f"🥈 *@{stats['username']}*: Media: {stats['mean']:.2f}, Mediana: {stats['median']:.1f}, Var.: {stats['variance']:.2f}\n"
+                message += f"🥈 *@{statistic['username']}*: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
             elif i == 3:
-                message += f"🥉 *@{stats['username']}*: Media: {stats['mean']:.2f}, Mediana: {stats['median']:.1f}, Var.: {stats['variance']:.2f}\n"
+                message += f"🥉 *@{statistic['username']}*: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
             else:
-                message += f"{i}. @{stats['username']}: Media: {stats['mean']:.2f}, Mediana: {stats['median']:.1f}, Var.: {stats['variance']:.2f}\n"
+                message += f"{i}. @{statistic['username']}: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
+
+    await update.message.reply_text(message, parse_mode='Markdown')
+
+    generate_statistics_chart(statistics, update.message.chat_id, 'month', date)
+
+    date_parts = date.split('-')
+    saving_date = f"{date_parts[1]}_{date_parts[0]}"
+    with open(os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{saving_date}_stats.png'), 'rb') as stats:
+        await update.message.reply_photo(stats)
 
     await update.message.reply_text(message, parse_mode='Markdown')
 
@@ -151,15 +160,22 @@ async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT
         return
 
     message = f"*Statistiche per l\'anno {year}*:\n"
-    for i, stats in enumerate(statistics, start=1):
+    for i, statistic in enumerate(statistics, start=1):
         if i == 1:
-            message += f"🥇 *@{stats['username']}*: Media: {stats['mean']:.2f}, Mediana: {stats['median']:.1f}, Var.: {stats['variance']:.2f}\n"
+            message += f"🥇 *@{statistic['username']}*: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
         elif i == 2:
-            message += f"🥈 *@{stats['username']}*: Media: {stats['mean']:.2f}, Mediana: {stats['median']:.1f}, Var.: {stats['variance']:.2f}\n"
+            message += f"🥈 *@{statistic['username']}*: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
         elif i == 3:
-            message += f"🥉 *@{stats['username']}*: Media: {stats['mean']:.2f}, Mediana: {stats['median']:.1f}, Var.: {stats['variance']:.2f}\n"
+            message += f"🥉 *@{statistic['username']}*: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
         else:
-            message += f"{i}. @{stats['username']}: Media: {stats['mean']:.2f}, Mediana: {stats['median']:.1f}, Var.: {stats['variance']:.2f}\n"
+            message += f"{i}. @{statistic['username']}: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
+
+    await update.message.reply_text(message, parse_mode='Markdown')
+
+    generate_statistics_chart(statistics, update.message.chat_id, 'year', year)
+
+    with open(os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{year}_stats.png'), 'rb') as stats:
+        await update.message.reply_photo(stats)
 
     await update.message.reply_text(message, parse_mode='Markdown')
 

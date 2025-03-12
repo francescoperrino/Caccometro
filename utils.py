@@ -3,11 +3,13 @@ import calendar
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
-from database import get_count, DISPLAY_FORMAT, CHARTS_FOLDER
+from database import get_count, STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER
 import locale
 from math import ceil
 from datetime import datetime, timedelta
 from collections import defaultdict
+import numpy as np
+from scipy.stats import norm
 
 # Set the locale to Italian
 locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
@@ -26,7 +28,7 @@ def ensure_datetime(value):
                 return None
     return value
 
-def generate_table_and_chart(rank, chat_id, time_period, date):
+def generate_rank_chart(rank, chat_id, time_period, date):
     """
     Generates the monthly ranking table and chart.
 
@@ -49,6 +51,7 @@ def generate_table_and_chart(rank, chat_id, time_period, date):
         saving_date = str(date_parts[1]) + '_' + str(date_parts[0])
         steps = days
         x_labels = [str(day) for day in range(1, days + 1)]  # Labels for each day of the month
+
     elif time_period == 'year':
         # Parse the input date for yearly rank (format: year)
         year = int(date)
@@ -58,9 +61,8 @@ def generate_table_and_chart(rank, chat_id, time_period, date):
         saving_date = date
         x_labels = [calendar.month_abbr[count_month] for count_month in range(1, steps + 1)]  # Labels for each month of the year
 
-    # Create the figure with the desired dimensions
-    fig = plt.figure(figsize=(15, 10))
-    axes = fig.subplots(2, 1)
+    # Create the figure with two subplots
+    fig, axes = plt.subplots(2, 1, figsize=(15, 12))
 
     # Generate the table
     users = [user for user, _ in rank]
@@ -123,7 +125,7 @@ def generate_table_and_chart(rank, chat_id, time_period, date):
                 count_date = f'{year}-{month:02}-{day:02}'
             elif time_period == 'year':
                 doy = datetime.strptime(f'{year}-{day}', '%Y-%j')
-                count_date = doy.strftime('%Y-%m-%d')
+                count_date = doy.strftime(STORING_FORMAT)
             count = get_count(user, count_date, chat_id)  # Get the count for each day in month or year
             cumulative_count += count
             cumulative_counts.append(cumulative_count)
@@ -181,11 +183,130 @@ def generate_table_and_chart(rank, chat_id, time_period, date):
 
     # Set x-axis limits to include only the actual days of the month
     axes[1].set_xlim(left=1, right=days)
+
+    # Adjust layout to prevent overlapping titles
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     
     # Save the figure to an image file
-    plt.savefig(os.path.join(CHARTS_FOLDER, f'{chat_id}_{saving_date}.png'), bbox_inches='tight')
+    plt.savefig(os.path.join(CHARTS_FOLDER, f'{chat_id}_{saving_date}_chart.png'), bbox_inches='tight')
 
     # Close figure
+    plt.close(fig)
+
+def generate_statistics_chart(statistics, chat_id, time_period, date):
+    """
+    Generates charts (histogram and box plot) for monthly and yearly statistics in a single plot,
+    with added Gaussian fitting to the histogram.
+
+    Args:
+        statistics (list): List of dictionaries containing user statistics.
+        chat_id (int): ID of the chat.
+        time_period (str): Time period ('month' or 'year').
+        date (str): Date in 'month-year' or 'year' format.
+
+    Returns:
+        None
+    """
+    users = [statistic['username'] for statistic in statistics]
+    users = sorted(users)
+    counts = []
+    means = [statistic['mean'] for statistic in statistics]
+    variances = [statistic['variance'] for statistic in statistics]
+
+    today = datetime.now()
+
+    if time_period == 'month':
+        date_parts = date.split('-')
+        month = int(date_parts[0])
+        year = int(date_parts[1])
+        _, days = calendar.monthrange(year, month)
+        period_label = calendar.month_name[month] + ' ' + str(year)
+        saving_date = str(date_parts[1]) + '_' + str(date_parts[0])
+        end_date = datetime(year, month, days)
+        if year == today.year and month == today.month:
+            end_date = today
+    elif time_period == 'year':
+        year = int(date)
+        period_label = str(year)
+        saving_date = date
+        end_date = datetime(year, 12, 31)
+        if year == today.year:
+            end_date = today
+
+    user_occurrence_counts = {}
+    max_occurrence = 0
+    for user in users:
+        user_occurrence_counts[user] = {}
+        current_date = datetime(year, 1, 1) if time_period == 'year' else datetime(year, month, 1)
+        delta = timedelta(days=1)
+        while current_date <= end_date:
+            count_date_str = current_date.strftime(STORING_FORMAT)
+            count = get_count(user, count_date_str, chat_id)
+            if count not in user_occurrence_counts[user]:
+                user_occurrence_counts[user][count] = 0
+            user_occurrence_counts[user][count] += 1
+            max_occurrence = max(max_occurrence, count)
+            current_date += delta
+
+    fig, axes = plt.subplots(2, 1, figsize=(15, 12))
+
+    occurrence_values = range(max_occurrence + 1)
+    bar_width = 1
+    max_occurrence_frequency = max(max(user_occurrence_counts[user].values()) for user in users if user_occurrence_counts[user])
+
+    for i, user in enumerate(users):
+            counts = [user_occurrence_counts[user].get(val, 0) for val in occurrence_values]
+            axes[0].bar(np.array(occurrence_values) + i * bar_width, counts, bar_width, label=user, alpha=0.7)
+
+            # Gaussian fitting using pre-calculated mean and variance
+            mean = means[i]
+            std = np.sqrt(variances[i]) if variances[i] > 0 else 0 # Ensure std is non-negative
+            if std > 0: # Only plot if std is positive
+                x = np.linspace(min(occurrence_values), max(occurrence_values), 100)
+                p = norm.pdf(x, mean, std)
+                axes[0].plot(x, p * sum(counts) * bar_width, '--', linewidth=2)
+
+    axes[0].set_xticks(occurrence_values)
+    axes[0].grid(axis='y', linestyle='--', alpha=0.7)
+    max_y = ceil((max_occurrence_frequency + 1) / 5) * 5
+    axes[0].set_yticks(np.arange(0, max_y + 1, 5))
+    axes[0].set_ylim(0, max_y)
+
+    for count in range(0, max_y + 1, 1):
+        axes[0].axhline(y=count, color='#DDDDDD', linestyle='--', linewidth=0.3)
+    for count in range(5, max_y + 5, 5):
+        axes[0].axhline(y=count, color='#CCCCCC', linestyle='--', linewidth=0.7)
+    for count in range(10, max_y + 10, 10):
+        axes[0].axhline(y=count, color='#888888', linestyle='--', linewidth=1)
+
+    axes[0].set_title(f'{period_label.capitalize()}', fontsize=14)
+    axes[0].legend()
+
+    user_daily_counts = {}
+    for user in users:
+        user_daily_counts[user] = []
+        current_date = datetime(year, 1, 1) if time_period == 'year' else datetime(year, month, 1)
+        delta = timedelta(days=1)
+        while current_date <= end_date:
+            count_date_str = current_date.strftime(STORING_FORMAT)
+            count = get_count(user, count_date_str, chat_id)
+            user_daily_counts[user].append(count)
+            current_date += delta
+
+    max_user_daily_counts = max(max(user_daily_counts[user]) for user in users if user_daily_counts[user])
+
+    box_plot = axes[1].boxplot(list(user_daily_counts.values()), labels=list(user_daily_counts.keys()), patch_artist=True)
+    for i, patch in enumerate(box_plot['boxes']):
+        color = plt.cm.tab20(i)
+        patch.set_facecolor((color[0], color[1], color[2], 0.7))
+
+    axes[1].grid(axis='y', linestyle='--', alpha=0.7)
+    axes[1].set_yticks(np.arange(0, max_user_daily_counts + 2, 1))
+    axes[1].set_ylim(0, max_user_daily_counts + 1)
+
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    plt.savefig(os.path.join(CHARTS_FOLDER, f'{chat_id}_{saving_date}_stats.png'), bbox_inches='tight')
     plt.close(fig)
 
 def analyze_user_record(rows):
@@ -217,7 +338,7 @@ def analyze_user_record(rows):
             or None if no gap exists.
     """
     # Convert records into a dictionary
-    records = {datetime.strptime(date, "%Y-%m-%d"): count for date, count in rows}
+    records = {datetime.strptime(date, STORING_FORMAT): count for date, count in rows}
     
     # Finding daily max counts
     max_daily_count = max(records.values())
