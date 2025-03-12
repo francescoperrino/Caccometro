@@ -53,14 +53,15 @@ async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_
 
     message = f"Ecco la *classifica del mese {date}*:\n"
     for i, (username, total_count) in enumerate(rank, start=1):
+        escaped_username = username.replace('_', '\\_')  # Escape underscores
         if i == 1:
-            message += f"🥇 *@{username}*: {total_count}\n"
+            message += f"🥇 *@{escaped_username}*: {total_count}\n"
         elif i == 2:
-            message += f"🥈 *@{username}*: {total_count}\n"
+            message += f"🥈 *@{escaped_username}*: {total_count}\n"
         elif i == 3:
-            message += f"🥉 *@{username}*: {total_count}\n"
+            message += f"🥉 *@{escaped_username}*: {total_count}\n"
         else:
-            message += f"{i}. @{username}: {total_count}\n"
+            message += f"{i}. @{escaped_username}: {total_count}\n"
 
     generate_rank_chart(rank, update.message.chat_id, 'month', date)
 
@@ -88,14 +89,15 @@ async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_
 
     message = f"Ecco la *classifica dell\'anno {year}*:\n"
     for i, (username, total_count) in enumerate(rank, start=1):
+        escaped_username = username.replace('_', '\\_')  # Escape underscores
         if i == 1:
-            message += f"🥇 *@{username}*: {total_count}\n"
+            message += f"🥇 *@{escaped_username}*: {total_count}\n"
         elif i == 2:
-            message += f"🥈 *@{username}*: {total_count}\n"
+            message += f"🥈 *@{escaped_username}*: {total_count}\n"
         elif i == 3:
-            message += f"🥉 *@{username}*: {total_count}\n"
+            message += f"🥉 *@{escaped_username}*: {total_count}\n"
         else:
-            message += f"{i}. @{username}: {total_count}\n"
+            message += f"{i}. @{escaped_username}: {total_count}\n"
 
     generate_rank_chart(rank, update.message.chat_id, 'year', year)
 
@@ -125,16 +127,18 @@ async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT
 
     message = f"*Statistiche per il mese {date}*:\n"
     for i, statistic in enumerate(statistics, start=1):
-            if i == 1:
-                message += f"🥇 *@{statistic['username']}*: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
-            elif i == 2:
-                message += f"🥈 *@{statistic['username']}*: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
-            elif i == 3:
-                message += f"🥉 *@{statistic['username']}*: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
-            else:
-                message += f"{i}. @{statistic['username']}: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
-
-    await update.message.reply_text(message, parse_mode='Markdown')
+        escaped_username = statistic['username'].replace('_', '\\_')  # Escape underscores
+        mean = str(statistic['mean'])
+        median = str(statistic['median'])
+        variance = str(statistic['variance'])
+        if i == 1:
+            message += f"🥇 *@{escaped_username}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
+        elif i == 2:
+            message += f"🥈 *@{escaped_username}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
+        elif i == 3:
+            message += f"🥉 *@{escaped_username}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
+        else:
+            message += f"{i}. @{escaped_username}: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
 
     generate_statistics_chart(statistics, update.message.chat_id, 'month', date)
 
@@ -161,16 +165,18 @@ async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT
 
     message = f"*Statistiche per l\'anno {year}*:\n"
     for i, statistic in enumerate(statistics, start=1):
+        escaped_username = statistic['username'].replace('_', '\\_')  # Escape underscores
+        mean = str(statistic['mean'])
+        median = str(statistic['median'])
+        variance = str(statistic['variance'])
         if i == 1:
-            message += f"🥇 *@{statistic['username']}*: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
+            message += f"🥇 *@{escaped_username}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
         elif i == 2:
-            message += f"🥈 *@{statistic['username']}*: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
+            message += f"🥈 *@{escaped_username}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
         elif i == 3:
-            message += f"🥉 *@{statistic['username']}*: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
+            message += f"🥉 *@{escaped_username}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
         else:
-            message += f"{i}. @{statistic['username']}: Media: {statistic['mean']:.2f}, Mediana: {statistic['median']:.1f}, Var.: {statistic['variance']:.2f}\n"
-
-    await update.message.reply_text(message, parse_mode='Markdown')
+            message += f"{i}. @{escaped_username}: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
 
     generate_statistics_chart(statistics, update.message.chat_id, 'year', year)
 
@@ -350,7 +356,7 @@ async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYP
     if count != 0:
         await update.message.reply_text(f"@{username} il giorno {date if args else 'oggi'} hai fatto 💩 {count} {'volte' if count > 1 else 'volta'}.")
     else:
-        await update.message.reply_text(f"@{username} il {date if args else 'oggi'} non hai fatto 💩.")
+        await update.message.reply_text(f"@{username} {'il giorno ' + date if args else 'oggi'} non hai fatto .")
 
 async def costipazione_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /costipazione command."""
@@ -400,7 +406,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(response, parse_mode='Markdown')
 
     # Log for debugging
-    logging.info(f"Messaggio ricevuto da @{username}: {text} | Risposta: {response}")
+    logging.info(f"@{username} in {update._effective_message.chat.effective_name if update._effective_message.chat.type=='group' else "PVT"}: {text} | Risposta: {response}")
 
 # Error handler
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -434,6 +440,6 @@ if __name__ == '__main__':
     # Polling
     while True:
         try:
-            application.run_polling(allowed_updates = Update.MESSAGE, drop_pending_updates = True)
+            application.run_polling(allowed_updates = Update.MESSAGE)
         except Exception as e:
             logger.error(f"Error in polling: {e}")

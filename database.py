@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 import calendar
 
@@ -130,8 +130,8 @@ def get_statistics(chat_id, time_period, date):
         start_period = datetime.strptime(f'{month_str}-{year_str}', '%m-%Y').strftime(STORING_FORMAT)
         # Get the end of the month
         end_period = datetime.strptime(f'{month_str}-{year_str}', '%m-%Y')\
-                        .replace(day=calendar.monthrange(int(year_str), int(month_str))[1])\
-                        .strftime(STORING_FORMAT)
+            .replace(day=calendar.monthrange(int(year_str), int(month_str))[1])\
+            .strftime(STORING_FORMAT)
         month = int(date_parts[0])
         year = int(date_parts[1])
         _, days = calendar.monthrange(year, month)  # Number of days in the month
@@ -150,40 +150,51 @@ def get_statistics(chat_id, time_period, date):
     conn = sqlite3.connect(os.path.join(DB_FOLDER, f'{chat_id}_bot_data.db'))
     c = conn.cursor()
 
-    # Execute SQL query to get the counts for each user in the specified period
-    c.execute('''SELECT username, count
-              FROM user_count
-              WHERE date BETWEEN ? AND ?
-              ORDER BY username''', (start_period, end_period))
+    # Get the dates in the period
+    date_list = []
+    start_date = datetime.strptime(start_period, STORING_FORMAT)
+    end_date = datetime.strptime(end_period, STORING_FORMAT)
+    delta = timedelta(days=1)
+    while start_date <= end_date:
+        date_list.append(start_date.strftime(STORING_FORMAT))
+        start_date += delta
 
-    rows = c.fetchall()
+    # Get the counts for each user for each day in the period
+    user_daily_counts = {}
+    for date_str in date_list:
+        c.execute('''SELECT username, count FROM user_count WHERE date = ?''', (date_str,))
+        rows = c.fetchall()
+        for username, count in rows:
+            if username not in user_daily_counts:
+                user_daily_counts[username] = []
+            user_daily_counts[username].append(count)
+
     conn.close()
-
-    # Organize the counts into dictionaries for each user
-    user_counts = {}
-    for username, count in rows:
-        if username not in user_counts:
-            user_counts[username] = []
-        user_counts[username].append(count)
 
     # Calculate statistics for each user
     user_statistics = []
-    
-    for username, counts in user_counts.items():
-        # If there's not enough data, skip the calculation or set default values
-        if len(counts) > 1:
-            if time_period == 'month' and year == current_year and month == current_month:
-                mean = round(sum(counts) / current_days, 2)
-                median = round(np.median(counts), 1)
-                variance = round(sum((x - mean) ** 2 for x in counts) / current_days, 2)
-            elif time_period == 'year' and year == current_year:
-                mean = round(sum(counts) / current_days, 2)
-                median = round(np.median(counts), 1)
-                variance = round(sum((x - mean) ** 2 for x in counts) / current_days, 2)
-            else:
-                mean = round(sum(counts) / days, 2)
-                median = round(np.median(counts), 1)
-                variance = round(sum((x - mean) ** 2 for x in counts) / days, 2)
+    for username, counts in user_daily_counts.items():
+        if time_period == 'month':
+            expected_days = calendar.monthrange(year, month)[1]
+        else:
+            expected_days = 366 if calendar.isleap(year) else 365
+
+        if time_period == 'month' and year == current_year and month == current_month:
+            valid_days = current_days
+        elif time_period == 'year' and year == current_year:
+            valid_days = (datetime.now() - datetime(current_year, 1, 1)).days + 1
+        else:
+            valid_days = expected_days
+
+        if len(counts) < valid_days:
+            counts += [0] * (valid_days - len(counts))
+        elif len(counts) > valid_days:
+            counts = counts[:valid_days]
+
+        if counts:
+            mean = round(sum(counts) / valid_days, 2)
+            median = np.median(counts)
+            variance = round(sum((x - mean) ** 2 for x in counts) / valid_days, 2)
         else:
             median = mean = variance = 0  # If there's not enough data, set default values
 
@@ -193,7 +204,7 @@ def get_statistics(chat_id, time_period, date):
             'median': median,
             'variance': variance
         })
-    
+
     # Sort user_statistics by mean in descending order and variance in ascending order
     sorted_user_statistics = sorted(user_statistics, key=lambda x: (-x['mean'], x['variance']))
 

@@ -3,9 +3,10 @@ import calendar
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
+import matplotlib.colors as mcolors
 from database import get_count, STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER
 import locale
-from math import ceil
+from math import ceil, floor, log10
 from datetime import datetime, timedelta
 from collections import defaultdict
 import numpy as np
@@ -150,23 +151,29 @@ def generate_rank_chart(rank, chat_id, time_period, date):
         axes[1].set_xticklabels(x_labels)  # Set x-axis labels based on time_period
 
     # Set y-axis range from 0 to the next multiple of 10 after max_total
-    max_y = ceil((max_total + 1) / 10) * 10
-    axes[1].set_ylim(bottom=0, top=max_y)
+    max_y = ceil(max_total / 10) * 10
+    order_of_magnitude = 10 ** floor(log10(max_y))
 
-    # Set y-axis ticks every 10
-    axes[1].set_yticks(range(0, max_y + 10, 10))
+    tick_interval = order_of_magnitude / 2 if max_y / order_of_magnitude <= 5 else order_of_magnitude
+    
+    axes[1].set_yticks(np.arange(0, max_y + tick_interval, tick_interval))
+    axes[1].set_ylim(0, max_y)
 
     # Add horizontal lines every count
-    for count in range(0, max_y + 1, 1):
-        axes[1].axhline(y=count, color='#DDDDDD', linestyle='--', linewidth=0.3)
-    
-    # Add horizontal lines every 5 count
-    for count in range(5, max_y + 5, 5):
-        axes[1].axhline(y=count, color='#CCCCCC', linestyle='--', linewidth=0.7)
-    
-    # Add horizontal lines every 10 count
-    for count in range(10, max_y + 10, 10):
-        axes[1].axhline(y=count, color='#888888', linestyle='--', linewidth=1)
+    if tick_interval == order_of_magnitude / 2:
+        for count in np.arange(0, max_y + tick_interval / 5, tick_interval / 5):
+            axes[1].axhline(y=count, color='#DDDDDD', linestyle='--', linewidth=0.3)
+        for count in np.arange(0, max_y + tick_interval / 2, tick_interval / 2):
+            axes[1].axhline(y=count, color='#CCCCCC', linestyle='--', linewidth=0.7)
+        for count in np.arange(0, max_y + tick_interval, tick_interval):
+            axes[1].axhline(y=count, color='#888888', linestyle='--', linewidth=1)
+    else:
+        for count in np.arange(0, max_y + tick_interval / 10, tick_interval / 10):
+            axes[1].axhline(y=count, color='#DDDDDD', linestyle='--', linewidth=0.3)
+        for count in np.arange(0, max_y + tick_interval / 5, tick_interval / 5):
+            axes[1].axhline(y=count, color='#CCCCCC', linestyle='--', linewidth=0.7)
+        for count in np.arange(0, max_y + tick_interval, tick_interval):
+            axes[1].axhline(y=count, color='#888888', linestyle='--', linewidth=1)
 
     # Add vertical lines
     if time_period == 'month':
@@ -207,11 +214,9 @@ def generate_statistics_chart(statistics, chat_id, time_period, date):
     Returns:
         None
     """
-    users = [statistic['username'] for statistic in statistics]
-    users = sorted(users)
+    users_stats = sorted([(stat['username'], stat['mean'], stat['variance']) for stat in statistics])
+    users, means, variances = zip(*users_stats)
     counts = []
-    means = [statistic['mean'] for statistic in statistics]
-    variances = [statistic['variance'] for statistic in statistics]
 
     today = datetime.now()
 
@@ -252,36 +257,90 @@ def generate_statistics_chart(statistics, chat_id, time_period, date):
 
     occurrence_values = range(max_occurrence + 1)
     bar_width = 1
-    max_occurrence_frequency = max(max(user_occurrence_counts[user].values()) for user in users if user_occurrence_counts[user])
+    max_y = 0
 
+    # Gaussian fitting in axes[0]
     for i, user in enumerate(users):
-            counts = [user_occurrence_counts[user].get(val, 0) for val in occurrence_values]
-            axes[0].bar(np.array(occurrence_values) + i * bar_width, counts, bar_width, label=user, alpha=0.7)
+        counts = [user_occurrence_counts[user].get(val, 0) for val in occurrence_values]
+        mean = means[i]
+        std = np.sqrt(variances[i]) if variances[i] > 0 else 0
+        if std > 0:
+            x = np.linspace(min(occurrence_values), max(occurrence_values), 100)
+            p = norm.pdf(x, mean, std)
+            axes[0].plot(x, p * sum(counts) * bar_width, '-', label=user)
+            axes[0].fill_between(x, p * sum(counts) * bar_width, alpha=0.3)
 
-            # Gaussian fitting using pre-calculated mean and variance
-            mean = means[i]
-            std = np.sqrt(variances[i]) if variances[i] > 0 else 0 # Ensure std is non-negative
-            if std > 0: # Only plot if std is positive
-                x = np.linspace(min(occurrence_values), max(occurrence_values), 100)
-                p = norm.pdf(x, mean, std)
-                axes[0].plot(x, p * sum(counts) * bar_width, '--', linewidth=2)
+            # Add vertical line at the mean
+            gaussian_value_at_mean = norm.pdf(mean, mean, std) * sum(counts) * bar_width
+            axes[0].vlines(mean, 0, gaussian_value_at_mean, linestyles='--', colors=f'C{i}', linewidth=2)
 
-    axes[0].set_xticks(occurrence_values)
     axes[0].grid(axis='y', linestyle='--', alpha=0.7)
-    max_y = ceil((max_occurrence_frequency + 1) / 5) * 5
-    axes[0].set_yticks(np.arange(0, max_y + 1, 5))
+
+    # Calculate max height of gaussian curves
+    max_gaussian_height = 0
+    for i, user in enumerate(users):
+        counts = [user_occurrence_counts[user].get(val, 0) for val in occurrence_values]
+        mean = means[i]
+        std = np.sqrt(variances[i]) if variances[i] > 0 else 0
+        if std > 0:
+            x = np.linspace(min(occurrence_values), max(occurrence_values), 100)
+            p = norm.pdf(x, mean, std)
+            max_gaussian_height = max(max_gaussian_height, max(p * sum(counts) * bar_width))
+
+    # Calculate max y value for the plot
+    if max_gaussian_height > 0:
+        max_y = ceil(max_gaussian_height / 5) * 5
+    order_of_magnitude = 10 ** floor(log10(max_y))
+
+    tick_interval = order_of_magnitude / 2 if max_y / order_of_magnitude <= 5 else order_of_magnitude
+
+    axes[0].set_yticks(np.arange(0, max_y + tick_interval, tick_interval))
     axes[0].set_ylim(0, max_y)
 
-    for count in range(0, max_y + 1, 1):
-        axes[0].axhline(y=count, color='#DDDDDD', linestyle='--', linewidth=0.3)
-    for count in range(5, max_y + 5, 5):
-        axes[0].axhline(y=count, color='#CCCCCC', linestyle='--', linewidth=0.7)
-    for count in range(10, max_y + 10, 10):
-        axes[0].axhline(y=count, color='#888888', linestyle='--', linewidth=1)
+    # Adapt hline to order of magnitude
+    if tick_interval == order_of_magnitude / 2:
+        for count in np.arange(0, max_y + tick_interval / 5, tick_interval / 5):
+            axes[0].axhline(y=count, color='#DDDDDD', linestyle='--', linewidth=0.3)
+        for count in np.arange(0, max_y + tick_interval / 2, tick_interval / 2):
+            axes[0].axhline(y=count, color='#CCCCCC', linestyle='--', linewidth=0.7)
+        for count in np.arange(0, max_y + tick_interval, tick_interval):
+            axes[0].axhline(y=count, color='#888888', linestyle='--', linewidth=1)
+    else:
+        for count in np.arange(0, max_y + tick_interval / 10, tick_interval / 10):
+            axes[0].axhline(y=count, color='#DDDDDD', linestyle='--', linewidth=0.3)
+        for count in np.arange(0, max_y + tick_interval / 5, tick_interval / 5):
+            axes[0].axhline(y=count, color='#CCCCCC', linestyle='--', linewidth=0.7)
+        for count in np.arange(0, max_y + tick_interval, tick_interval):
+            axes[0].axhline(y=count, color='#888888', linestyle='--', linewidth=1)
+
+    axes[0].set_xlim(min(occurrence_values), max(occurrence_values))
+
+    # Add mean values as x-axis ticks
+    xticks = sorted(list(set(list(occurrence_values) + list(means))))
+    axes[0].set_xticks(xticks)
+
+    tick_labels = []
+    for tick in xticks:
+        if tick in means:
+            tick_labels.append(f'{tick:.2f}')
+        else:
+            tick_labels.append(str(int(tick)))
+
+    axes[0].set_xticklabels(tick_labels, rotation=0, ha='center')
+
+    # Set colors and font sizes for mean ticks
+    for tick in xticks:
+        if tick in means:
+            i = means.index(tick)
+            for text in axes[0].get_xticklabels():
+                if text.get_text() == f'{tick:.2f}':
+                    text.set_color(f'C{i}')
+                    text.set_fontsize(6)
 
     axes[0].set_title(f'{period_label.capitalize()}', fontsize=14)
     axes[0].legend()
 
+    # Box plot in axes[1]
     user_daily_counts = {}
     for user in users:
         user_daily_counts[user] = []
@@ -295,10 +354,26 @@ def generate_statistics_chart(statistics, chat_id, time_period, date):
 
     max_user_daily_counts = max(max(user_daily_counts[user]) for user in users if user_daily_counts[user])
 
-    box_plot = axes[1].boxplot(list(user_daily_counts.values()), labels=list(user_daily_counts.keys()), patch_artist=True)
-    for i, patch in enumerate(box_plot['boxes']):
-        color = plt.cm.tab20(i)
-        patch.set_facecolor((color[0], color[1], color[2], 0.7))
+    box_plot = axes[1].boxplot(list(user_daily_counts.values()), labels=users, patch_artist=True, sym='x')
+
+    for i, (user, patch) in enumerate(zip(users, box_plot['boxes'])):
+        color = f'C{i}'
+        rgba_color = mcolors.to_rgba(color)
+        patch.set_facecolor((rgba_color[0], rgba_color[1], rgba_color[2], 0.5))
+        patch.set_edgecolor(color)
+        patch.set_linewidth(1.5)
+
+        box_plot['whiskers'][i * 2].set_color(color)
+        box_plot['whiskers'][i * 2 + 1].set_color(color)
+
+        box_plot['caps'][i*2].set_color(color)
+        box_plot['caps'][i*2+1].set_color(color)
+
+        box_plot['fliers'][i].set_markeredgecolor(color)
+        box_plot['fliers'][i].set_markerfacecolor(color)
+    
+    for median in box_plot['medians']:
+        median.set(color='black', linewidth=1.5)
 
     axes[1].grid(axis='y', linestyle='--', alpha=0.7)
     axes[1].set_yticks(np.arange(0, max_user_daily_counts + 2, 1))
