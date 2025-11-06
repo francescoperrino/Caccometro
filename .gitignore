@@ -7,3 +7,4 @@ charts/
 charts/*.png
 *.log
 __pycache__/
+.vscode/

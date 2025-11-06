@@ -5,6 +5,9 @@ from datetime import datetime
 import pytz
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import re
+from flask import Flask, request, Response
+
 from database import STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER, init_database, get_count, update_count, get_rank, get_statistics, get_record, get_constipation_days
 from utils import generate_rank_chart, generate_statistics_chart, analyze_user_record
 
@@ -13,7 +16,7 @@ log_filename = "caccometro.log"
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                     level=logging.INFO,
                     handlers=[
-                        logging.FileHandler(log_filename, encoding = 'utf-8'),
+                        logging.FileHandler(log_filename, encoding='utf-8'),
                         logging.StreamHandler()
                     ])
 # Set higher logging level for httpx to avoid all GET and POST requests being logged
@@ -24,16 +27,22 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 BOT_USERNAME = os.environ.get('BOT_USERNAME')
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
+RUN_MODE = os.environ.get('RUN_MODE', 'POLLING').upper()
 
 # Command handlers
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /start command."""
+    username: str = update.message.from_user.username
+    logger.info(f"Command received: /start from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     init_database(update.message.chat_id)
     await update.message.reply_text("Ciao, sono 🤖 *Caccometro* 🤖.\n"
                                     "Manda 💩 quando hai fatto il tuo dovere.", parse_mode='Markdown')
+    logger.info(f"Command /start completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /classifica_mese command."""
+    username: str = update.message.from_user.username
+    logger.info(f"Command received: /classifica_mese from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
         try:
@@ -72,9 +81,12 @@ async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_
         await update.message.reply_photo(chart)
 
     await update.message.reply_text(message, parse_mode='Markdown')
+    logger.info(f"Command /classifica_mese completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /classifica_anno command."""
+    username: str = update.message.from_user.username
+    logger.info(f"Command received: /classifica_anno from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
         year = args[0]
@@ -105,9 +117,12 @@ async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_
         await update.message.reply_photo(chart)
 
     await update.message.reply_text(message, parse_mode='Markdown')
+    logger.info(f"Command /classifica_anno completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /statistiche_mese command."""
+    username: str = update.message.from_user.username
+    logger.info(f"Command received: /statistiche_mese from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
         try:
@@ -148,9 +163,12 @@ async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT
         await update.message.reply_photo(stats)
 
     await update.message.reply_text(message, parse_mode='Markdown')
+    logger.info(f"Command /statistica_mese completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /statistiche_anno command."""
+    username: str = update.message.from_user.username
+    logger.info(f"Command received: /statistiche_anno from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
         year = args[0]
@@ -184,9 +202,12 @@ async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT
         await update.message.reply_photo(stats)
 
     await update.message.reply_text(message, parse_mode='Markdown')
+    logger.info(f"Command /statistica_anno completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /record command."""
+    username: str = update.message.from_user.username
+    logger.info(f"Command received: /record from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
         username = args[0][1:]
@@ -213,9 +234,12 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
     await update.message.reply_text(message, parse_mode='Markdown')
+    logger.info(f"Command /record completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /aggiungi command."""
+    username: str = update.message.from_user.username
+    logger.info(f"Command received: /aggiungi from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     
     if len(args) != 1 and len(args) != 2:
@@ -255,9 +279,12 @@ async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     update_count(username, selected_date, count + 1, update.message.chat_id)
     await update.message.reply_text(
         f"Il conteggio di @{username} nel giorno {date} è stato aggiornato a {count + 1} 💩.")
+    logger.info(f"Command /aggiungi completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def togli_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /togli command."""
+    username: str = update.message.from_user.username
+    logger.info(f"Command received: /togli from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     
     if len(args) != 1 and len(args) != 2:
@@ -301,9 +328,12 @@ async def togli_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(
             f"Il conteggio di @{username} nel giorno {date} non può essere aggiornato poiché era già 0 💩.")
+    logger.info(f"Command /togli completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /conto_giorno command."""
+    username: str = update.message.from_user.username
+    logger.info(f"Command received: /conta_giorno from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     
     if len(args) != 0 and len(args) != 1 and len(args) != 2:
@@ -357,9 +387,12 @@ async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text(f"@{username} il giorno {date if args else 'oggi'} hai fatto 💩 {count} {'volte' if count > 1 else 'volta'}.")
     else:
         await update.message.reply_text(f"@{username} {'il giorno ' + date if args else 'oggi'} non hai fatto .")
+    logger.info(f"Command /conta_giorno completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def costipazione_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /costipazione command."""
+    username: str = update.message.from_user.username
+    logger.info(f"Command received: /costipazione from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
         username = args[0][1:]
@@ -375,71 +408,140 @@ async def costipazione_command(update: Update, context: ContextTypes.DEFAULT_TYP
             await update.message.reply_text(f"@{username} non fai 💩 da {constipation_days} {'giorni' if constipation_days > 1 else 'giorno'}.")
     else:
         await update.message.reply_text(f"@{username} non ci sono dati sulla costipazione.")
+    logger.info(f"Command /costipazione completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 # Messages handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for processing messages."""
-    # Check if the message contains text and is not empty
-    if not update.message or not update.message.text:
-        return
+    if update.message:
+        if update.message.text:
+            text: str = update.message.text.lower().strip()
+            username: str = update.message.from_user.username
+            response: str = ""
 
-    text: str = update.message.text.lower().strip()
-    username: str = update.message.from_user.username
-    response: str = ""
+            if not text: # Check for empty message
+                logger.info(f"@{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Messaggio vuoto.")
+                return # Exit the function, no further processing needed
 
-    if BOT_USERNAME in text:
-        response = "Cosa vuoi dirmi?"
+            if BOT_USERNAME in text:
+                response = "Cosa vuoi dirmi?"
+            elif "💩" in text or "🚽" in text:
+                today = datetime.now(pytz.timezone("Europe/Rome")).strftime(STORING_FORMAT)
+                chat_id = update.message.chat_id
 
-    elif "💩" in text:
-        today = datetime.now(pytz.timezone("Europe/Rome")).strftime(STORING_FORMAT)
-        chat_id = update.message.chat_id
+                count = get_count(username, today, chat_id) + 1
+                update_count(username, today, count, chat_id)
 
-        count = get_count(username, today, chat_id) + 1
-        update_count(username, today, count, chat_id)
+                response = f"Complimenti @{username}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
+            elif re.search(r'\brun\b', text):
+                response = f"@{username} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu."
 
-        response = f"Complimenti @{username}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
+            if response:
+                await update.message.reply_text(response, parse_mode='Markdown')
 
-    elif "run" in text:
-        response = f"@{username} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu."
+            # Log for debugging
+            logger.info(f"@{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: {text} | Risposta: {response}")
+        elif update.message.sticker:
+            username: str = update.message.from_user.username
+            emoji = update.message.sticker.emoji # Get the emoji from sticker
+            if emoji == "💩" or emoji == "🚽":
+                today = datetime.now(pytz.timezone("Europe/Rome")).strftime(STORING_FORMAT)
+                chat_id = update.message.chat_id
 
-    if response:
-        await update.message.reply_text(response, parse_mode='Markdown')
+                count = get_count(username, today, chat_id) + 1
+                update_count(username, today, count, chat_id)
 
-    # Log for debugging
-    logging.info(f"@{username} in {update._effective_message.chat.effective_name if update._effective_message.chat.type=='group' else "PVT"}: {text} | Risposta: {response}")
+                response = f"Complimenti @{username}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
+                await update.message.reply_text(response, parse_mode='Markdown')
+                logger.info(f"@{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Sticker  | Risposta: {response}")
+            else:
+                logger.info(f"@{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Sticker {emoji} | Emoji non gestita.")
+        else:
+            logger.info(f"Update type not managed")
+    else:
+        logger.info(f"Update type not managed")
 
 # Error handler
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for logging errors."""
-    logger.error(f'Update "{update}" caused error "{context.error}"')
+    if update:
+        logger.error(f'Update "{update.update_id}" caused error "{context.error}"')
+    else:
+        logger.error(f'Error: "{context.error}"')
+
+# Create the Application instance
+application = Application.builder().token(BOT_TOKEN).build()
+
+# Add handlers
+application.add_handler(CommandHandler('start', start_command))
+application.add_handler(CommandHandler('classifica_mese', classifica_mese_command))
+application.add_handler(CommandHandler('classifica_anno', classifica_anno_command))
+application.add_handler(CommandHandler('statistiche_mese', statistiche_mese_command))
+application.add_handler(CommandHandler('statistiche_anno', statistiche_anno_command))
+application.add_handler(CommandHandler('record', record_command))
+application.add_handler(CommandHandler('aggiungi', aggiungi_command))
+application.add_handler(CommandHandler('togli', togli_command))
+application.add_handler(CommandHandler('conto_giorno', conto_giorno_command))
+application.add_handler(CommandHandler('costipazione', costipazione_command))
+
+# Messages
+application.add_handler(MessageHandler(filters.ALL, handle_message))
+
+# Errors
+application.add_error_handler(error)
+
+app = Flask(__name__)
+
+@app.route(f'/{BOT_TOKEN}', methods=['POST'])
+async def webhook():
+    """This function receives the update from Telegram and passes it to the library."""
+    logger.info("Webhook received...")
+    try:
+        # 1. Start the application)
+        await application.initialize()
+
+        # 2. Process the update as before
+        update = Update.de_json(request.get_json(force=True), application.bot)
+        await application.process_update(update)
+
+        # Respond to Telegram that everything is ok
+        return Response('ok', status=200)
+    
+    except Exception as e:
+        logger.error(f"Error in webhook: {e}")
+        return Response('error', status=500)
+    
+    finally:
+        # 3. Terminate the application
+        # This "turns off" the bot and cleans up resources,
+        # both in case of success (try) and in case of error (except).
+        await application.shutdown()
+
+@app.route('/')
+def index():
+    """Welcome page, useful for testing if the web app works."""
+    return 'Ciao! Sono il Caccometro Bot. Il mio webhook è pronto.'
 
 # Main function to handle bot interactions
-"""Main function to start the bot."""
 if __name__ == '__main__':
-    # Create the Application instance
-    application = Application.builder().token(BOT_TOKEN).build()
 
-    # Add handlers
-    application.add_handler(CommandHandler('start', start_command))
-    application.add_handler(CommandHandler('classifica_mese', classifica_mese_command))
-    application.add_handler(CommandHandler('classifica_anno', classifica_anno_command))
-    application.add_handler(CommandHandler('statistiche_mese', statistiche_mese_command))
-    application.add_handler(CommandHandler('statistiche_anno', statistiche_anno_command))
-    application.add_handler(CommandHandler('record', record_command))
-    application.add_handler(CommandHandler('aggiungi', aggiungi_command))
-    application.add_handler(CommandHandler('togli', togli_command))
-    application.add_handler(CommandHandler('conto_giorno', conto_giorno_command))
-    application.add_handler(CommandHandler('costipazione', costipazione_command))
+    # Run the bot in the selected mode
+    if RUN_MODE == 'WEBHOOK':
+        logger.info("Starting bot in WEBHOOK mode...")
 
-    # Messages
-    application.add_handler(MessageHandler(filters.TEXT, handle_message))
+        pass
 
-    # Errors
-    application.add_error_handler(error)
+    elif RUN_MODE == 'POLLING':
+        logger.info("Starting bot in POLLING mode...")
 
-    # Polling
-    while True:
-        try:
-            application.run_polling(allowed_updates = Update.MESSAGE)
-        except Exception as e:
-            logger.error(f"Error in polling: {e}")
+        while True:
+            try:
+                application.run_polling(allowed_updates = Update.MESSAGE)
+                break
+
+            except KeyboardInterrupt:
+                logger.info("Bot stopped by user.")
+                break
+
+            except Exception as e:
+                logger.error(f"Error in polling: {e}")

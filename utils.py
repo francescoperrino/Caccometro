@@ -338,7 +338,7 @@ def generate_statistics_chart(statistics, chat_id, time_period, date):
                     text.set_fontsize(6)
 
     axes[0].set_title(f'{period_label.capitalize()}', fontsize=14)
-    axes[0].legend()
+    axes[0].legend(loc='upper right')
 
     # Box plot in axes[1]
     user_daily_counts = {}
