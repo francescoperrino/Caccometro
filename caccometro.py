@@ -386,7 +386,7 @@ async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYP
     if count != 0:
         await update.message.reply_text(f"@{username} il giorno {date if args else 'oggi'} hai fatto 💩 {count} {'volte' if count > 1 else 'volta'}.")
     else:
-        await update.message.reply_text(f"@{username} {'il giorno ' + date if args else 'oggi'} non hai fatto .")
+        await update.message.reply_text(f"@{username} {'il giorno ' + date if args else 'oggi'} non hai fatto 💩.")
     logger.info(f"Command /conta_giorno completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def costipazione_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

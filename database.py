@@ -141,7 +141,7 @@ def get_statistics(chat_id, time_period, date):
         start_period = datetime.strptime(f'01-01-{date}', '%d-%m-%Y').strftime(STORING_FORMAT)
         end_period = datetime.strptime(f'31-12-{date}', '%d-%m-%Y').strftime(STORING_FORMAT)
         year = int(date)
-        days = 365 if calendar.isleap(int(date)) else 366  # Number of days in a year
+        days = 366 if calendar.isleap(int(date)) else 365  # Number of days in a year
         current_days = (datetime.now() - datetime(current_year, 1, 1)).days + 1
     else:
         raise ValueError("Invalid time_period. It should be 'month' or 'year'.")
