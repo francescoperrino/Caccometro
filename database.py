@@ -58,7 +58,7 @@ def get_count(username, date, chat_id):
                 return 0
     
     # Execute SQL query to retrieve the count for the specified user and date or month
-    c.execute('SELECT SUM(count) FROM user_count WHERE username = ? AND date BETWEEN ? AND ?', (username, start_date, end_date))
+    c.execute('SELECT SUM(count) FROM user_count WHERE username = ? COLLATE NOCASE AND date BETWEEN ? AND ?', (username, start_date, end_date))
     row = c.fetchone()
     conn.close()
     
@@ -74,8 +74,14 @@ def update_count(username, date, count, chat_id):
     # Connect to the database
     conn = sqlite3.connect(os.path.join(DB_FOLDER, f'{chat_id}_bot_data.db'))
     c = conn.cursor()
+    # Telegram usernames are case-insensitive: if the user already exists
+    # (with any spelling) keep the stored spelling, so it is not duplicated in rankings.
+    c.execute('SELECT username FROM user_count WHERE username = ? COLLATE NOCASE LIMIT 1', (username,))
+    existing = c.fetchone()
+    if existing:
+        username = existing[0]
     # Delete existing count for the specified user and date
-    c.execute('DELETE FROM user_count WHERE username = ? AND date = ?', (username, date))
+    c.execute('DELETE FROM user_count WHERE username = ? COLLATE NOCASE AND date = ?', (username, date))
     # If the count is greater than 0, insert the new count
     if count > 0:
         c.execute('INSERT INTO user_count (username, date, count) VALUES (?, ?, ?)', (username, date, count))
@@ -221,7 +227,7 @@ def get_record(username, chat_id):
     # Execute SQL query to get the records for the specific user
     c.execute('''SELECT date, count
               FROM user_count
-              WHERE username = ?
+              WHERE username = ? COLLATE NOCASE
               ORDER BY date''', (username,))
 
     rows = c.fetchall()
@@ -239,7 +245,7 @@ def get_constipation_days(username, chat_id):
     # Execute SQL query to get the constipation days for the specific user
     c.execute('''SELECT date
                  FROM user_count
-                 WHERE username = ? AND count > 0
+                 WHERE username = ? COLLATE NOCASE AND count > 0
                  ORDER BY date DESC
                  LIMIT 1''', (username,))
     
