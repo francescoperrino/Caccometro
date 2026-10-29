@@ -56,7 +56,7 @@ def generate_rank_chart(rank, chat_id, time_period, date):
     elif time_period == 'year':
         # Parse the input date for yearly rank (format: year)
         year = int(date)
-        days = 365 if calendar.isleap(year) else 366  # Number of days in a year
+        days = 366 if calendar.isleap(year) else 365  # Number of days in a year
         steps = 12  # Number of months in a year
         period_label = str(year)
         saving_date = date
@@ -151,7 +151,7 @@ def generate_rank_chart(rank, chat_id, time_period, date):
         axes[1].set_xticklabels(x_labels)  # Set x-axis labels based on time_period
 
     # Set y-axis range from 0 to the next multiple of 10 after max_total
-    max_y = ceil(max_total / 10) * 10
+    max_y = max(10, ceil(max_total / 10) * 10)  # at least 10: avoids log10(0) when there are no counts
     order_of_magnitude = 10 ** floor(log10(max_y))
 
     tick_interval = order_of_magnitude / 2 if max_y / order_of_magnitude <= 5 else order_of_magnitude
@@ -255,7 +255,7 @@ def generate_statistics_chart(statistics, chat_id, time_period, date):
 
     fig, axes = plt.subplots(2, 1, figsize=(15, 12))
 
-    occurrence_values = range(max_occurrence + 1)
+    occurrence_values = range(max(max_occurrence, 1) + 1)  # at least 0..1: avoids a zero-width x axis
     bar_width = 1
     max_y = 0
 
@@ -290,6 +290,8 @@ def generate_statistics_chart(statistics, chat_id, time_period, date):
     # Calculate max y value for the plot
     if max_gaussian_height > 0:
         max_y = ceil(max_gaussian_height / 5) * 5
+    else:
+        max_y = 5  # no drawable curve (zero variance): minimum scale, avoids log10(0)
     order_of_magnitude = 10 ** floor(log10(max_y))
 
     tick_interval = order_of_magnitude / 2 if max_y / order_of_magnitude <= 5 else order_of_magnitude
@@ -338,7 +340,8 @@ def generate_statistics_chart(statistics, chat_id, time_period, date):
                     text.set_fontsize(6)
 
     axes[0].set_title(f'{period_label.capitalize()}', fontsize=14)
-    axes[0].legend(loc='upper right')
+    if axes[0].get_legend_handles_labels()[0]:  # no legend when there are no curves
+        axes[0].legend(loc='upper right')
 
     # Box plot in axes[1]
     user_daily_counts = {}
