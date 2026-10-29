@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.colors as mcolors
-from database import get_count, STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER
+from database import get_count, now_rome, STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER
 import locale
 from math import ceil, floor, log10
 from datetime import datetime, timedelta
@@ -218,7 +218,7 @@ def generate_statistics_chart(statistics, chat_id, time_period, date):
     users, means, variances = zip(*users_stats)
     counts = []
 
-    today = datetime.now()
+    today = now_rome()
 
     if time_period == 'month':
         date_parts = date.split('-')
@@ -427,7 +427,7 @@ def analyze_user_record(rows):
     for date, count in records.items():
         monthly_counts[(date.year, date.month)] += count
 
-    now = datetime.now()
+    now = now_rome()
     current_month = (now.year, now.month)
 
     # Finding the max and min monthly counts excluding the current month

@@ -3,12 +3,22 @@ import sqlite3
 from datetime import datetime, timedelta
 import numpy as np
 import calendar
+import pytz
 
 # Configurations
 STORING_FORMAT = "%Y-%m-%d"  # Format used for storing dates in the database
 DISPLAY_FORMAT = "%d-%m-%Y"  # Format used for displaying dates in messages
 DB_FOLDER = 'db'
 CHARTS_FOLDER = 'charts'
+ROME_TZ = pytz.timezone('Europe/Rome')
+
+def now_rome():
+    """Current date/time in Rome, without tzinfo (comparable with the naive datetimes used in the code).
+
+    The server runs in UTC: datetime.now() would return the wrong day
+    between 22:00/23:00 and midnight in Italy.
+    """
+    return datetime.now(ROME_TZ).replace(tzinfo=None)
 
 # Function to initialize the database
 def init_database(chat_id):
@@ -127,8 +137,8 @@ def get_rank(chat_id, time_period, date):
 # Function to get statistics of users based on the count of poop emojis
 def get_statistics(chat_id, time_period, date):
     """Get the statistics of users based on the count of poop emojis for the specified time period."""
-    current_month = datetime.now().month
-    current_year = datetime.now().year
+    current_month = now_rome().month
+    current_year = now_rome().year
     if time_period == 'month':
         # Parse the input date for monthly rank (format: month-year)
         date_parts = date.split('-')
@@ -142,14 +152,14 @@ def get_statistics(chat_id, time_period, date):
         month = int(date_parts[0])
         year = int(date_parts[1])
         _, days = calendar.monthrange(year, month)  # Number of days in the month
-        current_days = datetime.now().day
+        current_days = now_rome().day
     elif time_period == 'year':
         # Parse the input date for yearly rank (format: year)
         start_period = datetime.strptime(f'01-01-{date}', '%d-%m-%Y').strftime(STORING_FORMAT)
         end_period = datetime.strptime(f'31-12-{date}', '%d-%m-%Y').strftime(STORING_FORMAT)
         year = int(date)
         days = 366 if calendar.isleap(int(date)) else 365  # Number of days in a year
-        current_days = (datetime.now() - datetime(current_year, 1, 1)).days + 1
+        current_days = (now_rome() - datetime(current_year, 1, 1)).days + 1
     else:
         raise ValueError("Invalid time_period. It should be 'month' or 'year'.")
 
@@ -189,7 +199,7 @@ def get_statistics(chat_id, time_period, date):
         if time_period == 'month' and year == current_year and month == current_month:
             valid_days = current_days
         elif time_period == 'year' and year == current_year:
-            valid_days = (datetime.now() - datetime(current_year, 1, 1)).days + 1
+            valid_days = (now_rome() - datetime(current_year, 1, 1)).days + 1
         else:
             valid_days = expected_days
 
@@ -254,7 +264,7 @@ def get_constipation_days(username, chat_id):
     
     if last_day:
         last_day = datetime.strptime(last_day[0], "%Y-%m-%d").date()
-        today = datetime.today().date()
+        today = now_rome().date()
         
         return (today - last_day).days
     

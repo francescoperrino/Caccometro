@@ -519,7 +519,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 logger.info(f"@{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Messaggio vuoto.")
                 return # Exit the function, no further processing needed
 
-            if BOT_USERNAME in text:
+            if BOT_USERNAME and BOT_USERNAME.lower() in text:
                 response = "Cosa vuoi dirmi?"
             elif "💩" in text or "🚽" in text:
                 if not username:
@@ -566,9 +566,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for logging errors."""
     if update:
-        logger.error(f'Update "{update.update_id}" caused error "{context.error}"')
+        logger.error(f'Update "{update.update_id}" caused error "{context.error}"', exc_info=context.error)
     else:
-        logger.error(f'Error: "{context.error}"')
+        logger.error(f'Error: "{context.error}"', exc_info=context.error)
 
 # Create the Application instance
 application = Application.builder().token(BOT_TOKEN).build()
@@ -637,7 +637,7 @@ if __name__ == '__main__':
 
         while True:
             try:
-                application.run_polling(allowed_updates = Update.MESSAGE)
+                application.run_polling(allowed_updates=[Update.MESSAGE])
                 break
 
             except KeyboardInterrupt:
