@@ -3,6 +3,7 @@ from datetime import datetime
 
 import database
 import utils
+from conftest import uid
 
 
 def test_now_rome_is_naive_and_in_rome_time():
@@ -13,7 +14,7 @@ def test_now_rome_is_naive_and_in_rome_time():
 def test_constipation_days_uses_rome_today(seed, chat_id, monkeypatch):
     seed({"mario": {"2024-03-10": 1}})
     monkeypatch.setattr(database, "now_rome", lambda: datetime(2024, 3, 13, 0, 30))
-    assert database.get_constipation_days("mario", chat_id) == 3
+    assert database.get_constipation_days(uid("mario"), chat_id) == 3
 
 
 def test_statistics_current_month_uses_rome_today(seed, chat_id, monkeypatch):

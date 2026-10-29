@@ -8,7 +8,9 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 import re
 from flask import Flask, request, Response
 
-from database import STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER, init_database, get_count, update_count, get_rank, get_statistics, get_record, get_constipation_days
+from database import (STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER, User, init_database, upsert_user,
+                      find_user_by_username, get_count, update_count, get_rank, get_statistics, get_record,
+                      get_constipation_days)
 from utils import generate_rank_chart, generate_statistics_chart, analyze_user_record
 
 # Enable logging
@@ -29,30 +31,34 @@ BOT_USERNAME = os.environ.get('BOT_USERNAME')
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 RUN_MODE = os.environ.get('RUN_MODE', 'POLLING').upper()
 
-NO_USERNAME_MSG = ("Non hai uno username Telegram: impostalo nelle impostazioni "
-                   "(Username) per poter usare Caccometro.")
+def display_name_of(tg_user):
+    """Name shown for users without a username: their full name, falling back to the numeric ID."""
+    return tg_user.full_name or str(tg_user.id)
 
 
-def sender_username(update: Update):
-    """Sender's username, or None if the user or the username is missing."""
-    user = update.message.from_user if update.message else None
-    return user.username if user and user.username else None
+def register_user(chat_id, tg_user):
+    """Store the current username/name of a Telegram user and return it as a database.User."""
+    user = User(tg_user.id, tg_user.username, display_name_of(tg_user))
+    upsert_user(chat_id, user.user_id, user.username, user.display_name)
+    return user
 
 
-async def require_username(update: Update):
-    """Return the sender's username; if missing, notify the user and return None."""
-    user = update.message.from_user if update.message else None
-    if user is None:
+def register_sender(update: Update):
+    """Record the sender of the message in the users table and return it.
+
+    Returns None when there is no usable sender (channel posts, anonymous admins, bots).
+    """
+    tg_user = update.message.from_user if update.message else None
+    if tg_user is None or tg_user.is_bot:
         return None
-    if not user.username:
-        await update.message.reply_text(NO_USERNAME_MSG)
-        return None
-    return user.username
+    return register_user(update.message.chat_id, tg_user)
 
 
 def escape_md(name):
-    """Escape a name for Telegram Markdown; tolerate missing names (legacy rows with a NULL username)."""
-    return (name or "sconosciuto").replace('_', '\\_')
+    """Escape a name for Telegram (legacy) Markdown."""
+    for char in ('_', '*', '`', '['):
+        name = name.replace(char, '\\' + char)
+    return name
 
 
 def parse_username_arg(arg):
@@ -77,11 +83,52 @@ def parse_year_arg(arg):
     return None
 
 
+def parse_date_arg(arg):
+    """'DD-MM-YYYY' -> (display date, storing date); raises ValueError if invalid or in the future."""
+    parsed_date = datetime.strptime(arg, DISPLAY_FORMAT)
+    selected_date = parsed_date.strftime(STORING_FORMAT)
+    today = datetime.now(pytz.timezone('Europe/Rome')).strftime(STORING_FORMAT)
+    if selected_date > today:
+        raise ValueError("La data selezionata è nel futuro.")
+    return arg, selected_date
+
+
+def resolve_target(update: Update, args, sender, usage):
+    """Work out whose data a command refers to.
+
+    Order: an explicit '@username' as first argument (it must belong to a user the bot has already
+    seen), then the author of the message being replied to, then the sender.
+    Returns (target, remaining_args, error_message); target is None when there is an error.
+    """
+    chat_id = update.message.chat_id
+    if args and args[0].startswith('@'):
+        username = parse_username_arg(args[0])
+        if username is None:
+            return None, args, f"Formato non valido. Usa: {usage}"
+        target = find_user_by_username(chat_id, username)
+        if target is None:
+            return None, args, (f"Non conosco @{username}: deve scrivere almeno un messaggio nel gruppo "
+                                "(oppure rispondi a un suo messaggio).")
+        return target, args[1:], None
+    replied = update.message.reply_to_message
+    if replied is not None and replied.from_user is not None and not replied.from_user.is_bot:
+        return register_user(chat_id, replied.from_user), args, None
+    return sender, args, None
+
+
+def record_poop(sender, chat_id):
+    """Add one 💩 to today's count of the sender and return the message to reply with."""
+    today = datetime.now(pytz.timezone("Europe/Rome")).strftime(STORING_FORMAT)
+    count = get_count(sender.user_id, today, chat_id) + 1
+    update_count(sender.user_id, today, count, chat_id)
+    return f"Complimenti {escape_md(sender.mention)}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
+
+
 # Command handlers
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /start command."""
-    username = sender_username(update)
-    logger.info(f"Command received: /start from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    sender = register_sender(update)
+    logger.info(f"Command received: /start from {sender.mention if sender else None} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     init_database(update.message.chat_id)
     await update.message.reply_text("Ciao, sono 🤖 *Caccometro* 🤖.\n"
                                     "Manda 💩 quando hai fatto il tuo dovere.", parse_mode='Markdown')
@@ -89,10 +136,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /classifica_mese command."""
-    username = await require_username(update)
-    if username is None:
+    sender = register_sender(update)
+    if sender is None:
         return
-    logger.info(f"Command received: /classifica_mese from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command received: /classifica_mese from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
         date = parse_month_arg(args[0])
@@ -109,16 +156,16 @@ async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_
         return
 
     message = f"Ecco la *classifica del mese {date}*:\n"
-    for i, (username, total_count) in enumerate(rank, start=1):
-        escaped_username = escape_md(username)
+    for i, (user, total_count) in enumerate(rank, start=1):
+        escaped_name = escape_md(user.mention)
         if i == 1:
-            message += f"🥇 *@{escaped_username}*: {total_count}\n"
+            message += f"🥇 *{escaped_name}*: {total_count}\n"
         elif i == 2:
-            message += f"🥈 *@{escaped_username}*: {total_count}\n"
+            message += f"🥈 *{escaped_name}*: {total_count}\n"
         elif i == 3:
-            message += f"🥉 *@{escaped_username}*: {total_count}\n"
+            message += f"🥉 *{escaped_name}*: {total_count}\n"
         else:
-            message += f"{i}. @{escaped_username}: {total_count}\n"
+            message += f"{i}. {escaped_name}: {total_count}\n"
 
     generate_rank_chart(rank, update.message.chat_id, 'month', date)
 
@@ -133,10 +180,10 @@ async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_
 
 async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /classifica_anno command."""
-    username = await require_username(update)
-    if username is None:
+    sender = register_sender(update)
+    if sender is None:
         return
-    logger.info(f"Command received: /classifica_anno from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command received: /classifica_anno from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
         year = parse_year_arg(args[0])
@@ -153,16 +200,16 @@ async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_
         return
 
     message = f"Ecco la *classifica dell\'anno {year}*:\n"
-    for i, (username, total_count) in enumerate(rank, start=1):
-        escaped_username = escape_md(username)
+    for i, (user, total_count) in enumerate(rank, start=1):
+        escaped_name = escape_md(user.mention)
         if i == 1:
-            message += f"🥇 *@{escaped_username}*: {total_count}\n"
+            message += f"🥇 *{escaped_name}*: {total_count}\n"
         elif i == 2:
-            message += f"🥈 *@{escaped_username}*: {total_count}\n"
+            message += f"🥈 *{escaped_name}*: {total_count}\n"
         elif i == 3:
-            message += f"🥉 *@{escaped_username}*: {total_count}\n"
+            message += f"🥉 *{escaped_name}*: {total_count}\n"
         else:
-            message += f"{i}. @{escaped_username}: {total_count}\n"
+            message += f"{i}. {escaped_name}: {total_count}\n"
 
     generate_rank_chart(rank, update.message.chat_id, 'year', year)
 
@@ -174,10 +221,10 @@ async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_
 
 async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /statistiche_mese command."""
-    username = await require_username(update)
-    if username is None:
+    sender = register_sender(update)
+    if sender is None:
         return
-    logger.info(f"Command received: /statistiche_mese from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command received: /statistiche_mese from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
         date = parse_month_arg(args[0])
@@ -195,18 +242,18 @@ async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT
 
     message = f"*Statistiche per il mese {date}*:\n"
     for i, statistic in enumerate(statistics, start=1):
-        escaped_username = escape_md(statistic['username'])
+        escaped_name = escape_md(statistic['user'].mention)
         mean = str(statistic['mean'])
         median = str(statistic['median'])
         variance = str(statistic['variance'])
         if i == 1:
-            message += f"🥇 *@{escaped_username}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
+            message += f"🥇 *{escaped_name}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
         elif i == 2:
-            message += f"🥈 *@{escaped_username}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
+            message += f"🥈 *{escaped_name}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
         elif i == 3:
-            message += f"🥉 *@{escaped_username}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
+            message += f"🥉 *{escaped_name}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
         else:
-            message += f"{i}. @{escaped_username}: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
+            message += f"{i}. {escaped_name}: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
 
     generate_statistics_chart(statistics, update.message.chat_id, 'month', date)
 
@@ -220,10 +267,10 @@ async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT
 
 async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /statistiche_anno command."""
-    username = await require_username(update)
-    if username is None:
+    sender = register_sender(update)
+    if sender is None:
         return
-    logger.info(f"Command received: /statistiche_anno from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command received: /statistiche_anno from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
         year = parse_year_arg(args[0])
@@ -241,18 +288,18 @@ async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT
 
     message = f"*Statistiche per l\'anno {year}*:\n"
     for i, statistic in enumerate(statistics, start=1):
-        escaped_username = escape_md(statistic['username'])
+        escaped_name = escape_md(statistic['user'].mention)
         mean = str(statistic['mean'])
         median = str(statistic['median'])
         variance = str(statistic['variance'])
         if i == 1:
-            message += f"🥇 *@{escaped_username}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
+            message += f"🥇 *{escaped_name}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
         elif i == 2:
-            message += f"🥈 *@{escaped_username}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
+            message += f"🥈 *{escaped_name}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
         elif i == 3:
-            message += f"🥉 *@{escaped_username}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
+            message += f"🥉 *{escaped_name}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
         else:
-            message += f"{i}. @{escaped_username}: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
+            message += f"{i}. {escaped_name}: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
 
     generate_statistics_chart(statistics, update.message.chat_id, 'year', year)
 
@@ -264,33 +311,29 @@ async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT
 
 async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /record command."""
-    username = await require_username(update)
-    if username is None:
+    sender = register_sender(update)
+    if sender is None:
         return
-    logger.info(f"Command received: /record from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
-    args = context.args
-    if args:
-        username = parse_username_arg(args[0])
-        if username is None:
-            await update.message.reply_text("Formato non valido. Usa: /record @username")
-            return
-    else:
-        username = update.message.from_user.username
-    
+    logger.info(f"Command received: /record from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    usage = "/record @username"
+    target, args, error = resolve_target(update, context.args, sender, usage)
+    if error is None and args:
+        error = f"Formato non valido. Usa: {usage}"
+    if error:
+        await update.message.reply_text(error)
+        return
     chat_id = update.message.chat_id
-    rows = get_record(username, chat_id)
-    
+    rows = get_record(target.user_id, chat_id)
     if not rows:
-        await update.message.reply_text(f"Nessun dato disponibile per @{username}.")
+        await update.message.reply_text(f"Nessun dato disponibile per {target.mention}.")
         return
-    
     record_data = analyze_user_record(rows)
 
     def volte(n):
         return 'volte' if n > 1 else 'volta'
 
     lines = [
-        f"📊 *Record per @{escape_md(username)}* 📊\n",
+        f"📊 *Record per {escape_md(target.mention)}* 📊\n",
         f"🥵 Hai fatto 💩 {record_data['max_daily_count']} {volte(record_data['max_daily_count'])} il {record_data['max_days']}.",
     ]
 
@@ -317,248 +360,147 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /aggiungi command."""
-    username = await require_username(update)
-    if username is None:
+    sender = register_sender(update)
+    if sender is None:
         return
-    logger.info(f"Command received: /aggiungi from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
-    args = context.args
-    
-    if len(args) != 1 and len(args) != 2:
-        await update.message.reply_text("Formato non valido. Usa: /aggiungi @username DD-MM-YYYY")
+    logger.info(f"Command received: /aggiungi from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    usage = "/aggiungi @username DD-MM-YYYY"
+    target, args, error = resolve_target(update, context.args, sender, usage)
+    if error is None and len(args) != 1:
+        error = f"Formato non valido. Usa: {usage}"
+    if error:
+        await update.message.reply_text(error)
         return
-    
-    if len(args) == 1:
-        try:
-            username = update.message.from_user.username
-            date = args[0]
-            parsed_date = datetime.strptime(date, DISPLAY_FORMAT)
-            selected_date = parsed_date.strftime(STORING_FORMAT)
-            today = datetime.now(pytz.timezone('Europe/Rome')).strftime(STORING_FORMAT)
-            if selected_date > today:
-                raise ValueError("La data selezionata è nel futuro.")
-        except ValueError as e:
-            await update.message.reply_text(f"Errore: {str(e)}")
-            return
-    
-    if len(args) == 2:
-        if parse_username_arg(args[0]) is None:
-            await update.message.reply_text("Formato non valido. Usa: /aggiungi @username DD-MM-YYYY")
-            return
-        try:
-            username = parse_username_arg(args[0])
-            date = args[1]
-            parsed_date = datetime.strptime(date, DISPLAY_FORMAT)
-            selected_date = parsed_date.strftime(STORING_FORMAT)
-            today = datetime.now(pytz.timezone('Europe/Rome')).strftime(STORING_FORMAT)
-            if selected_date > today:
-                raise ValueError("La data selezionata è nel futuro.")
-        except ValueError as e:
-            await update.message.reply_text(f"Errore: {str(e)}")
-            return
+    try:
+        date, selected_date = parse_date_arg(args[0])
+    except ValueError as e:
+        await update.message.reply_text(f"Errore: {str(e)}")
+        return
 
-    count = get_count(username, selected_date, update.message.chat_id)
-    update_count(username, selected_date, count + 1, update.message.chat_id)
+    chat_id = update.message.chat_id
+    count = get_count(target.user_id, selected_date, chat_id)
+    update_count(target.user_id, selected_date, count + 1, chat_id)
     await update.message.reply_text(
-        f"Il conteggio di @{username} nel giorno {date} è stato aggiornato a {count + 1} 💩.")
+        f"Il conteggio di {target.mention} nel giorno {date} è stato aggiornato a {count + 1} 💩.")
     logger.info(f"Command /aggiungi completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def togli_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /togli command."""
-    username = await require_username(update)
-    if username is None:
+    sender = register_sender(update)
+    if sender is None:
         return
-    logger.info(f"Command received: /togli from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
-    args = context.args
-    
-    if len(args) != 1 and len(args) != 2:
-        await update.message.reply_text("Formato non valido. Usa: /togli @username DD-MM-YYYY")
+    logger.info(f"Command received: /togli from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    usage = "/togli @username DD-MM-YYYY"
+    target, args, error = resolve_target(update, context.args, sender, usage)
+    if error is None and len(args) != 1:
+        error = f"Formato non valido. Usa: {usage}"
+    if error:
+        await update.message.reply_text(error)
         return
-    
-    if len(args) == 1:
-        try:
-            username = update.message.from_user.username
-            date = args[0]
-            parsed_date = datetime.strptime(date, DISPLAY_FORMAT)
-            selected_date = parsed_date.strftime(STORING_FORMAT)
-            today = datetime.now(pytz.timezone('Europe/Rome')).strftime(STORING_FORMAT)
-            if selected_date > today:
-                raise ValueError("La data selezionata è nel futuro.")
-        except ValueError as e:
-            await update.message.reply_text(f"Errore: {str(e)}")
-            return
-    
-    if len(args) == 2:
-        if parse_username_arg(args[0]) is None:
-            await update.message.reply_text("Formato non valido. Usa: /togli @username DD-MM-YYYY")
-            return
-        try:
-            username = parse_username_arg(args[0])
-            date = args[1]
-            parsed_date = datetime.strptime(date, DISPLAY_FORMAT)
-            selected_date = parsed_date.strftime(STORING_FORMAT)
-            today = datetime.now(pytz.timezone('Europe/Rome')).strftime(STORING_FORMAT)
-            if selected_date > today:
-                raise ValueError("La data selezionata è nel futuro.")
-        except ValueError as e:
-            await update.message.reply_text(f"Errore: {str(e)}")
-            return
+    try:
+        date, selected_date = parse_date_arg(args[0])
+    except ValueError as e:
+        await update.message.reply_text(f"Errore: {str(e)}")
+        return
 
-    count = get_count(username, selected_date, update.message.chat_id)
+    chat_id = update.message.chat_id
+    count = get_count(target.user_id, selected_date, chat_id)
     if count > 0:
-        update_count(username, selected_date, count - 1, update.message.chat_id)
+        update_count(target.user_id, selected_date, count - 1, chat_id)
         await update.message.reply_text(
-            f"Il conteggio di @{username} nel giorno {date} è stato aggiornato a {count - 1} 💩.")
+            f"Il conteggio di {target.mention} nel giorno {date} è stato aggiornato a {count - 1} 💩.")
     else:
         await update.message.reply_text(
-            f"Il conteggio di @{username} nel giorno {date} non può essere aggiornato poiché era già 0 💩.")
+            f"Il conteggio di {target.mention} nel giorno {date} non può essere aggiornato poiché era già 0 💩.")
     logger.info(f"Command /togli completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /conto_giorno command."""
-    username = await require_username(update)
-    if username is None:
+    sender = register_sender(update)
+    if sender is None:
         return
-    logger.info(f"Command received: /conta_giorno from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
-    args = context.args
-    
-    if len(args) != 0 and len(args) != 1 and len(args) != 2:
-        await update.message.reply_text("Formato non valido. Usa: /conta_giorno @username DD-MM-YYYY")
+    logger.info(f"Command received: /conto_giorno from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    usage = "/conto_giorno @username DD-MM-YYYY"
+    target, args, error = resolve_target(update, context.args, sender, usage)
+    if error is None and len(args) > 1:
+        error = f"Formato non valido. Usa: {usage}"
+    if error:
+        await update.message.reply_text(error)
         return
-    
-    if len(args) == 0:
-        username = update.message.from_user.username
-        date = datetime.now(pytz.timezone('Europe/Rome')).strftime(DISPLAY_FORMAT)
-        parsed_date = datetime.strptime(date, DISPLAY_FORMAT)
-        selected_date = parsed_date.strftime(STORING_FORMAT)
-    
-    if len(args) == 1:
-        if args[0].startswith('@'):
-            username = parse_username_arg(args[0])
-            if username is None:
-                await update.message.reply_text("Formato non valido. Usa: /conto_giorno @username DD-MM-YYYY")
-                return
-            date = datetime.now(pytz.timezone('Europe/Rome')).strftime(DISPLAY_FORMAT)
-            parsed_date = datetime.strptime(date, DISPLAY_FORMAT)
-            selected_date = parsed_date.strftime(STORING_FORMAT)
-        else:
-            try:
-                username = update.message.from_user.username
-                date = args[0]
-                parsed_date = datetime.strptime(date, DISPLAY_FORMAT)
-                selected_date = parsed_date.strftime(STORING_FORMAT)
-                today = datetime.now(pytz.timezone('Europe/Rome')).strftime(STORING_FORMAT)
-                if selected_date > today:
-                    raise ValueError("La data selezionata è nel futuro.")
-            except ValueError as e:
-                await update.message.reply_text(f"Errore: {str(e)}")
-                return
-    
-    if len(args) == 2:
-        if parse_username_arg(args[0]) is None:
-            await update.message.reply_text("Formato non valido. Usa: /conta_giorno @username DD-MM-YYYY")
-            return
+    if args:
         try:
-            username = parse_username_arg(args[0])
-            date = args[1]
-            parsed_date = datetime.strptime(date, DISPLAY_FORMAT)
-            selected_date = parsed_date.strftime(STORING_FORMAT)
-            today = datetime.now(pytz.timezone('Europe/Rome')).strftime(STORING_FORMAT)
-            if selected_date > today:
-                raise ValueError("La data selezionata è nel futuro.")
+            date, selected_date = parse_date_arg(args[0])
         except ValueError as e:
             await update.message.reply_text(f"Errore: {str(e)}")
             return
-
-    count = get_count(username, selected_date, update.message.chat_id)
-    
-    if count != 0:
-        await update.message.reply_text(f"@{username} il giorno {date if args else 'oggi'} hai fatto 💩 {count} {'volte' if count > 1 else 'volta'}.")
     else:
-        await update.message.reply_text(f"@{username} {'il giorno ' + date if args else 'oggi'} non hai fatto 💩.")
-    logger.info(f"Command /conta_giorno completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+        selected_date = datetime.now(pytz.timezone('Europe/Rome')).strftime(STORING_FORMAT)
+
+    count = get_count(target.user_id, selected_date, update.message.chat_id)
+    if count != 0:
+        await update.message.reply_text(f"{target.mention} il giorno {date if args else 'oggi'} hai fatto 💩 {count} {'volte' if count > 1 else 'volta'}.")
+    else:
+        await update.message.reply_text(f"{target.mention} {'il giorno ' + date if args else 'oggi'} non hai fatto 💩.")
+    logger.info(f"Command /conto_giorno completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def costipazione_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /costipazione command."""
-    username = await require_username(update)
-    if username is None:
+    sender = register_sender(update)
+    if sender is None:
         return
-    logger.info(f"Command received: /costipazione from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
-    args = context.args
-    if args:
-        username = parse_username_arg(args[0])
-        if username is None:
-            await update.message.reply_text("Formato non valido. Usa: /costipazione @username")
-            return
-    else:
-        username = update.message.from_user.username
-
-    constipation_days = get_constipation_days(username, update.message.chat_id)
-    
+    logger.info(f"Command received: /costipazione from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    usage = "/costipazione @username"
+    target, args, error = resolve_target(update, context.args, sender, usage)
+    if error is None and args:
+        error = f"Formato non valido. Usa: {usage}"
+    if error:
+        await update.message.reply_text(error)
+        return
+    constipation_days = get_constipation_days(target.user_id, update.message.chat_id)
     if constipation_days is not None:
         if constipation_days == 0:
-            await update.message.reply_text(f"@{username} oggi hai fatto 💩.")
+            await update.message.reply_text(f"{target.mention} oggi hai fatto 💩.")
         else:
-            await update.message.reply_text(f"@{username} non fai 💩 da {constipation_days} {'giorni' if constipation_days > 1 else 'giorno'}.")
+            await update.message.reply_text(f"{target.mention} non fai 💩 da {constipation_days} {'giorni' if constipation_days > 1 else 'giorno'}.")
     else:
-        await update.message.reply_text(f"@{username} non ci sono dati sulla costipazione.")
+        await update.message.reply_text(f"{target.mention} non ci sono dati sulla costipazione.")
     logger.info(f"Command /costipazione completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 # Messages handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for processing messages."""
-    if update.message and update.message.from_user is None:
-        logger.info("Message without sender (channel/anonymous admin): ignored.")
+    if not update.message:
+        logger.info(f"Update type not managed")
         return
-    if update.message:
-        if update.message.text:
-            text: str = update.message.text.lower().strip()
-            username = sender_username(update)
-            response: str = ""
-
-            if not text: # Check for empty message
-                logger.info(f"@{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Messaggio vuoto.")
-                return # Exit the function, no further processing needed
-
-            if BOT_USERNAME and BOT_USERNAME.lower() in text:
-                response = "Cosa vuoi dirmi?"
-            elif "💩" in text or "🚽" in text:
-                if not username:
-                    response = NO_USERNAME_MSG
-                else:
-                    today = datetime.now(pytz.timezone("Europe/Rome")).strftime(STORING_FORMAT)
-                    chat_id = update.message.chat_id
-
-                    count = get_count(username, today, chat_id) + 1
-                    update_count(username, today, count, chat_id)
-
-                    response = f"Complimenti @{username}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
-            elif username and re.search(r'\brun\b', text):
-                response = f"@{username} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu."
-
-            if response:
-                await update.message.reply_text(response, parse_mode='Markdown')
-
-            # Log for debugging
-            logger.info(f"@{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: {text} | Risposta: {response}")
-        elif update.message.sticker:
-            username = sender_username(update)
-            emoji = update.message.sticker.emoji # Get the emoji from sticker
-            if (emoji == "💩" or emoji == "🚽") and not username:
-                await update.message.reply_text(NO_USERNAME_MSG)
-            elif emoji == "💩" or emoji == "🚽":
-                today = datetime.now(pytz.timezone("Europe/Rome")).strftime(STORING_FORMAT)
-                chat_id = update.message.chat_id
-
-                count = get_count(username, today, chat_id) + 1
-                update_count(username, today, count, chat_id)
-
-                response = f"Complimenti @{username}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
-                await update.message.reply_text(response, parse_mode='Markdown')
-                logger.info(f"@{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Sticker  | Risposta: {response}")
-            else:
-                logger.info(f"@{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Sticker {emoji} | Emoji non gestita.")
+    sender = register_sender(update)
+    if sender is None:
+        logger.info("Message without a usable sender (channel post, anonymous admin or bot): ignored.")
+        return
+    chat_id = update.message.chat_id
+    if update.message.text:
+        text: str = update.message.text.lower().strip()
+        response: str = ""
+        if not text: # Check for empty message
+            logger.info(f"{sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Messaggio vuoto.")
+            return # Exit the function, no further processing needed
+        if BOT_USERNAME and BOT_USERNAME.lower() in text:
+            response = "Cosa vuoi dirmi?"
+        elif "💩" in text or "🚽" in text:
+            response = record_poop(sender, chat_id)
+        elif re.search(r'\brun\b', text):
+            response = f"{escape_md(sender.mention)} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu."
+        if response:
+            await update.message.reply_text(response, parse_mode='Markdown')
+        # Log for debugging
+        logger.info(f"{sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: {text} | Risposta: {response}")
+    elif update.message.sticker:
+        emoji = update.message.sticker.emoji # Get the emoji from sticker
+        if emoji == "💩" or emoji == "🚽":
+            response = record_poop(sender, chat_id)
+            await update.message.reply_text(response, parse_mode='Markdown')
+            logger.info(f"{sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Sticker  | Risposta: {response}")
         else:
-            logger.info(f"Update type not managed")
+            logger.info(f"{sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Sticker {emoji} | Emoji non gestita.")
     else:
         logger.info(f"Update type not managed")
 

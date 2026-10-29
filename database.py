@@ -1,6 +1,7 @@
 import os
 import sqlite3
 from datetime import datetime, timedelta
+from typing import NamedTuple, Optional
 import numpy as np
 import calendar
 import pytz
@@ -12,6 +13,11 @@ DB_FOLDER = 'db'
 CHARTS_FOLDER = 'charts'
 ROME_TZ = pytz.timezone('Europe/Rome')
 
+# Schema versions (stored in PRAGMA user_version):
+#   0/1 = legacy: counts keyed by Telegram username
+#   2   = counts keyed by Telegram user ID, plus a users table
+SCHEMA_VERSION = 2
+
 def now_rome():
     """Current date/time in Rome, without tzinfo (comparable with the naive datetimes used in the code).
 
@@ -20,31 +26,152 @@ def now_rome():
     """
     return datetime.now(ROME_TZ).replace(tzinfo=None)
 
+
+class User(NamedTuple):
+    """A Telegram user known to a chat."""
+    user_id: int
+    username: Optional[str]
+    display_name: str
+
+    @property
+    def name(self):
+        """Plain name for charts and tables: the username if any, otherwise the display name."""
+        return self.username or self.display_name
+
+    @property
+    def mention(self):
+        """Name for messages: '@username' if any, otherwise the display name."""
+        return f"@{self.username}" if self.username else self.display_name
+
+
+# Database files whose schema has already been checked by this process
+_schema_ready = set()
+
+def _db_path(chat_id):
+    return os.path.join(DB_FOLDER, f'{chat_id}_bot_data.db')
+
+def _connect(chat_id):
+    """Open the database of a chat, creating or migrating its schema on first use."""
+    path = _db_path(chat_id)
+    if path not in _schema_ready:
+        _ensure_schema(path)
+        _schema_ready.add(path)
+    return sqlite3.connect(path)
+
+def _has_legacy_table(conn):
+    """True if user_count still has the legacy layout (rows keyed by username)."""
+    columns = [row[1] for row in conn.execute("PRAGMA table_info(user_count)")]
+    return 'username' in columns
+
+def _has_table(conn, name):
+    row = conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)).fetchone()
+    return row is not None
+
+def _backup_legacy_database(conn, path):
+    """Keep a copy of the database as it was before the migration (only the first time)."""
+    backup_path = path + '.v1.bak'
+    if os.path.exists(backup_path):
+        return
+    backup = sqlite3.connect(backup_path)
+    try:
+        conn.backup(backup)
+    finally:
+        backup.close()
+
+def _ensure_schema(path):
+    """Create the schema if missing, or migrate a legacy database to the user-ID schema.
+
+    The migration runs in a single transaction. The legacy rows are kept untouched in the
+    user_count_legacy table: they are linked to user IDs later, on explicit request.
+    """
+    os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+    conn = sqlite3.connect(path, isolation_level=None, timeout=30)  # manual transaction control
+    try:
+        if conn.execute('PRAGMA user_version').fetchone()[0] >= SCHEMA_VERSION:
+            return
+        if _has_legacy_table(conn):
+            _backup_legacy_database(conn, path)
+        conn.execute('BEGIN IMMEDIATE')
+        try:
+            # Another worker may have migrated the database while we were waiting for the lock
+            if conn.execute('PRAGMA user_version').fetchone()[0] < SCHEMA_VERSION:
+                if _has_legacy_table(conn):
+                    conn.execute('ALTER TABLE user_count RENAME TO user_count_legacy')
+                conn.execute('''CREATE TABLE IF NOT EXISTS users
+                                (user_id INTEGER PRIMARY KEY,
+                                 username TEXT,
+                                 display_name TEXT NOT NULL)''')
+                conn.execute('''CREATE TABLE IF NOT EXISTS user_count
+                                (user_id INTEGER NOT NULL,
+                                 date TEXT NOT NULL,
+                                 count INTEGER NOT NULL DEFAULT 0,
+                                 PRIMARY KEY (user_id, date)) WITHOUT ROWID''')
+                conn.execute('CREATE INDEX IF NOT EXISTS idx_user_count_date ON user_count (date)')
+                conn.execute('CREATE INDEX IF NOT EXISTS idx_users_username ON users (username COLLATE NOCASE)')
+                conn.execute(f'PRAGMA user_version = {SCHEMA_VERSION}')
+            conn.execute('COMMIT')
+        except Exception:
+            conn.execute('ROLLBACK')
+            raise
+    finally:
+        conn.close()
+
 # Function to initialize the database
 def init_database(chat_id):
-    """Initialize the SQLite database if it doesn't exist."""
-    # Check if the database folder exists, if not, create it
-    if not os.path.exists(DB_FOLDER):
-        os.makedirs(DB_FOLDER)
-    # Connect to the database file, creating it if it doesn't exist
-    conn = sqlite3.connect(os.path.join(DB_FOLDER, f'{chat_id}_bot_data.db'))
-    c = conn.cursor()
-    # Create the user_count table if it doesn't exist
-    c.execute('''CREATE TABLE IF NOT EXISTS user_count
-                 (username TEXT,
-                 date TEXT,
-                 count INTEGER DEFAULT 0,
-                 PRIMARY KEY (username, date))''')
-    conn.commit()
-    conn.close()
+    """Initialize (or migrate) the SQLite database of a chat if needed."""
+    _connect(chat_id).close()
+
+
+# Users
+
+def _to_user(user_id, username, display_name):
+    return User(user_id, username, display_name or str(user_id))
+
+def upsert_user(chat_id, user_id, username, display_name):
+    """Record the current username and display name of a user (writes only when something changed)."""
+    conn = _connect(chat_id)
+    try:
+        row = conn.execute('SELECT username, display_name FROM users WHERE user_id = ?', (user_id,)).fetchone()
+        if row == (username, display_name):
+            return
+        if username:
+            # A username belongs to one account at a time: release it from any previous holder
+            conn.execute('UPDATE users SET username = NULL WHERE username = ? COLLATE NOCASE AND user_id != ?',
+                         (username, user_id))
+        conn.execute('''INSERT INTO users (user_id, username, display_name) VALUES (?, ?, ?)
+                        ON CONFLICT(user_id) DO UPDATE SET
+                            username = excluded.username,
+                            display_name = excluded.display_name''',
+                     (user_id, username, display_name))
+        conn.commit()
+    finally:
+        conn.close()
+
+def find_user_by_username(chat_id, username):
+    """Find a known user by (case-insensitive) username; None if the bot has never seen it."""
+    conn = _connect(chat_id)
+    try:
+        row = conn.execute('SELECT user_id, username, display_name FROM users WHERE username = ? COLLATE NOCASE LIMIT 1',
+                           (username,)).fetchone()
+    finally:
+        conn.close()
+    return _to_user(*row) if row else None
+
+def get_user(chat_id, user_id):
+    """Find a known user by Telegram user ID."""
+    conn = _connect(chat_id)
+    try:
+        row = conn.execute('SELECT user_id, username, display_name FROM users WHERE user_id = ?', (user_id,)).fetchone()
+    finally:
+        conn.close()
+    return _to_user(*row) if row else None
+
+
+# Counts
 
 # Function to get the count of poop emojis for a given user and date
-def get_count(username, date, chat_id):
-    """Get the count of poop emojis for a given user and date."""
-    # Connect to the database
-    conn = sqlite3.connect(os.path.join(DB_FOLDER, f'{chat_id}_bot_data.db'))
-    c = conn.cursor()
-    
+def get_count(user_id, date, chat_id):
+    """Get the count of poop emojis for a given user ID and date."""
     # Determine if the input date is a day, a month, or invalid
     try:
         parsed_date = datetime.strptime(date, STORING_FORMAT)
@@ -64,43 +191,36 @@ def get_count(username, date, chat_id):
                 start_date = parsed_date.strftime(STORING_FORMAT)
                 end_date = parsed_date.strftime(STORING_FORMAT)
             except ValueError:
-                conn.close()
                 return 0
-    
-    # Execute SQL query to retrieve the count for the specified user and date or month
-    c.execute('SELECT SUM(count) FROM user_count WHERE username = ? COLLATE NOCASE AND date BETWEEN ? AND ?', (username, start_date, end_date))
-    row = c.fetchone()
-    conn.close()
-    
+
+    conn = _connect(chat_id)
+    try:
+        # Execute SQL query to retrieve the count for the specified user and date or month
+        row = conn.execute('SELECT SUM(count) FROM user_count WHERE user_id = ? AND date BETWEEN ? AND ?',
+                           (user_id, start_date, end_date)).fetchone()
+    finally:
+        conn.close()
+
     # Return the count if found, otherwise return 0
-    if row[0] is not None:
-        return row[0]
-    else:
-        return 0
+    return row[0] if row[0] is not None else 0
 
 # Function to update the count of poop emojis for a given user and date
-def update_count(username, date, count, chat_id):
-    """Update the count of poop emojis for a given user and date."""
-    # Connect to the database
-    conn = sqlite3.connect(os.path.join(DB_FOLDER, f'{chat_id}_bot_data.db'))
-    c = conn.cursor()
-    # Telegram usernames are case-insensitive: if the user already exists
-    # (with any spelling) keep the stored spelling, so it is not duplicated in rankings.
-    c.execute('SELECT username FROM user_count WHERE username = ? COLLATE NOCASE LIMIT 1', (username,))
-    existing = c.fetchone()
-    if existing:
-        username = existing[0]
-    # Delete existing count for the specified user and date
-    c.execute('DELETE FROM user_count WHERE username = ? COLLATE NOCASE AND date = ?', (username, date))
-    # If the count is greater than 0, insert the new count
-    if count > 0:
-        c.execute('INSERT INTO user_count (username, date, count) VALUES (?, ?, ?)', (username, date, count))
-    conn.commit()
-    conn.close()
+def update_count(user_id, date, count, chat_id):
+    """Set the count of poop emojis for a given user ID and date (a count of 0 removes the row)."""
+    conn = _connect(chat_id)
+    try:
+        if count > 0:
+            conn.execute('''INSERT INTO user_count (user_id, date, count) VALUES (?, ?, ?)
+                            ON CONFLICT(user_id, date) DO UPDATE SET count = excluded.count''',
+                         (user_id, date, count))
+        else:
+            conn.execute('DELETE FROM user_count WHERE user_id = ? AND date = ?', (user_id, date))
+        conn.commit()
+    finally:
+        conn.close()
 
-# Function to get the rank of users based on the count of poop emojis
-def get_rank(chat_id, time_period, date):
-    """Get the rank of users based on the count of poop emojis for the specified time period."""
+def _period_bounds(time_period, date):
+    """Start and end date (storing format) of a month ('MM-YYYY') or year ('YYYY')."""
     if time_period == 'month':
         # Parse the input date for monthly rank (format: month-year)
         date_parts = date.split('-')
@@ -117,80 +237,73 @@ def get_rank(chat_id, time_period, date):
         end_period = datetime.strptime(f'31-12-{date}', '%d-%m-%Y').strftime(STORING_FORMAT)
     else:
         raise ValueError("Invalid time_period. It should be 'month' or 'year'.")
+    return start_period, end_period
 
-    # Connect to the database
-    conn = sqlite3.connect(os.path.join(DB_FOLDER, f'{chat_id}_bot_data.db'))
-    c = conn.cursor()
+# Function to get the rank of users based on the count of poop emojis
+def get_rank(chat_id, time_period, date):
+    """Get the rank of users for the specified period, as a list of (User, count) sorted by count."""
+    start_period, end_period = _period_bounds(time_period, date)
 
-    # Execute SQL query to get the rank based on the time_period
-    c.execute('''SELECT username, SUM(count) AS partial_count
-              FROM user_count
-              WHERE date BETWEEN ? AND ?
-                AND username IS NOT NULL
-              GROUP BY username
-              ORDER BY partial_count DESC''', (start_period, end_period))
-    
-    rows = c.fetchall()
-    conn.close()
-    return rows
+    conn = _connect(chat_id)
+    try:
+        # Execute SQL query to get the rank based on the time_period
+        rows = conn.execute('''SELECT c.user_id, u.username, u.display_name, SUM(c.count) AS partial_count
+                               FROM user_count c
+                               LEFT JOIN users u ON u.user_id = c.user_id
+                               WHERE c.date BETWEEN ? AND ?
+                               GROUP BY c.user_id
+                               ORDER BY partial_count DESC, COALESCE(u.username, u.display_name) COLLATE NOCASE''',
+                            (start_period, end_period)).fetchall()
+    finally:
+        conn.close()
+    return [(_to_user(user_id, username, display_name), total) for user_id, username, display_name, total in rows]
 
 # Function to get statistics of users based on the count of poop emojis
 def get_statistics(chat_id, time_period, date):
-    """Get the statistics of users based on the count of poop emojis for the specified time period."""
-    current_month = now_rome().month
-    current_year = now_rome().year
+    """Get the statistics of users for the specified period, as a list of dicts with a 'user' (User) key."""
+    now = now_rome()
+    current_month = now.month
+    current_year = now.year
+    start_period, end_period = _period_bounds(time_period, date)
     if time_period == 'month':
-        # Parse the input date for monthly rank (format: month-year)
         date_parts = date.split('-')
-        month_str = date_parts[0].zfill(2)  # Add leading zero, if necessary
-        year_str = date_parts[1]
-        start_period = datetime.strptime(f'{month_str}-{year_str}', '%m-%Y').strftime(STORING_FORMAT)
-        # Get the end of the month
-        end_period = datetime.strptime(f'{month_str}-{year_str}', '%m-%Y')\
-            .replace(day=calendar.monthrange(int(year_str), int(month_str))[1])\
-            .strftime(STORING_FORMAT)
         month = int(date_parts[0])
         year = int(date_parts[1])
         _, days = calendar.monthrange(year, month)  # Number of days in the month
-        current_days = now_rome().day
-    elif time_period == 'year':
-        # Parse the input date for yearly rank (format: year)
-        start_period = datetime.strptime(f'01-01-{date}', '%d-%m-%Y').strftime(STORING_FORMAT)
-        end_period = datetime.strptime(f'31-12-{date}', '%d-%m-%Y').strftime(STORING_FORMAT)
+        current_days = now.day
+    else:
         year = int(date)
         days = 366 if calendar.isleap(int(date)) else 365  # Number of days in a year
-        current_days = (now_rome() - datetime(current_year, 1, 1)).days + 1
-    else:
-        raise ValueError("Invalid time_period. It should be 'month' or 'year'.")
+        current_days = (now - datetime(current_year, 1, 1)).days + 1
 
-    # Connect to the database
-    conn = sqlite3.connect(os.path.join(DB_FOLDER, f'{chat_id}_bot_data.db'))
-    c = conn.cursor()
+    conn = _connect(chat_id)
+    try:
+        # Get the dates in the period
+        date_list = []
+        start_date = datetime.strptime(start_period, STORING_FORMAT)
+        end_date = datetime.strptime(end_period, STORING_FORMAT)
+        delta = timedelta(days=1)
+        while start_date <= end_date:
+            date_list.append(start_date.strftime(STORING_FORMAT))
+            start_date += delta
 
-    # Get the dates in the period
-    date_list = []
-    start_date = datetime.strptime(start_period, STORING_FORMAT)
-    end_date = datetime.strptime(end_period, STORING_FORMAT)
-    delta = timedelta(days=1)
-    while start_date <= end_date:
-        date_list.append(start_date.strftime(STORING_FORMAT))
-        start_date += delta
+        # Get the counts for each user for each day in the period
+        user_daily_counts = {}
+        for date_str in date_list:
+            rows = conn.execute('SELECT user_id, count FROM user_count WHERE date = ?', (date_str,)).fetchall()
+            for user_id, count in rows:
+                if user_id not in user_daily_counts:
+                    user_daily_counts[user_id] = []
+                user_daily_counts[user_id].append(count)
 
-    # Get the counts for each user for each day in the period
-    user_daily_counts = {}
-    for date_str in date_list:
-        c.execute('''SELECT username, count FROM user_count WHERE date = ? AND username IS NOT NULL''', (date_str,))
-        rows = c.fetchall()
-        for username, count in rows:
-            if username not in user_daily_counts:
-                user_daily_counts[username] = []
-            user_daily_counts[username].append(count)
-
-    conn.close()
+        users = {user_id: _to_user(user_id, username, display_name)
+                 for user_id, username, display_name in conn.execute('SELECT user_id, username, display_name FROM users')}
+    finally:
+        conn.close()
 
     # Calculate statistics for each user
     user_statistics = []
-    for username, counts in user_daily_counts.items():
+    for user_id, counts in user_daily_counts.items():
         if time_period == 'month':
             expected_days = calendar.monthrange(year, month)[1]
         else:
@@ -199,7 +312,7 @@ def get_statistics(chat_id, time_period, date):
         if time_period == 'month' and year == current_year and month == current_month:
             valid_days = current_days
         elif time_period == 'year' and year == current_year:
-            valid_days = (now_rome() - datetime(current_year, 1, 1)).days + 1
+            valid_days = (now - datetime(current_year, 1, 1)).days + 1
         else:
             valid_days = expected_days
 
@@ -216,7 +329,7 @@ def get_statistics(chat_id, time_period, date):
             median = mean = variance = 0  # If there's not enough data, set default values
 
         user_statistics.append({
-            'username': username,
+            'user': users.get(user_id) or _to_user(user_id, None, None),
             'mean': mean,
             'median': median,
             'variance': variance
@@ -228,44 +341,34 @@ def get_statistics(chat_id, time_period, date):
     return sorted_user_statistics
 
 # Function to get the records for the specific user
-def get_record(username, chat_id):
-    """Get the records for the specific user."""
-    # Connect to the database
-    conn = sqlite3.connect(os.path.join(DB_FOLDER, f'{chat_id}_bot_data.db'))
-    c = conn.cursor()
-
-    # Execute SQL query to get the records for the specific user
-    c.execute('''SELECT date, count
-              FROM user_count
-              WHERE username = ? COLLATE NOCASE
-              ORDER BY date''', (username,))
-
-    rows = c.fetchall()
-    conn.close()
-
-    return rows
+def get_record(user_id, chat_id):
+    """Get the (date, count) records of a user, sorted by date."""
+    conn = _connect(chat_id)
+    try:
+        return conn.execute('''SELECT date, count
+                               FROM user_count
+                               WHERE user_id = ?
+                               ORDER BY date''', (user_id,)).fetchall()
+    finally:
+        conn.close()
 
 # Function to get constipation days for the specific user
-def get_constipation_days(username, chat_id):
+def get_constipation_days(user_id, chat_id):
     """Get the constipation days for the specific user."""
-    # Connect to the database
-    conn = sqlite3.connect(os.path.join(DB_FOLDER, f'{chat_id}_bot_data.db'))
-    c = conn.cursor()
+    conn = _connect(chat_id)
+    try:
+        last_day = conn.execute('''SELECT date
+                                   FROM user_count
+                                   WHERE user_id = ? AND count > 0
+                                   ORDER BY date DESC
+                                   LIMIT 1''', (user_id,)).fetchone()
+    finally:
+        conn.close()
 
-    # Execute SQL query to get the constipation days for the specific user
-    c.execute('''SELECT date
-                 FROM user_count
-                 WHERE username = ? COLLATE NOCASE AND count > 0
-                 ORDER BY date DESC
-                 LIMIT 1''', (username,))
-    
-    last_day = c.fetchone()
-    conn.close()
-    
     if last_day:
         last_day = datetime.strptime(last_day[0], "%Y-%m-%d").date()
         today = now_rome().date()
-        
+
         return (today - last_day).days
-    
+
     return None
