@@ -110,6 +110,7 @@ def get_rank(chat_id, time_period, date):
     c.execute('''SELECT username, SUM(count) AS partial_count
               FROM user_count
               WHERE date BETWEEN ? AND ?
+                AND username IS NOT NULL
               GROUP BY username
               ORDER BY partial_count DESC''', (start_period, end_period))
     
@@ -162,7 +163,7 @@ def get_statistics(chat_id, time_period, date):
     # Get the counts for each user for each day in the period
     user_daily_counts = {}
     for date_str in date_list:
-        c.execute('''SELECT username, count FROM user_count WHERE date = ?''', (date_str,))
+        c.execute('''SELECT username, count FROM user_count WHERE date = ? AND username IS NOT NULL''', (date_str,))
         rows = c.fetchall()
         for username, count in rows:
             if username not in user_daily_counts:

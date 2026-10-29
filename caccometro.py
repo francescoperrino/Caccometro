@@ -29,10 +29,36 @@ BOT_USERNAME = os.environ.get('BOT_USERNAME')
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 RUN_MODE = os.environ.get('RUN_MODE', 'POLLING').upper()
 
+NO_USERNAME_MSG = ("Non hai uno username Telegram: impostalo nelle impostazioni "
+                   "(Username) per poter usare Caccometro.")
+
+
+def sender_username(update: Update):
+    """Sender's username, or None if the user or the username is missing."""
+    user = update.message.from_user if update.message else None
+    return user.username if user and user.username else None
+
+
+async def require_username(update: Update):
+    """Return the sender's username; if missing, notify the user and return None."""
+    user = update.message.from_user if update.message else None
+    if user is None:
+        return None
+    if not user.username:
+        await update.message.reply_text(NO_USERNAME_MSG)
+        return None
+    return user.username
+
+
+def escape_md(name):
+    """Escape a name for Telegram Markdown; tolerate missing names (legacy rows with a NULL username)."""
+    return (name or "sconosciuto").replace('_', '\\_')
+
+
 # Command handlers
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /start command."""
-    username: str = update.message.from_user.username
+    username = sender_username(update)
     logger.info(f"Command received: /start from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     init_database(update.message.chat_id)
     await update.message.reply_text("Ciao, sono 🤖 *Caccometro* 🤖.\n"
@@ -41,7 +67,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /classifica_mese command."""
-    username: str = update.message.from_user.username
+    username = await require_username(update)
+    if username is None:
+        return
     logger.info(f"Command received: /classifica_mese from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
@@ -62,7 +90,7 @@ async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_
 
     message = f"Ecco la *classifica del mese {date}*:\n"
     for i, (username, total_count) in enumerate(rank, start=1):
-        escaped_username = username.replace('_', '\\_')  # Escape underscores
+        escaped_username = escape_md(username)
         if i == 1:
             message += f"🥇 *@{escaped_username}*: {total_count}\n"
         elif i == 2:
@@ -85,7 +113,9 @@ async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_
 
 async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /classifica_anno command."""
-    username: str = update.message.from_user.username
+    username = await require_username(update)
+    if username is None:
+        return
     logger.info(f"Command received: /classifica_anno from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
@@ -101,7 +131,7 @@ async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_
 
     message = f"Ecco la *classifica dell\'anno {year}*:\n"
     for i, (username, total_count) in enumerate(rank, start=1):
-        escaped_username = username.replace('_', '\\_')  # Escape underscores
+        escaped_username = escape_md(username)
         if i == 1:
             message += f"🥇 *@{escaped_username}*: {total_count}\n"
         elif i == 2:
@@ -121,7 +151,9 @@ async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_
 
 async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /statistiche_mese command."""
-    username: str = update.message.from_user.username
+    username = await require_username(update)
+    if username is None:
+        return
     logger.info(f"Command received: /statistiche_mese from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
@@ -142,7 +174,7 @@ async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT
 
     message = f"*Statistiche per il mese {date}*:\n"
     for i, statistic in enumerate(statistics, start=1):
-        escaped_username = statistic['username'].replace('_', '\\_')  # Escape underscores
+        escaped_username = escape_md(statistic['username'])
         mean = str(statistic['mean'])
         median = str(statistic['median'])
         variance = str(statistic['variance'])
@@ -167,7 +199,9 @@ async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT
 
 async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /statistiche_anno command."""
-    username: str = update.message.from_user.username
+    username = await require_username(update)
+    if username is None:
+        return
     logger.info(f"Command received: /statistiche_anno from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
@@ -183,7 +217,7 @@ async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT
 
     message = f"*Statistiche per l\'anno {year}*:\n"
     for i, statistic in enumerate(statistics, start=1):
-        escaped_username = statistic['username'].replace('_', '\\_')  # Escape underscores
+        escaped_username = escape_md(statistic['username'])
         mean = str(statistic['mean'])
         median = str(statistic['median'])
         variance = str(statistic['variance'])
@@ -206,7 +240,9 @@ async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT
 
 async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /record command."""
-    username: str = update.message.from_user.username
+    username = await require_username(update)
+    if username is None:
+        return
     logger.info(f"Command received: /record from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
@@ -238,7 +274,9 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /aggiungi command."""
-    username: str = update.message.from_user.username
+    username = await require_username(update)
+    if username is None:
+        return
     logger.info(f"Command received: /aggiungi from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     
@@ -283,7 +321,9 @@ async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def togli_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /togli command."""
-    username: str = update.message.from_user.username
+    username = await require_username(update)
+    if username is None:
+        return
     logger.info(f"Command received: /togli from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     
@@ -332,7 +372,9 @@ async def togli_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /conto_giorno command."""
-    username: str = update.message.from_user.username
+    username = await require_username(update)
+    if username is None:
+        return
     logger.info(f"Command received: /conta_giorno from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     
@@ -391,7 +433,9 @@ async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def costipazione_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /costipazione command."""
-    username: str = update.message.from_user.username
+    username = await require_username(update)
+    if username is None:
+        return
     logger.info(f"Command received: /costipazione from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
@@ -413,10 +457,13 @@ async def costipazione_command(update: Update, context: ContextTypes.DEFAULT_TYP
 # Messages handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for processing messages."""
+    if update.message and update.message.from_user is None:
+        logger.info("Message without sender (channel/anonymous admin): ignored.")
+        return
     if update.message:
         if update.message.text:
             text: str = update.message.text.lower().strip()
-            username: str = update.message.from_user.username
+            username = sender_username(update)
             response: str = ""
 
             if not text: # Check for empty message
@@ -426,14 +473,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if BOT_USERNAME in text:
                 response = "Cosa vuoi dirmi?"
             elif "💩" in text or "🚽" in text:
-                today = datetime.now(pytz.timezone("Europe/Rome")).strftime(STORING_FORMAT)
-                chat_id = update.message.chat_id
+                if not username:
+                    response = NO_USERNAME_MSG
+                else:
+                    today = datetime.now(pytz.timezone("Europe/Rome")).strftime(STORING_FORMAT)
+                    chat_id = update.message.chat_id
 
-                count = get_count(username, today, chat_id) + 1
-                update_count(username, today, count, chat_id)
+                    count = get_count(username, today, chat_id) + 1
+                    update_count(username, today, count, chat_id)
 
-                response = f"Complimenti @{username}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
-            elif re.search(r'\brun\b', text):
+                    response = f"Complimenti @{username}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
+            elif username and re.search(r'\brun\b', text):
                 response = f"@{username} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu."
 
             if response:
@@ -442,9 +492,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Log for debugging
             logger.info(f"@{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: {text} | Risposta: {response}")
         elif update.message.sticker:
-            username: str = update.message.from_user.username
+            username = sender_username(update)
             emoji = update.message.sticker.emoji # Get the emoji from sticker
-            if emoji == "💩" or emoji == "🚽":
+            if (emoji == "💩" or emoji == "🚽") and not username:
+                await update.message.reply_text(NO_USERNAME_MSG)
+            elif emoji == "💩" or emoji == "🚽":
                 today = datetime.now(pytz.timezone("Europe/Rome")).strftime(STORING_FORMAT)
                 chat_id = update.message.chat_id
 
