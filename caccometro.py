@@ -258,17 +258,33 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     record_data = analyze_user_record(rows)
-    
-    message = (
-        f"📊 *Record per @{username}* 📊\n\n"
-        f"🥵 Hai fatto 💩 {record_data['max_daily_count']} {'volte' if record_data['max_daily_count'] > 1 else 'volta'} il {record_data['max_days']}.\n"
-        f"🤩 Hai fatto 💩 {record_data['max_monthly_count']} {'volte' if record_data['max_monthly_count'] > 1 else 'volta'} {'nei mesi' if len(record_data['max_months']) > 1 else 'nel mese'} {record_data['max_months']}.\n"
-        f"😭 Hai fatto solo 💩 {record_data['min_monthly_count']} {'volte' if record_data['min_monthly_count'] > 1 else 'volta'} {'nei mesi' if len(record_data['min_months']) > 1 else 'nel mese'} {record_data['min_months']}.\n"
-        f"🥳 Hai fatto 💩 per {record_data['max_streak_days']} giorni consecutivi ({record_data['max_streak_period']}).\n"
-        f"🫣 Hai fatto 💩 {record_data['max_streak_count']} {'volte' if record_data['max_streak_count'] > 1 else 'volta'} in {record_data['max_streak_days']} {'giorni consecutivi' if record_data['max_streak_days'] > 1 else 'un giorno'} ({record_data['max_streak_count_period']}).\n"
-        f"🤢 Non hai fatto 💩 per {record_data['max_gap_days']} giorni consecutivi ({record_data['max_gap_period']})."
-    )
-    
+
+    def volte(n):
+        return 'volte' if n > 1 else 'volta'
+
+    lines = [
+        f"📊 *Record per @{escape_md(username)}* 📊\n",
+        f"🥵 Hai fatto 💩 {record_data['max_daily_count']} {volte(record_data['max_daily_count'])} il {record_data['max_days']}.",
+    ]
+
+    # Monthly records exclude the current month: they do not exist until a month has been completed.
+    if record_data['max_monthly_count'] is not None:
+        max_in = 'nei mesi' if ', ' in record_data['max_months'] else 'nel mese'
+        min_in = 'nei mesi' if ', ' in record_data['min_months'] else 'nel mese'
+        lines.append(f"🤩 Hai fatto 💩 {record_data['max_monthly_count']} {volte(record_data['max_monthly_count'])} {max_in} {record_data['max_months']}.")
+        lines.append(f"😭 Hai fatto solo 💩 {record_data['min_monthly_count']} {volte(record_data['min_monthly_count'])} {min_in} {record_data['min_months']}.")
+    else:
+        lines.append("🗓️ I record mensili saranno disponibili dopo il primo mese completo.")
+
+    lines.append(f"🥳 Hai fatto 💩 per {record_data['max_streak_days']} giorni consecutivi ({record_data['max_streak_period']}).")
+    lines.append(f"🫣 Hai fatto 💩 {record_data['max_streak_count']} {volte(record_data['max_streak_count'])} in una serie di giorni consecutivi ({record_data['max_streak_count_period']}).")
+    if record_data['max_gap_days'] > 0:
+        lines.append(f"🤢 Non hai fatto 💩 per {record_data['max_gap_days']} giorni consecutivi ({record_data['max_gap_period']}).")
+    else:
+        lines.append("🤢 Non ci sono ancora giorni senza 💩 tra la prima e l'ultima registrazione.")
+
+    message = "\n".join(lines)
+
     await update.message.reply_text(message, parse_mode='Markdown')
     logger.info(f"Command /record completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
