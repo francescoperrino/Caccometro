@@ -69,6 +69,7 @@ aggiungi - Aggiunge 1 all'utente nel giorno specificato (@username [DD-MM-YYYY])
 togli - Sottrae 1 all'utente nel giorno specificato (@username [DD-MM-YYYY]).
 conto_giorno - Conteggio per il giorno (@username [DD-MM-YYYY]).
 costipazione - Conteggio giorni di costipazione (@username).
+collega - Collega lo storico dei vecchi dati agli utenti (admin).
 ```
 
 ---
@@ -146,6 +147,23 @@ python set_webhook.py
 | `/togli [@username] DD-MM-YYYY`        | Sottrae manualmente -1 al conteggio (fino a 0) per un giorno passato o corrente.                                      |
 | `/conto_giorno [@username] DD-MM-YYYY` | Restituisce il conteggio totale per un utente in un giorno specifico.                                                 |
 | `/costipazione [@username]`            | Restituisce i giorni consecutivi trascorsi dall'ultima evacuazione registrata.                                        |
+| `/collega [auto \| username storico]`  | Collega lo storico dei dati registrati per username agli utenti (vedi sotto). Senza argomenti mostra cosa resta da collegare. |
+
+Nei comandi con `[@username]` il destinatario può essere indicato anche **rispondendo a un messaggio** della persona (utile per chi non ha uno username).
+
+---
+
+## 🔄 Identità degli utenti e migrazione dei dati storici
+
+I conteggi sono associati allo **UserID di Telegram**, non più allo username: chi cambia username non perde i dati e chi non ha uno username viene contato con il proprio nome.
+
+- Il bot impara username e nome di chi scrive: un `@username` nei comandi funziona solo per utenti che hanno già scritto almeno un messaggio nel gruppo. In alternativa si può rispondere a un messaggio della persona.
+- Al primo avvio i database esistenti vengono **migrati automaticamente**. Prima della migrazione viene creata una copia (`db/<chat_id>_bot_data.db.v1.bak`); i dati vecchi restano in una tabella di archivio finché non vengono collegati.
+- Gli **admin** del gruppo collegano lo storico alle persone con `/collega`:
+  1. `/collega` mostra lo storico ancora da collegare;
+  2. quando tutti hanno scritto almeno un messaggio, `/collega auto` collega gli username identici;
+  3. per gli altri, si risponde a un messaggio della persona con `/collega <username storico>`.
+- Le registrazioni vecchie senza username non possono essere collegate.
 
 ---
 

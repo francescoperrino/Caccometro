@@ -6,6 +6,7 @@ here, so the tests run anywhere.
 """
 import locale
 import os
+import sqlite3
 import sys
 import zlib
 from pathlib import Path
@@ -110,3 +111,17 @@ def make_context(*args, member_status="member"):
     """Fake CallbackContext; context.bot.get_chat_member returns a member with member_status."""
     bot = SimpleNamespace(get_chat_member=AsyncMock(return_value=SimpleNamespace(status=member_status)))
     return SimpleNamespace(args=list(args), bot=bot)
+
+
+def make_legacy_db(db_folder, chat_id, rows):
+    """Create a database exactly as the old (username-keyed) version did.
+
+    rows: [(username, 'YYYY-MM-DD', count)]. The first database call on that chat migrates it.
+    """
+    os.makedirs(db_folder, exist_ok=True)
+    conn = sqlite3.connect(os.path.join(db_folder, f"{chat_id}_bot_data.db"))
+    conn.execute('''CREATE TABLE user_count
+                    (username TEXT, date TEXT, count INTEGER DEFAULT 0, PRIMARY KEY (username, date))''')
+    conn.executemany("INSERT INTO user_count VALUES (?, ?, ?)", rows)
+    conn.commit()
+    conn.close()

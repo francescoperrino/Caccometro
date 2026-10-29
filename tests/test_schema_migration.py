@@ -4,6 +4,7 @@ import sqlite3
 
 import pytest
 
+import conftest
 import database
 
 LEGACY_CHAT = -2002
@@ -20,14 +21,7 @@ def db_file(tmp_path, chat_id):
 
 
 def make_legacy_db(tmp_path, chat_id=LEGACY_CHAT, rows=LEGACY_ROWS):
-    """A database exactly as the old (username-keyed) version created it."""
-    os.makedirs(tmp_path / "db", exist_ok=True)
-    conn = sqlite3.connect(db_file(tmp_path, chat_id))
-    conn.execute('''CREATE TABLE user_count
-                    (username TEXT, date TEXT, count INTEGER DEFAULT 0, PRIMARY KEY (username, date))''')
-    conn.executemany("INSERT INTO user_count VALUES (?, ?, ?)", rows)
-    conn.commit()
-    conn.close()
+    conftest.make_legacy_db(str(tmp_path / "db"), chat_id, rows)
 
 
 def query(path, sql, params=()):

@@ -372,3 +372,75 @@ def get_constipation_days(user_id, chat_id):
         return (today - last_day).days
 
     return None
+
+
+# Legacy data (counts recorded by username before the user-ID schema)
+
+def list_legacy_users(chat_id):
+    """Legacy usernames not yet linked to a user, as [(username, total_count)] sorted by name.
+
+    Usernames that differ only by case are grouped; rows without a username are not listed.
+    """
+    conn = _connect(chat_id)
+    try:
+        if not _has_table(conn, 'user_count_legacy'):
+            return []
+        return conn.execute('''SELECT MIN(username), SUM(count)
+                               FROM user_count_legacy
+                               WHERE username IS NOT NULL
+                               GROUP BY LOWER(username)
+                               ORDER BY LOWER(username)''').fetchall()
+    finally:
+        conn.close()
+
+def count_legacy_orphans(chat_id):
+    """Number of legacy rows without a username: they cannot be linked to anybody by name."""
+    conn = _connect(chat_id)
+    try:
+        if not _has_table(conn, 'user_count_legacy'):
+            return 0
+        return conn.execute('SELECT COUNT(*) FROM user_count_legacy WHERE username IS NULL').fetchone()[0]
+    finally:
+        conn.close()
+
+def link_legacy_username(chat_id, legacy_username, user_id):
+    """Move the legacy history of a username (case-insensitive) to a user ID.
+
+    Counts of the same day are summed with the ones the user already has. Returns the number
+    of days moved (0 if there is nothing to link, e.g. already linked).
+    """
+    conn = _connect(chat_id)
+    conn.isolation_level = None  # manual transaction control
+    try:
+        if not _has_table(conn, 'user_count_legacy'):
+            return 0
+        conn.execute('BEGIN IMMEDIATE')
+        try:
+            rows = conn.execute('''SELECT date, SUM(count)
+                                   FROM user_count_legacy
+                                   WHERE username = ? COLLATE NOCASE
+                                   GROUP BY date''', (legacy_username,)).fetchall()
+            for date, count in rows:
+                conn.execute('''INSERT INTO user_count (user_id, date, count) VALUES (?, ?, ?)
+                                ON CONFLICT(user_id, date) DO UPDATE SET count = count + excluded.count''',
+                             (user_id, date, count))
+            conn.execute('DELETE FROM user_count_legacy WHERE username = ? COLLATE NOCASE', (legacy_username,))
+            conn.execute('COMMIT')
+        except Exception:
+            conn.execute('ROLLBACK')
+            raise
+        return len(rows)
+    finally:
+        conn.close()
+
+def link_legacy_by_username(chat_id):
+    """Link every legacy username that matches the username of a known user.
+
+    Returns [(legacy_username, User, days_moved)] for the links that were made.
+    """
+    linked = []
+    for legacy_username, _ in list_legacy_users(chat_id):
+        user = find_user_by_username(chat_id, legacy_username)
+        if user is not None:
+            linked.append((legacy_username, user, link_legacy_username(chat_id, legacy_username, user.user_id)))
+    return linked

@@ -4,13 +4,15 @@ from dotenv import load_dotenv
 from datetime import datetime
 import pytz
 from telegram import Update
+from telegram.constants import ChatMemberStatus
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import re
 from flask import Flask, request, Response
 
 from database import (STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER, User, init_database, upsert_user,
                       find_user_by_username, get_count, update_count, get_rank, get_statistics, get_record,
-                      get_constipation_days)
+                      get_constipation_days, list_legacy_users, count_legacy_orphans, link_legacy_username,
+                      link_legacy_by_username)
 from utils import generate_rank_chart, generate_statistics_chart, analyze_user_record
 
 # Enable logging
@@ -124,6 +126,25 @@ def record_poop(sender, chat_id):
     return f"Complimenti {escape_md(sender.mention)}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
 
 
+def legacy_hint(chat_id):
+    """Suffix for 'no data' replies when old username-based history is still waiting to be linked."""
+    if list_legacy_users(chat_id):
+        return "\n\nℹ️ Ci sono dati storici ancora da collegare: usa /collega."
+    return ""
+
+
+async def is_chat_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """True if the sender is an administrator (or the owner) of the chat; always True in private chats."""
+    if update.message.chat.type == 'private':
+        return True
+    try:
+        member = await context.bot.get_chat_member(update.message.chat_id, update.message.from_user.id)
+    except Exception:
+        logger.exception("Could not read the chat member status")
+        return False
+    return member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER)
+
+
 # Command handlers
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /start command."""
@@ -152,7 +173,7 @@ async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_
 
     rank = get_rank(update.message.chat_id, 'month', date)
     if not rank:
-        await update.message.reply_text(f"Nel mese {date} non sono state contate 💩.")
+        await update.message.reply_text(f"Nel mese {date} non sono state contate 💩." + legacy_hint(update.message.chat_id))
         return
 
     message = f"Ecco la *classifica del mese {date}*:\n"
@@ -196,7 +217,7 @@ async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_
 
     rank = get_rank(update.message.chat_id, 'year', year)
     if not rank:
-        await update.message.reply_text(f'Nell\'anno {year} non sono state contate 💩.')
+        await update.message.reply_text(f'Nell\'anno {year} non sono state contate 💩.' + legacy_hint(update.message.chat_id))
         return
 
     message = f"Ecco la *classifica dell\'anno {year}*:\n"
@@ -237,7 +258,7 @@ async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT
 
     statistics = get_statistics(update.message.chat_id, 'month', date)
     if not statistics:
-        await update.message.reply_text(f"Nessuna statistica disponibile per il mese {date}.")
+        await update.message.reply_text(f"Nessuna statistica disponibile per il mese {date}." + legacy_hint(update.message.chat_id))
         return
 
     message = f"*Statistiche per il mese {date}*:\n"
@@ -283,7 +304,7 @@ async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT
 
     statistics = get_statistics(update.message.chat_id, 'year', year)
     if not statistics:
-        await update.message.reply_text(f"Nessuna statistica disponibile per l\'anno {year}.")
+        await update.message.reply_text(f"Nessuna statistica disponibile per l\'anno {year}." + legacy_hint(update.message.chat_id))
         return
 
     message = f"*Statistiche per l\'anno {year}*:\n"
@@ -325,7 +346,7 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
     rows = get_record(target.user_id, chat_id)
     if not rows:
-        await update.message.reply_text(f"Nessun dato disponibile per {target.mention}.")
+        await update.message.reply_text(f"Nessun dato disponibile per {target.mention}." + legacy_hint(update.message.chat_id))
         return
     record_data = analyze_user_record(rows)
 
@@ -466,6 +487,75 @@ async def costipazione_command(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text(f"{target.mention} non ci sono dati sulla costipazione.")
     logger.info(f"Command /costipazione completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
+async def collega_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /collega command: link the old username-based history to Telegram users.
+
+    /collega                    list the history that is still to be linked (everybody)
+    /collega auto               link every old username that matches a known user (admins)
+    /collega <old username>     as a reply to a message of the person: link that history to them (admins)
+    """
+    sender = register_sender(update)
+    if sender is None:
+        return
+    logger.info(f"Command received: /collega from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    chat_id = update.message.chat_id
+    args = context.args
+
+    if not args:
+        legacy = list_legacy_users(chat_id)
+        if not legacy:
+            await update.message.reply_text("Non ci sono dati storici da collegare.")
+            return
+        lines = ["Dati storici ancora da collegare:"]
+        for legacy_username, total in legacy:
+            match = find_user_by_username(chat_id, legacy_username)
+            lines.append(f"• {legacy_username}: {total} 💩" + (f" → {match.mention} (corrispondenza trovata)" if match else ""))
+        orphans = count_legacy_orphans(chat_id)
+        if orphans:
+            lines.append(f"({orphans} registrazioni senza username non si possono collegare.)")
+        lines.append("\nGli admin possono usare /collega auto per collegare le corrispondenze, "
+                     "oppure rispondere a un messaggio della persona con /collega <username storico>.")
+        await update.message.reply_text("\n".join(lines))
+        return
+
+    if not await is_chat_admin(update, context):
+        await update.message.reply_text("Solo gli admin del gruppo possono collegare i dati storici.")
+        return
+
+    # 'auto' is the keyword; an old username that is literally 'auto' can be written as '@auto'
+    if len(args) == 1 and args[0] == 'auto':
+        linked = link_legacy_by_username(chat_id)
+        remaining = list_legacy_users(chat_id)
+        lines = []
+        if linked:
+            lines.append("Collegati:")
+            lines += [f"• {legacy_username} → {user.mention} ({days} giorni)" for legacy_username, user, days in linked]
+        else:
+            lines.append("Nessuna corrispondenza trovata tra lo storico e gli utenti che hanno già scritto nel gruppo.")
+        if remaining:
+            lines.append("\nDa collegare a mano (rispondi a un messaggio della persona con /collega <username storico>):")
+            lines += [f"• {legacy_username}: {total} 💩" for legacy_username, total in remaining]
+        await update.message.reply_text("\n".join(lines))
+        return
+
+    usage = "/collega <username storico> (in risposta a un messaggio della persona)"
+    if len(args) != 1:
+        await update.message.reply_text(f"Formato non valido. Usa: {usage}")
+        return
+    replied = update.message.reply_to_message
+    if replied is None or replied.from_user is None or replied.from_user.is_bot:
+        await update.message.reply_text(f"Rispondi a un messaggio della persona da collegare. Usa: {usage}")
+        return
+    legacy_username = args[0].lstrip('@')
+    target = register_user(chat_id, replied.from_user)
+    days = link_legacy_username(chat_id, legacy_username, target.user_id)
+    if days == 0:
+        await update.message.reply_text(f"Nessun dato storico trovato per «{legacy_username}» (già collegato o inesistente).")
+    else:
+        await update.message.reply_text(f"Collegati {days} giorni di dati storici di «{legacy_username}» a {target.mention}.")
+    logger.info(f"Command /collega completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+
+
 # Messages handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for processing messages."""
@@ -526,6 +616,7 @@ application.add_handler(CommandHandler('aggiungi', aggiungi_command))
 application.add_handler(CommandHandler('togli', togli_command))
 application.add_handler(CommandHandler('conto_giorno', conto_giorno_command))
 application.add_handler(CommandHandler('costipazione', costipazione_command))
+application.add_handler(CommandHandler('collega', collega_command))
 
 # Messages
 application.add_handler(MessageHandler(filters.ALL, handle_message))
