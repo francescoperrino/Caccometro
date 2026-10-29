@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.colors as mcolors
-from database import get_count, now_rome, STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER
+from database import now_rome, STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER
 import locale
 from math import ceil, floor, log10
 from datetime import datetime, timedelta
@@ -33,12 +33,13 @@ def chart_label(name):
     """Make a user name safe for matplotlib text ('$' would start a math expression)."""
     return name.replace('$', r'\$')
 
-def generate_rank_chart(rank, chat_id, time_period, date):
+def generate_rank_chart(rank, daily_counts, chat_id, time_period, date):
     """
     Generates the monthly ranking table and chart.
 
     Args:
         rank (list): List of tuples containing a database.User and its count.
+        daily_counts (dict): {user_id: {'YYYY-MM-DD': count}} for the period (see database.get_daily_counts).
         chat_id (int): ID of the chat.
         time_period (str): Time period ('month' or 'year').
         date (str): Date in 'month-year' or 'year' format.
@@ -84,12 +85,17 @@ def generate_rank_chart(rank, chat_id, time_period, date):
     for user in users:
         row = [names[user]]
         total_count = 0
+        user_days = daily_counts.get(user, {})
+        if time_period == 'year':
+            # Monthly totals from the daily counts ('YYYY-MM-DD' -> month at positions 5:7)
+            month_totals = defaultdict(int)
+            for day_str, day_count in user_days.items():
+                month_totals[int(day_str[5:7])] += day_count
         for step in range(1, steps + 1):
             if time_period == 'month':
-                count_date = f'{year}-{month:02}-{step:02}'
+                count = user_days.get(f'{year}-{month:02}-{step:02}', 0)  # Count for the specific day
             elif time_period == 'year':
-                count_date = f'{year}-{step:02}'
-            count = get_count(user, count_date, chat_id)  # Get the count for the specific day or month
+                count = month_totals.get(step, 0)  # Count for the specific month
             total_count += count
             row.append(count)
         row.append(total_count)  # Add total count for the period
@@ -123,6 +129,7 @@ def generate_rank_chart(rank, chat_id, time_period, date):
 
     # Generate the chart
     for user in users:
+        user_days = daily_counts.get(user, {})
         cumulative_counts = []
         cumulative_count = 0
         for day in range(1, days + 1):
@@ -131,7 +138,7 @@ def generate_rank_chart(rank, chat_id, time_period, date):
             elif time_period == 'year':
                 doy = datetime.strptime(f'{year}-{day}', '%Y-%j')
                 count_date = doy.strftime(STORING_FORMAT)
-            count = get_count(user, count_date, chat_id)  # Get the count for each day in month or year
+            count = user_days.get(count_date, 0)  # Count for each day in month or year
             cumulative_count += count
             cumulative_counts.append(cumulative_count)
 
@@ -204,13 +211,14 @@ def generate_rank_chart(rank, chat_id, time_period, date):
     # Close figure
     plt.close(fig)
 
-def generate_statistics_chart(statistics, chat_id, time_period, date):
+def generate_statistics_chart(statistics, daily_counts, chat_id, time_period, date):
     """
     Generates charts (histogram and box plot) for monthly and yearly statistics in a single plot,
     with added Gaussian fitting to the histogram.
 
     Args:
         statistics (list): List of dictionaries containing user statistics.
+        daily_counts (dict): {user_id: {'YYYY-MM-DD': count}} for the period (see database.get_daily_counts).
         chat_id (int): ID of the chat.
         time_period (str): Time period ('month' or 'year').
         date (str): Date in 'month-year' or 'year' format.
@@ -244,20 +252,25 @@ def generate_statistics_chart(statistics, chat_id, time_period, date):
         if year == today.year:
             end_date = today
 
+    # Daily counts of every user, from the first day of the period to the last valid day
+    user_daily_counts = {}
+    for user in users:
+        user_days = daily_counts.get(user, {})
+        user_daily_counts[user] = []
+        current_date = datetime(year, 1, 1) if time_period == 'year' else datetime(year, month, 1)
+        delta = timedelta(days=1)
+        while current_date <= end_date:
+            user_daily_counts[user].append(user_days.get(current_date.strftime(STORING_FORMAT), 0))
+            current_date += delta
+
+    # How many days each user had each count (for the distribution curves)
     user_occurrence_counts = {}
     max_occurrence = 0
     for user in users:
         user_occurrence_counts[user] = {}
-        current_date = datetime(year, 1, 1) if time_period == 'year' else datetime(year, month, 1)
-        delta = timedelta(days=1)
-        while current_date <= end_date:
-            count_date_str = current_date.strftime(STORING_FORMAT)
-            count = get_count(user, count_date_str, chat_id)
-            if count not in user_occurrence_counts[user]:
-                user_occurrence_counts[user][count] = 0
-            user_occurrence_counts[user][count] += 1
+        for count in user_daily_counts[user]:
+            user_occurrence_counts[user][count] = user_occurrence_counts[user].get(count, 0) + 1
             max_occurrence = max(max_occurrence, count)
-            current_date += delta
 
     fig, axes = plt.subplots(2, 1, figsize=(15, 12))
 
@@ -350,17 +363,6 @@ def generate_statistics_chart(statistics, chat_id, time_period, date):
         axes[0].legend(loc='upper right')
 
     # Box plot in axes[1]
-    user_daily_counts = {}
-    for user in users:
-        user_daily_counts[user] = []
-        current_date = datetime(year, 1, 1) if time_period == 'year' else datetime(year, month, 1)
-        delta = timedelta(days=1)
-        while current_date <= end_date:
-            count_date_str = current_date.strftime(STORING_FORMAT)
-            count = get_count(user, count_date_str, chat_id)
-            user_daily_counts[user].append(count)
-            current_date += delta
-
     max_user_daily_counts = max(max(user_daily_counts[user]) for user in users if user_daily_counts[user])
 
     box_plot = axes[1].boxplot(list(user_daily_counts.values()), labels=[names[user] for user in users], patch_artist=True, sym='x')
