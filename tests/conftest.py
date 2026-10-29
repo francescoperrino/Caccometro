@@ -6,7 +6,9 @@ here, so the tests run anywhere.
 """
 import locale
 import os
+import sqlite3
 import sys
+import zlib
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -49,30 +51,51 @@ def isolated_folders(tmp_path, monkeypatch):
     return tmp_path
 
 
+def uid(name):
+    """Stable fake Telegram user ID for a test user name."""
+    return zlib.crc32(name.encode("utf-8"))
+
+
 @pytest.fixture
 def seed(chat_id):
-    """seed({'mario': {'2024-01-01': 1, ...}, ...})"""
+    """seed({'mario': {'2024-01-01': 1, ...}, ...}) registers the users and their counts.
+
+    A user with no days (e.g. 'luigi': {}) is registered without counts.
+    """
     def _seed(data):
-        for username, days in data.items():
+        for name, days in data.items():
+            database.upsert_user(chat_id, uid(name), name, name.capitalize())
             for date, count in days.items():
-                database.update_count(username, date, count, chat_id)
+                database.update_count(uid(name), date, count, chat_id)
     return _seed
 
 
-def make_update(text=None, username="mario", user_id=1, chat_id=CHAT_ID,
-                sticker_emoji=None, has_from_user=True):
-    """Fake Telegram Update, enough for the bot handlers."""
-    chat = SimpleNamespace(type="group", effective_name="Gruppo test")
-    from_user = (
-        SimpleNamespace(id=user_id, username=username, first_name="Mario")
-        if has_from_user else None
-    )
+def make_tg_user(username="mario", user_id=None, full_name=None, is_bot=False):
+    """Fake telegram.User."""
+    if user_id is None:
+        user_id = uid(username or full_name or "anonimo")
+    if full_name is None:
+        full_name = username.capitalize() if username else "Utente"
+    return SimpleNamespace(id=user_id, username=username, full_name=full_name,
+                           first_name=full_name.split()[0], is_bot=is_bot)
+
+
+def make_update(text=None, username="mario", user_id=None, chat_id=CHAT_ID,
+                sticker_emoji=None, has_from_user=True, full_name=None,
+                reply_to=None, is_bot=False, chat_type="group"):
+    """Fake Telegram Update, enough for the bot handlers.
+
+    reply_to: a make_tg_user(...) of the author of the message being replied to.
+    """
+    chat = SimpleNamespace(type=chat_type, effective_name="Gruppo test")
+    from_user = (make_tg_user(username, user_id, full_name, is_bot) if has_from_user else None)
     message = SimpleNamespace(
         text=text,
         from_user=from_user,
         chat_id=chat_id,
         chat=chat,
         sticker=SimpleNamespace(emoji=sticker_emoji) if sticker_emoji else None,
+        reply_to_message=SimpleNamespace(from_user=reply_to) if reply_to is not None else None,
         reply_text=AsyncMock(),
         reply_photo=AsyncMock(),
     )
@@ -84,5 +107,21 @@ def make_update(text=None, username="mario", user_id=1, chat_id=CHAT_ID,
     )
 
 
-def make_context(*args):
-    return SimpleNamespace(args=list(args))
+def make_context(*args, member_status="member"):
+    """Fake CallbackContext; context.bot.get_chat_member returns a member with member_status."""
+    bot = SimpleNamespace(get_chat_member=AsyncMock(return_value=SimpleNamespace(status=member_status)))
+    return SimpleNamespace(args=list(args), bot=bot)
+
+
+def make_legacy_db(db_folder, chat_id, rows):
+    """Create a database exactly as the old (username-keyed) version did.
+
+    rows: [(username, 'YYYY-MM-DD', count)]. The first database call on that chat migrates it.
+    """
+    os.makedirs(db_folder, exist_ok=True)
+    conn = sqlite3.connect(os.path.join(db_folder, f"{chat_id}_bot_data.db"))
+    conn.execute('''CREATE TABLE user_count
+                    (username TEXT, date TEXT, count INTEGER DEFAULT 0, PRIMARY KEY (username, date))''')
+    conn.executemany("INSERT INTO user_count VALUES (?, ?, ?)", rows)
+    conn.commit()
+    conn.close()

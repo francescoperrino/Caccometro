@@ -6,7 +6,7 @@ import pytz
 
 import caccometro
 import database
-from conftest import make_context, make_update
+from conftest import make_context, make_update, uid
 
 
 def run(coro):
@@ -21,28 +21,29 @@ def test_poop_message_increments_count(chat_id):
     upd = make_update(text="💩")
     run(caccometro.handle_message(upd, make_context()))
     run(caccometro.handle_message(make_update(text="ho fatto 💩"), make_context()))
-    assert database.get_count("mario", today_rome(), chat_id) == 2
+    assert database.get_count(uid("mario"), today_rome(), chat_id) == 2
     assert "Complimenti @mario" in upd.message.reply_text.call_args[0][0]
 
 
 def test_poop_sticker_increments_count(chat_id):
     run(caccometro.handle_message(make_update(sticker_emoji="💩"), make_context()))
-    assert database.get_count("mario", today_rome(), chat_id) == 1
+    assert database.get_count(uid("mario"), today_rome(), chat_id) == 1
 
 
 def test_plain_message_is_ignored(chat_id):
     upd = make_update(text="ciao a tutti")
     run(caccometro.handle_message(upd, make_context()))
     upd.message.reply_text.assert_not_called()
-    assert database.get_count("mario", today_rome(), chat_id) == 0
+    assert database.get_count(uid("mario"), today_rome(), chat_id) == 0
 
 
-def test_aggiungi_and_togli(chat_id):
+def test_aggiungi_and_togli(chat_id, seed):
+    seed({"luigi": {}})
     run(caccometro.aggiungi_command(make_update(), make_context("@luigi", "10-03-2024")))
     run(caccometro.aggiungi_command(make_update(), make_context("@luigi", "10-03-2024")))
-    assert database.get_count("luigi", "2024-03-10", chat_id) == 2
+    assert database.get_count(uid("luigi"), "2024-03-10", chat_id) == 2
     run(caccometro.togli_command(make_update(), make_context("@luigi", "10-03-2024")))
-    assert database.get_count("luigi", "2024-03-10", chat_id) == 1
+    assert database.get_count(uid("luigi"), "2024-03-10", chat_id) == 1
 
 
 def test_conto_giorno_reply(chat_id, seed):

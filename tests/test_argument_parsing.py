@@ -5,7 +5,7 @@ import pytest
 
 import caccometro
 import database
-from conftest import make_context, make_update
+from conftest import make_context, make_update, uid
 
 
 def run(coro):
@@ -48,20 +48,16 @@ def test_month_argument_without_leading_zero_is_still_accepted(seed):
 
 def test_username_lookup_is_case_insensitive(seed, chat_id):
     seed({"mario": {"2024-03-10": 2}})
-    assert database.get_count("MARIO", "2024-03-10", chat_id) == 2
-    assert database.get_record("Mario", chat_id) == [("2024-03-10", 2)]
-
-
-def test_update_count_keeps_stored_spelling_and_does_not_duplicate(seed, chat_id):
-    seed({"mario": {"2024-03-10": 2}})
-    database.update_count("MARIO", "2024-03-10", 3, chat_id)
-    assert database.get_rank(chat_id, "year", "2024") == [("mario", 3)]
+    assert database.find_user_by_username(chat_id, "MARIO").user_id == uid("mario")
+    assert database.find_user_by_username(chat_id, "Mario").name == "mario"
+    assert database.find_user_by_username(chat_id, "sconosciuto") is None
 
 
 def test_aggiungi_with_different_case_updates_same_user(seed, chat_id):
     seed({"mario": {"2024-03-10": 1}})
     run(caccometro.aggiungi_command(make_update(), make_context("@Mario", "10-03-2024")))
-    assert database.get_rank(chat_id, "year", "2024") == [("mario", 2)]
+    ((user, count),) = database.get_rank(chat_id, "year", "2024")
+    assert (user.name, count) == ("mario", 2)
 
 
 def test_costipazione_with_different_case(seed):

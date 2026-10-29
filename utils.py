@@ -29,12 +29,16 @@ def ensure_datetime(value):
                 return None
     return value
 
+def chart_label(name):
+    """Make a user name safe for matplotlib text ('$' would start a math expression)."""
+    return name.replace('$', r'\$')
+
 def generate_rank_chart(rank, chat_id, time_period, date):
     """
     Generates the monthly ranking table and chart.
 
     Args:
-        rank (list): List of tuples containing username and count.
+        rank (list): List of tuples containing a database.User and its count.
         chat_id (int): ID of the chat.
         time_period (str): Time period ('month' or 'year').
         date (str): Date in 'month-year' or 'year' format.
@@ -66,9 +70,9 @@ def generate_rank_chart(rank, chat_id, time_period, date):
     fig, axes = plt.subplots(2, 1, figsize=(15, 12))
 
     # Generate the table
-    users = [user for user, _ in rank]
-    # Sort users alphabetically
-    users = sorted(users)
+    names = {user.user_id: chart_label(user.name) for user, _ in rank}
+    # Sort users (by ID) alphabetically by name
+    users = sorted(names, key=lambda user_id: (names[user_id].lower(), user_id))
     axes[1].set_xticklabels([])
     if time_period == 'month':
         table_data = [[''] + [f'{step}' for step in range(1, steps + 1)] + ['Total']]  # Set days when time_period is 'month'
@@ -78,7 +82,7 @@ def generate_rank_chart(rank, chat_id, time_period, date):
     max_total = 0  # Variable to store the maximum total count for highlighting
 
     for user in users:
-        row = [user]
+        row = [names[user]]
         total_count = 0
         for step in range(1, steps + 1):
             if time_period == 'month':
@@ -131,7 +135,7 @@ def generate_rank_chart(rank, chat_id, time_period, date):
             cumulative_count += count
             cumulative_counts.append(cumulative_count)
 
-        axes[1].plot(range(1, days + 1), cumulative_counts, label=user)
+        axes[1].plot(range(1, days + 1), cumulative_counts, label=names[user])
 
     # Set legend for the chart below the chart
     axes[1].legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=len(users), fontsize=8)
@@ -214,7 +218,9 @@ def generate_statistics_chart(statistics, chat_id, time_period, date):
     Returns:
         None
     """
-    users_stats = sorted([(stat['username'], stat['mean'], stat['variance']) for stat in statistics])
+    names = {stat['user'].user_id: chart_label(stat['user'].name) for stat in statistics}
+    users_stats = sorted([(stat['user'].user_id, stat['mean'], stat['variance']) for stat in statistics],
+                         key=lambda item: (names[item[0]].lower(), item[0]))
     users, means, variances = zip(*users_stats)
     counts = []
 
@@ -267,7 +273,7 @@ def generate_statistics_chart(statistics, chat_id, time_period, date):
         if std > 0:
             x = np.linspace(min(occurrence_values), max(occurrence_values), 100)
             p = norm.pdf(x, mean, std)
-            axes[0].plot(x, p * sum(counts) * bar_width, '-', label=user)
+            axes[0].plot(x, p * sum(counts) * bar_width, '-', label=names[user])
             axes[0].fill_between(x, p * sum(counts) * bar_width, alpha=0.3)
 
             # Add vertical line at the mean
@@ -357,7 +363,7 @@ def generate_statistics_chart(statistics, chat_id, time_period, date):
 
     max_user_daily_counts = max(max(user_daily_counts[user]) for user in users if user_daily_counts[user])
 
-    box_plot = axes[1].boxplot(list(user_daily_counts.values()), labels=users, patch_artist=True, sym='x')
+    box_plot = axes[1].boxplot(list(user_daily_counts.values()), labels=[names[user] for user in users], patch_artist=True, sym='x')
 
     for i, (user, patch) in enumerate(zip(users, box_plot['boxes'])):
         color = f'C{i}'
