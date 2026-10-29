@@ -55,6 +55,28 @@ def escape_md(name):
     return (name or "sconosciuto").replace('_', '\\_')
 
 
+def parse_username_arg(arg):
+    """'@mario' -> 'mario'; None if it does not start with @ or is empty."""
+    if not arg.startswith('@') or len(arg) < 2:
+        return None
+    return arg[1:]
+
+
+def parse_month_arg(arg):
+    """'3-2024' or '03-2024' -> '03-2024'; None if it is not a valid month."""
+    try:
+        return datetime.strptime(arg, '%m-%Y').strftime('%m-%Y')
+    except ValueError:
+        return None
+
+
+def parse_year_arg(arg):
+    """'2024' -> '2024'; None if it is not a valid year (4 digits, 1970-2100)."""
+    if len(arg) == 4 and arg.isdigit() and 1970 <= int(arg) <= 2100:
+        return arg
+    return None
+
+
 # Command handlers
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /start command."""
@@ -73,10 +95,8 @@ async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_
     logger.info(f"Command received: /classifica_mese from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
-        try:
-            month, year = args[0].split('-')
-            date = f"{month}-{year}"
-        except ValueError:
+        date = parse_month_arg(args[0])
+        if date is None:
             await update.message.reply_text("Formato data non valido. Usa MM-YYYY.")
             return
     else:
@@ -119,7 +139,10 @@ async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_
     logger.info(f"Command received: /classifica_anno from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
-        year = args[0]
+        year = parse_year_arg(args[0])
+        if year is None:
+            await update.message.reply_text("Formato anno non valido. Usa YYYY.")
+            return
     else:
         now = datetime.now(pytz.timezone('Europe/Rome'))
         year = now.strftime("%Y")
@@ -157,10 +180,8 @@ async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT
     logger.info(f"Command received: /statistiche_mese from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
-        try:
-            month, year = args[0].split('-')
-            date = f"{month}-{year}"
-        except ValueError:
+        date = parse_month_arg(args[0])
+        if date is None:
             await update.message.reply_text("Formato data non valido. Usa MM-YYYY.")
             return
     else:
@@ -205,7 +226,10 @@ async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT
     logger.info(f"Command received: /statistiche_anno from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
-        year = args[0]
+        year = parse_year_arg(args[0])
+        if year is None:
+            await update.message.reply_text("Formato anno non valido. Usa YYYY.")
+            return
     else:
         now = datetime.now(pytz.timezone('Europe/Rome'))
         year = now.strftime("%Y")
@@ -246,7 +270,10 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"Command received: /record from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
-        username = args[0][1:]
+        username = parse_username_arg(args[0])
+        if username is None:
+            await update.message.reply_text("Formato non valido. Usa: /record @username")
+            return
     else:
         username = update.message.from_user.username
     
@@ -314,11 +341,11 @@ async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
     
     if len(args) == 2:
-        if not args[0].startswith('@'):
+        if parse_username_arg(args[0]) is None:
             await update.message.reply_text("Formato non valido. Usa: /aggiungi @username DD-MM-YYYY")
             return
         try:
-            username = args[0][1:]
+            username = parse_username_arg(args[0])
             date = args[1]
             parsed_date = datetime.strptime(date, DISPLAY_FORMAT)
             selected_date = parsed_date.strftime(STORING_FORMAT)
@@ -361,11 +388,11 @@ async def togli_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
     
     if len(args) == 2:
-        if not args[0].startswith('@'):
+        if parse_username_arg(args[0]) is None:
             await update.message.reply_text("Formato non valido. Usa: /togli @username DD-MM-YYYY")
             return
         try:
-            username = args[0][1:]
+            username = parse_username_arg(args[0])
             date = args[1]
             parsed_date = datetime.strptime(date, DISPLAY_FORMAT)
             selected_date = parsed_date.strftime(STORING_FORMAT)
@@ -406,7 +433,10 @@ async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYP
     
     if len(args) == 1:
         if args[0].startswith('@'):
-            username = args[0][1:]
+            username = parse_username_arg(args[0])
+            if username is None:
+                await update.message.reply_text("Formato non valido. Usa: /conto_giorno @username DD-MM-YYYY")
+                return
             date = datetime.now(pytz.timezone('Europe/Rome')).strftime(DISPLAY_FORMAT)
             parsed_date = datetime.strptime(date, DISPLAY_FORMAT)
             selected_date = parsed_date.strftime(STORING_FORMAT)
@@ -424,11 +454,11 @@ async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYP
                 return
     
     if len(args) == 2:
-        if not args[0].startswith('@'):
+        if parse_username_arg(args[0]) is None:
             await update.message.reply_text("Formato non valido. Usa: /conta_giorno @username DD-MM-YYYY")
             return
         try:
-            username = args[0][1:]
+            username = parse_username_arg(args[0])
             date = args[1]
             parsed_date = datetime.strptime(date, DISPLAY_FORMAT)
             selected_date = parsed_date.strftime(STORING_FORMAT)
@@ -455,7 +485,10 @@ async def costipazione_command(update: Update, context: ContextTypes.DEFAULT_TYP
     logger.info(f"Command received: /costipazione from @{username} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
     args = context.args
     if args:
-        username = args[0][1:]
+        username = parse_username_arg(args[0])
+        if username is None:
+            await update.message.reply_text("Formato non valido. Usa: /costipazione @username")
+            return
     else:
         username = update.message.from_user.username
 
