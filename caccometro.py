@@ -10,7 +10,7 @@ import re
 from flask import Flask, request, Response
 
 from database import (STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER, User, init_database, upsert_user,
-                      find_user_by_username, get_count, update_count, get_rank, get_statistics, get_record,
+                      find_user_by_username, add_count, get_count, get_daily_counts, get_rank, get_statistics, get_record,
                       get_constipation_days, list_legacy_users, count_legacy_orphans, link_legacy_username,
                       link_legacy_by_username)
 from utils import generate_rank_chart, generate_statistics_chart, analyze_user_record
@@ -121,8 +121,7 @@ def resolve_target(update: Update, args, sender, usage):
 def record_poop(sender, chat_id):
     """Add one 💩 to today's count of the sender and return the message to reply with."""
     today = datetime.now(pytz.timezone("Europe/Rome")).strftime(STORING_FORMAT)
-    count = get_count(sender.user_id, today, chat_id) + 1
-    update_count(sender.user_id, today, count, chat_id)
+    _, count = add_count(sender.user_id, today, 1, chat_id)
     return f"Complimenti {escape_md(sender.mention)}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
 
 
@@ -188,7 +187,8 @@ async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_
         else:
             message += f"{i}. {escaped_name}: {total_count}\n"
 
-    generate_rank_chart(rank, update.message.chat_id, 'month', date)
+    daily_counts = get_daily_counts(update.message.chat_id, 'month', date)
+    generate_rank_chart(rank, daily_counts, update.message.chat_id, 'month', date)
 
     date_parts = date.split('-')
     saving_date = f"{date_parts[1]}_{date_parts[0]}"
@@ -232,7 +232,8 @@ async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_
         else:
             message += f"{i}. {escaped_name}: {total_count}\n"
 
-    generate_rank_chart(rank, update.message.chat_id, 'year', year)
+    daily_counts = get_daily_counts(update.message.chat_id, 'year', year)
+    generate_rank_chart(rank, daily_counts, update.message.chat_id, 'year', year)
 
     with open(os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{year}_chart.png'), 'rb') as chart:
         await update.message.reply_photo(chart)
@@ -276,7 +277,8 @@ async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT
         else:
             message += f"{i}. {escaped_name}: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
 
-    generate_statistics_chart(statistics, update.message.chat_id, 'month', date)
+    daily_counts = get_daily_counts(update.message.chat_id, 'month', date)
+    generate_statistics_chart(statistics, daily_counts, update.message.chat_id, 'month', date)
 
     date_parts = date.split('-')
     saving_date = f"{date_parts[1]}_{date_parts[0]}"
@@ -322,7 +324,8 @@ async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT
         else:
             message += f"{i}. {escaped_name}: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
 
-    generate_statistics_chart(statistics, update.message.chat_id, 'year', year)
+    daily_counts = get_daily_counts(update.message.chat_id, 'year', year)
+    generate_statistics_chart(statistics, daily_counts, update.message.chat_id, 'year', year)
 
     with open(os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{year}_stats.png'), 'rb') as stats:
         await update.message.reply_photo(stats)
@@ -398,11 +401,9 @@ async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Errore: {str(e)}")
         return
 
-    chat_id = update.message.chat_id
-    count = get_count(target.user_id, selected_date, chat_id)
-    update_count(target.user_id, selected_date, count + 1, chat_id)
+    _, new_count = add_count(target.user_id, selected_date, 1, update.message.chat_id)
     await update.message.reply_text(
-        f"Il conteggio di {target.mention} nel giorno {date} è stato aggiornato a {count + 1} 💩.")
+        f"Il conteggio di {target.mention} nel giorno {date} è stato aggiornato a {new_count} 💩.")
     logger.info(f"Command /aggiungi completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def togli_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -424,12 +425,10 @@ async def togli_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Errore: {str(e)}")
         return
 
-    chat_id = update.message.chat_id
-    count = get_count(target.user_id, selected_date, chat_id)
-    if count > 0:
-        update_count(target.user_id, selected_date, count - 1, chat_id)
+    old_count, new_count = add_count(target.user_id, selected_date, -1, update.message.chat_id)
+    if old_count > 0:
         await update.message.reply_text(
-            f"Il conteggio di {target.mention} nel giorno {date} è stato aggiornato a {count - 1} 💩.")
+            f"Il conteggio di {target.mention} nel giorno {date} è stato aggiornato a {new_count} 💩.")
     else:
         await update.message.reply_text(
             f"Il conteggio di {target.mention} nel giorno {date} non può essere aggiornato poiché era già 0 💩.")

@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import NamedTuple, Optional
 import numpy as np
 import calendar
@@ -56,7 +56,7 @@ def _connect(chat_id):
     if path not in _schema_ready:
         _ensure_schema(path)
         _schema_ready.add(path)
-    return sqlite3.connect(path)
+    return sqlite3.connect(path, timeout=30)
 
 def _has_legacy_table(conn):
     """True if user_count still has the legacy layout (rows keyed by username)."""
@@ -219,6 +219,55 @@ def update_count(user_id, date, count, chat_id):
     finally:
         conn.close()
 
+def add_count(user_id, date, delta, chat_id):
+    """Add delta (e.g. +1 or -1) to the count of a user on a day, in a single transaction.
+
+    Reading and writing happen under the same write lock, so concurrent updates cannot overwrite
+    each other. The count never goes below 0 (a count of 0 removes the row).
+    Returns (old_count, new_count).
+    """
+    conn = _connect(chat_id)
+    conn.isolation_level = None  # manual transaction control
+    try:
+        conn.execute('BEGIN IMMEDIATE')
+        try:
+            row = conn.execute('SELECT count FROM user_count WHERE user_id = ? AND date = ?', (user_id, date)).fetchone()
+            old_count = row[0] if row else 0
+            new_count = max(old_count + delta, 0)
+            if new_count > 0:
+                conn.execute('''INSERT INTO user_count (user_id, date, count) VALUES (?, ?, ?)
+                                ON CONFLICT(user_id, date) DO UPDATE SET count = excluded.count''',
+                             (user_id, date, new_count))
+            elif row:
+                conn.execute('DELETE FROM user_count WHERE user_id = ? AND date = ?', (user_id, date))
+            conn.execute('COMMIT')
+        except Exception:
+            conn.execute('ROLLBACK')
+            raise
+        return old_count, new_count
+    finally:
+        conn.close()
+
+def _daily_counts(conn, start_period, end_period):
+    """{user_id: {'YYYY-MM-DD': count}} for every day with at least one 💩 in the period (one query)."""
+    daily = {}
+    for user_id, day, count in conn.execute('SELECT user_id, date, count FROM user_count WHERE date BETWEEN ? AND ?',
+                                            (start_period, end_period)):
+        daily.setdefault(user_id, {})[day] = count
+    return daily
+
+def get_daily_counts(chat_id, time_period, date):
+    """Counts of every user for every day of a period ('month' + 'MM-YYYY', or 'year' + 'YYYY').
+
+    One query for the whole period. Returns {user_id: {'YYYY-MM-DD': count}}; days without 💩 are absent.
+    """
+    start_period, end_period = _period_bounds(time_period, date)
+    conn = _connect(chat_id)
+    try:
+        return _daily_counts(conn, start_period, end_period)
+    finally:
+        conn.close()
+
 def _period_bounds(time_period, date):
     """Start and end date (storing format) of a month ('MM-YYYY') or year ('YYYY')."""
     if time_period == 'month':
@@ -278,23 +327,8 @@ def get_statistics(chat_id, time_period, date):
 
     conn = _connect(chat_id)
     try:
-        # Get the dates in the period
-        date_list = []
-        start_date = datetime.strptime(start_period, STORING_FORMAT)
-        end_date = datetime.strptime(end_period, STORING_FORMAT)
-        delta = timedelta(days=1)
-        while start_date <= end_date:
-            date_list.append(start_date.strftime(STORING_FORMAT))
-            start_date += delta
-
-        # Get the counts for each user for each day in the period
-        user_daily_counts = {}
-        for date_str in date_list:
-            rows = conn.execute('SELECT user_id, count FROM user_count WHERE date = ?', (date_str,)).fetchall()
-            for user_id, count in rows:
-                if user_id not in user_daily_counts:
-                    user_daily_counts[user_id] = []
-                user_daily_counts[user_id].append(count)
+        # Counts of every user for the whole period, with a single query
+        user_daily_counts = _daily_counts(conn, start_period, end_period)
 
         users = {user_id: _to_user(user_id, username, display_name)
                  for user_id, username, display_name in conn.execute('SELECT user_id, username, display_name FROM users')}
@@ -303,7 +337,8 @@ def get_statistics(chat_id, time_period, date):
 
     # Calculate statistics for each user
     user_statistics = []
-    for user_id, counts in user_daily_counts.items():
+    for user_id, per_day in user_daily_counts.items():
+        counts = [per_day[day] for day in sorted(per_day)]
         if time_period == 'month':
             expected_days = calendar.monthrange(year, month)[1]
         else:
