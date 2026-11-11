@@ -1,5 +1,6 @@
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 from datetime import datetime
 import pytz
@@ -18,10 +19,13 @@ from utils import generate_rank_chart, generate_statistics_chart, analyze_user_r
 
 # Enable logging
 log_filename = "caccometro.log"
+LOG_MAX_BYTES = 1_000_000  # 1 MB per file...
+LOG_BACKUPS = 3            # ...and 3 older files: the logs never take more than about 4 MB
+file_handler = RotatingFileHandler(log_filename, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUPS, encoding='utf-8')
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                     level=logging.INFO,
                     handlers=[
-                        logging.FileHandler(log_filename, encoding='utf-8'),
+                        file_handler,
                         logging.StreamHandler()
                     ])
 # Set higher logging level for httpx to avoid all GET and POST requests being logged

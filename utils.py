@@ -10,7 +10,6 @@ from math import ceil, floor, log10
 from datetime import datetime, timedelta
 from collections import defaultdict
 import numpy as np
-from scipy.stats import norm
 
 # Set the locale to Italian
 locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
@@ -28,6 +27,11 @@ def ensure_datetime(value):
             except ValueError:
                 return None
     return value
+
+def normal_pdf(x, mean, std):
+    """Probability density of a normal distribution (same values as scipy.stats.norm.pdf, without scipy)."""
+    z = (np.asarray(x, dtype=float) - mean) / std
+    return np.exp(-0.5 * z * z) / (std * np.sqrt(2 * np.pi))
 
 def chart_label(name):
     """Make a user name safe for matplotlib text ('$' would start a math expression)."""
@@ -285,12 +289,12 @@ def generate_statistics_chart(statistics, daily_counts, chat_id, time_period, da
         std = np.sqrt(variances[i]) if variances[i] > 0 else 0
         if std > 0:
             x = np.linspace(min(occurrence_values), max(occurrence_values), 100)
-            p = norm.pdf(x, mean, std)
+            p = normal_pdf(x, mean, std)
             axes[0].plot(x, p * sum(counts) * bar_width, '-', label=names[user])
             axes[0].fill_between(x, p * sum(counts) * bar_width, alpha=0.3)
 
             # Add vertical line at the mean
-            gaussian_value_at_mean = norm.pdf(mean, mean, std) * sum(counts) * bar_width
+            gaussian_value_at_mean = normal_pdf(mean, mean, std) * sum(counts) * bar_width
             axes[0].vlines(mean, 0, gaussian_value_at_mean, linestyles='--', colors=f'C{i}', linewidth=2)
 
     axes[0].grid(axis='y', linestyle='--', alpha=0.7)
@@ -303,7 +307,7 @@ def generate_statistics_chart(statistics, daily_counts, chat_id, time_period, da
         std = np.sqrt(variances[i]) if variances[i] > 0 else 0
         if std > 0:
             x = np.linspace(min(occurrence_values), max(occurrence_values), 100)
-            p = norm.pdf(x, mean, std)
+            p = normal_pdf(x, mean, std)
             max_gaussian_height = max(max_gaussian_height, max(p * sum(counts) * bar_width))
 
     # Calculate max y value for the plot
