@@ -5,7 +5,8 @@ from datetime import datetime
 import pytz
 from telegram import Update
 from telegram.constants import ChatMemberStatus
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, ExtBot, MessageHandler, filters, ContextTypes
+from telegram.request import HTTPXRequest
 import re
 from flask import Flask, request, Response
 
@@ -601,8 +602,27 @@ async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         logger.error(f'Error: "{context.error}"', exc_info=context.error)
 
-# Create the Application instance
-application = Application.builder().token(BOT_TOKEN).build()
+class CachedMeBot(ExtBot):
+    """ExtBot that asks Telegram 'who am I?' (getMe) only once per process.
+
+    The webhook initializes and shuts down the application for every update, and Bot.initialize()
+    calls getMe each time: one extra outbound request per message, and one more chance to hit a
+    proxy error. The answer never changes, so it is kept after the first success (a failed call is
+    not cached and is simply tried again).
+    """
+
+    async def get_me(self, *args, **kwargs):
+        if self._bot_user is not None:
+            return self._bot_user
+        return await super().get_me(*args, **kwargs)
+
+
+# Create the Application instance (same connection pools as Application.builder().token(...) would use)
+application = Application.builder().bot(CachedMeBot(
+    BOT_TOKEN,
+    request=HTTPXRequest(connection_pool_size=256),
+    get_updates_request=HTTPXRequest(connection_pool_size=1),
+)).build()
 
 # Add handlers
 application.add_handler(CommandHandler('start', start_command))
