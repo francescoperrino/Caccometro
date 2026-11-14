@@ -11,11 +11,13 @@ from telegram.request import HTTPXRequest
 import re
 from flask import Flask, request, Response
 
-from database import (STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER, User, init_database, upsert_user,
+from database import (STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER, User, init_database, now_rome, upsert_user,
                       find_user_by_username, add_count, get_count, get_daily_counts, get_rank, get_statistics, get_record,
                       get_constipation_days, list_legacy_users, count_legacy_orphans, link_legacy_username,
                       link_legacy_by_username)
-from utils import generate_rank_chart, generate_statistics_chart, analyze_user_record
+from utils import generate_rank_chart, generate_statistics_chart
+from analysis import analyze_user
+from formatting import format_user_record
 
 # Enable logging
 log_filename = "caccometro.log"
@@ -356,33 +358,8 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not rows:
         await update.message.reply_text(f"Nessun dato disponibile per {target.mention}." + legacy_hint(update.message.chat_id))
         return
-    record_data = analyze_user_record(rows)
-
-    def volte(n):
-        return 'volte' if n > 1 else 'volta'
-
-    lines = [
-        f"📊 *Record per {escape_md(target.mention)}* 📊\n",
-        f"🥵 Hai fatto 💩 {record_data['max_daily_count']} {volte(record_data['max_daily_count'])} il {record_data['max_days']}.",
-    ]
-
-    # Monthly records exclude the current month: they do not exist until a month has been completed.
-    if record_data['max_monthly_count'] is not None:
-        max_in = 'nei mesi' if ', ' in record_data['max_months'] else 'nel mese'
-        min_in = 'nei mesi' if ', ' in record_data['min_months'] else 'nel mese'
-        lines.append(f"🤩 Hai fatto 💩 {record_data['max_monthly_count']} {volte(record_data['max_monthly_count'])} {max_in} {record_data['max_months']}.")
-        lines.append(f"😭 Hai fatto solo 💩 {record_data['min_monthly_count']} {volte(record_data['min_monthly_count'])} {min_in} {record_data['min_months']}.")
-    else:
-        lines.append("🗓️ I record mensili saranno disponibili dopo il primo mese completo.")
-
-    lines.append(f"🥳 Hai fatto 💩 per {record_data['max_streak_days']} giorni consecutivi ({record_data['max_streak_period']}).")
-    lines.append(f"🫣 Hai fatto 💩 {record_data['max_streak_count']} {volte(record_data['max_streak_count'])} in una serie di giorni consecutivi ({record_data['max_streak_count_period']}).")
-    if record_data['max_gap_days'] > 0:
-        lines.append(f"🤢 Non hai fatto 💩 per {record_data['max_gap_days']} giorni consecutivi ({record_data['max_gap_period']}).")
-    else:
-        lines.append("🤢 Non ci sono ancora giorni senza 💩 tra la prima e l'ultima registrazione.")
-
-    message = "\n".join(lines)
+    records = analyze_user(rows, now_rome().date())
+    message = format_user_record(escape_md(target.mention), records)
 
     await update.message.reply_text(message, parse_mode='Markdown')
     logger.info(f"Command /record completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
