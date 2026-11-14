@@ -164,6 +164,14 @@ async def is_chat_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER)
 
 
+async def may_change_counts_of(update: Update, context: ContextTypes.DEFAULT_TYPE, sender, target):
+    """Everybody can change their own counts; only the group admins can change the counts of others."""
+    if target.user_id == sender.user_id or await is_chat_admin(update, context):
+        return True
+    await update.message.reply_text("Solo gli admin del gruppo possono modificare i conteggi degli altri.")
+    return False
+
+
 # Command handlers
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /start command."""
@@ -397,6 +405,8 @@ async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if error:
         await update.message.reply_text(error)
         return
+    if not await may_change_counts_of(update, context, sender, target):
+        return
     try:
         date, selected_date = parse_date_arg(args[0])
     except ValueError as e:
@@ -420,6 +430,8 @@ async def togli_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         error = f"Formato non valido. Usa: {usage}"
     if error:
         await update.message.reply_text(error)
+        return
+    if not await may_change_counts_of(update, context, sender, target):
         return
     try:
         date, selected_date = parse_date_arg(args[0])

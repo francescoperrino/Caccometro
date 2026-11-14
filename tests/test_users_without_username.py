@@ -96,7 +96,7 @@ def test_target_by_username_requires_a_known_user(seed):
 def test_target_by_reply_works_for_users_without_username(chat_id):
     replied = make_tg_user(username=None, user_id=888, full_name="Giulia Bianchi")
     upd = make_update(reply_to=replied)
-    run(caccometro.aggiungi_command(upd, make_context("10-03-2024")))
+    run(caccometro.aggiungi_command(upd, make_context("10-03-2024", member_status="administrator")))
     assert database.get_count(888, "2024-03-10", chat_id) == 1
     assert "Giulia Bianchi" in upd.message.reply_text.call_args[0][0]
 

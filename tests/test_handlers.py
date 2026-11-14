@@ -39,10 +39,11 @@ def test_plain_message_is_ignored(chat_id):
 
 def test_aggiungi_and_togli(chat_id, seed):
     seed({"luigi": {}})
-    run(caccometro.aggiungi_command(make_update(), make_context("@luigi", "10-03-2024")))
-    run(caccometro.aggiungi_command(make_update(), make_context("@luigi", "10-03-2024")))
+    admin = dict(member_status="administrator")   # changing the counts of somebody else
+    run(caccometro.aggiungi_command(make_update(), make_context("@luigi", "10-03-2024", **admin)))
+    run(caccometro.aggiungi_command(make_update(), make_context("@luigi", "10-03-2024", **admin)))
     assert database.get_count(uid("luigi"), "2024-03-10", chat_id) == 2
-    run(caccometro.togli_command(make_update(), make_context("@luigi", "10-03-2024")))
+    run(caccometro.togli_command(make_update(), make_context("@luigi", "10-03-2024", **admin)))
     assert database.get_count(uid("luigi"), "2024-03-10", chat_id) == 1
 
 
