@@ -1,5 +1,6 @@
 import os
 import asyncio
+import hmac
 import logging
 from collections import deque
 import httpx
@@ -42,6 +43,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 BOT_USERNAME = os.environ.get('BOT_USERNAME')
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
+WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')  # also given to set_webhook: Telegram sends it back
 RUN_MODE = os.environ.get('RUN_MODE', 'POLLING').upper()
 
 def display_name_of(tg_user):
@@ -672,9 +674,14 @@ app = Flask(__name__)
 # so that a 💩 is never counted twice. Kept in memory: enough, as a resend comes within minutes.
 SEEN_UPDATE_IDS = deque(maxlen=500)
 
-@app.route(f'/{BOT_TOKEN}', methods=['POST'])
+@app.route('/webhook', methods=['POST'])
 async def webhook():
     """This function receives the update from Telegram and passes it to the library."""
+    # Only Telegram knows the secret: without it anybody could send fake updates
+    received_secret = request.headers.get('X-Telegram-Bot-Api-Secret-Token', '')
+    if not WEBHOOK_SECRET or not hmac.compare_digest(received_secret, WEBHOOK_SECRET):
+        logger.warning("Webhook call without the right secret token: refused.")
+        return Response('forbidden', status=403)
     logger.info("Webhook received...")
     try:
         # 1. Start the application)

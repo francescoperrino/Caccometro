@@ -9,7 +9,7 @@ from telegram.request import HTTPXRequest
 import caccometro
 import database
 from conftest import CHAT_ID, make_update
-from test_webhook_identity import telegram_calls, telegram_update  # noqa: F401  (fixture)
+from test_webhook_identity import SECRET, telegram_calls, telegram_update  # noqa: F401  (fixture)
 
 
 class Attempts(list):
@@ -75,7 +75,7 @@ def test_an_update_sent_twice_is_counted_once(telegram_calls):  # noqa: F811
     pytest.importorskip("asgiref")   # Flask async views need it
     client = caccometro.app.test_client()
     for _ in range(2):
-        response = client.post(f"/{caccometro.BOT_TOKEN}", json=telegram_update(update_id=7))
+        response = client.post("/webhook", headers=SECRET, json=telegram_update(update_id=7))
         assert response.status_code == 200
     assert telegram_calls.count("sendMessage") == 1
     today = database.now_rome().strftime("%Y-%m-%d")
