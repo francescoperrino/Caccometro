@@ -6,6 +6,7 @@ db/*.db
 charts/
 charts/*.png
 *.log
+*.log.*
 __pycache__/
 .vscode/
 .pytest_cache/

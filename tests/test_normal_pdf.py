@@ -7,10 +7,14 @@ import utils
 
 @pytest.mark.parametrize("mean,std", [(0.0, 1.0), (0.37, 0.8), (2.5, 3.1), (10.0, 0.05)])
 def test_matches_scipy_when_scipy_is_available(mean, std):
-    stats = pytest.importorskip("scipy.stats")
+    # a leftover, broken scipy folder imports fine but has no norm: skip in that case too
+    try:
+        from scipy.stats import norm
+    except ImportError:
+        pytest.skip("scipy is not installed")
     x = np.linspace(mean - 5 * std, mean + 5 * std, 101)
-    assert np.allclose(utils.normal_pdf(x, mean, std), stats.norm.pdf(x, mean, std), rtol=1e-12, atol=0)
-    assert np.isclose(utils.normal_pdf(mean, mean, std), stats.norm.pdf(mean, mean, std), rtol=1e-12)
+    assert np.allclose(utils.normal_pdf(x, mean, std), norm.pdf(x, mean, std), rtol=1e-12, atol=0)
+    assert np.isclose(utils.normal_pdf(mean, mean, std), norm.pdf(mean, mean, std), rtol=1e-12)
 
 
 def test_known_values_without_scipy():
