@@ -2,7 +2,7 @@
 
 The functions return Telegram (legacy) Markdown. Names must already be escaped by the caller.
 """
-from analysis import Period, UserRecords
+from analysis import GroupBoard, Leaders, Period, UserRecords
 
 DISPLAY_FORMAT = "%d-%m-%Y"
 
@@ -123,3 +123,66 @@ def format_user_record(name, records: UserRecords):
 
     return "\n".join(lines)
 
+
+# ---------------------------------------------------------------- the whole group
+
+MAX_HOLDERS = 3     # holders listed for a record; the others are summarized ("e altri 2")
+MAX_WHEN = 2        # dates/months/periods listed for each holder
+
+
+def _when_text(when, fmt):
+    """The most recent dates/months/periods first (they are in chronological order)."""
+    shown = "; ".join(fmt(item) for item in when[-MAX_WHEN:][::-1])
+    return shown + ("…" if len(when) > MAX_WHEN else "")
+
+
+def _holders(leaders: Leaders, names, fmt=None):
+    """'*@mario* (10-03-2025), *@luigi* (22-05-2025) e altri 2'."""
+    parts = []
+    for holder in leaders.holders[:MAX_HOLDERS]:
+        text = f"*{names.get(holder.key, str(holder.key))}*"
+        if fmt is not None and holder.when:
+            text += f" ({_when_text(holder.when, fmt)})"
+        parts.append(text)
+    extra = len(leaders.holders) - MAX_HOLDERS
+    return ", ".join(parts) + (f" e altri {extra}" if extra > 0 else "")
+
+
+def format_group_record(board: GroupBoard, names):
+    """The /record message of the whole group: who holds each record, and who leads right now.
+
+    names: {user key: name already escaped for Markdown}.
+    """
+    lines = ["🏆 *Record del gruppo* 🏆\n"]
+    if board.daily is not None:
+        lines.append(f"🥵 Più 💩 in un giorno: {board.daily.value} {_times(board.daily.value)} — {_holders(board.daily, names, _date)}")
+    if board.best_month is not None:
+        lines.append(f"🤩 Più 💩 in un mese: {board.best_month.value} {_times(board.best_month.value)} — "
+                     f"{_holders(board.best_month, names, _month)}")
+    if board.worst_month is not None:
+        lines.append(f"😭 Meno 💩 in un mese: {board.worst_month.value} {_times(board.worst_month.value)} — "
+                     f"{_holders(board.worst_month, names, _month)}")
+    if board.streak_days is not None:
+        lines.append(f"🥳 Serie più lunga: {_consecutive_days(board.streak_days.value)} — "
+                     f"{_holders(board.streak_days, names, _period)}")
+    if board.streak_count is not None:
+        lines.append(f"🫣 Più 💩 in una serie: {board.streak_count.value} {_times(board.streak_count.value)} — "
+                     f"{_holders(board.streak_count, names, _period)}")
+    if board.gap_days is not None:
+        lines.append(f"🤢 Pausa più lunga: {_consecutive_days(board.gap_days.value)} — {_holders(board.gap_days, names, _period)}")
+
+    now = []
+    if board.today is not None:
+        now.append(f"💩 Oggi: {board.today.value} {_times(board.today.value)} — {_holders(board.today, names)}")
+    if board.active_streak is not None:
+        now.append(f"🔥 Serie in corso più lunga: {board.active_streak.value} {_days(board.active_streak.value)} — "
+                   f"{_holders(board.active_streak, names, _period)}")
+    if board.active_gap is not None:
+        now.append(f"🐢 Pausa in corso più lunga: {board.active_gap.value} {_days(board.active_gap.value)} — "
+                   f"{_holders(board.active_gap, names)}")
+    if now:
+        lines.append("\n📍 *Adesso*")
+        lines += now
+
+    lines.append("\nIl tuo: /record io — di un altro: /record @username (o rispondi a un suo messaggio)")
+    return "\n".join(lines)

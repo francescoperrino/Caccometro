@@ -14,7 +14,7 @@ def run(coro):
 
 def record_text(username="mario"):
     upd = make_update(username=username)
-    run(caccometro.record_command(upd, make_context()))
+    run(caccometro.record_command(upd, make_context("io")))
     return upd.message.reply_text.call_args[0][0]
 
 

@@ -73,5 +73,5 @@ def test_statistiche_mese_sends_chart_and_text(seed):
 def test_record_happy_path(seed):
     seed({"mario": {"2024-01-01": 1, "2024-01-02": 2, "2024-02-10": 3, "2024-03-01": 1}})
     upd = make_update()
-    run(caccometro.record_command(upd, make_context()))
+    run(caccometro.record_command(upd, make_context("io")))
     assert "Record per @mario" in upd.message.reply_text.call_args[0][0]

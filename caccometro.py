@@ -13,11 +13,11 @@ from flask import Flask, request, Response
 
 from database import (STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER, User, init_database, now_rome, upsert_user,
                       find_user_by_username, add_count, get_count, get_daily_counts, get_rank, get_statistics, get_record,
-                      get_constipation_days, list_legacy_users, count_legacy_orphans, link_legacy_username,
+                      get_all_user_rows, get_constipation_days, list_legacy_users, count_legacy_orphans, link_legacy_username,
                       link_legacy_by_username)
 from utils import generate_rank_chart, generate_statistics_chart
-from analysis import analyze_user
-from formatting import format_user_record
+from analysis import analyze_group, analyze_user
+from formatting import format_group_record, format_user_record
 
 # Enable logging
 log_filename = "caccometro.log"
@@ -346,14 +346,33 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if sender is None:
         return
     logger.info(f"Command received: /record from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
-    usage = "/record @username"
-    target, args, error = resolve_target(update, context.args, sender, usage)
-    if error is None and args:
-        error = f"Formato non valido. Usa: {usage}"
+    usage = "/record [@username | io]"
+    chat_id = update.message.chat_id
+    replied = update.message.reply_to_message
+    replies_to_a_person = replied is not None and replied.from_user is not None and not replied.from_user.is_bot
+    keyword = context.args[0].lower() if len(context.args) == 1 else None
+
+    if not context.args and not replies_to_a_person:
+        # no target at all: the records of the whole group
+        rows_by_user, users = get_all_user_rows(chat_id)
+        if not rows_by_user:
+            await update.message.reply_text("Nessun dato disponibile." + legacy_hint(chat_id))
+            return
+        board = analyze_group(rows_by_user, now_rome().date())
+        names = {user_id: escape_md(user.mention) for user_id, user in users.items()}
+        await update.message.reply_text(format_group_record(board, names), parse_mode='Markdown')
+        logger.info(f"Command /record (group) completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+        return
+
+    if keyword in ("io", "me"):
+        target, args, error = sender, [], None
+    else:
+        target, args, error = resolve_target(update, context.args, sender, usage)
+        if error is None and args:
+            error = f"Formato non valido. Usa: {usage}"
     if error:
         await update.message.reply_text(error)
         return
-    chat_id = update.message.chat_id
     rows = get_record(target.user_id, chat_id)
     if not rows:
         await update.message.reply_text(f"Nessun dato disponibile per {target.mention}." + legacy_hint(update.message.chat_id))

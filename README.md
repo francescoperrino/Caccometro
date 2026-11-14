@@ -64,7 +64,7 @@ classifica_mese - Classifica mese (corrente o specifico [MM-YYYY]).
 classifica_anno - Classifica dell'anno (corrente o specifico [YYYY]).
 statistiche_mese - Statistiche del mese (corrente o specifico [MM-YYYY]).
 statistiche_anno - Statistiche dell'anno (corrente o specifico [YYYY]).
-record - Record dell'utente (@username).
+record - Record del gruppo, o di un utente (@username / io).
 aggiungi - Aggiunge 1 all'utente nel giorno specificato (@username [DD-MM-YYYY]).
 togli - Sottrae 1 all'utente nel giorno specificato (@username [DD-MM-YYYY]).
 conto_giorno - Conteggio per il giorno (@username [DD-MM-YYYY]).
@@ -142,7 +142,7 @@ python set_webhook.py
 | `/classifica_anno [YYYY]`              | Mostra la classifica annuale. Se la data è omessa, usa l'anno corrente.                                               |
 | `/statistiche_mese [MM-YYYY]`          | Mostra statistiche avanzate (Media, Mediana, Varianza) per il mese. Se la data è omessa, usa il mese corrente.        |
 | `/statistiche_anno [YYYY]`             | Mostra statistiche avanzate (Media, Mediana, Varianza) per l'anno. Se la data è omessa, usa l'anno corrente.          |
-| `/record [@username]`                  | Visualizza i record personali (massimi giornalieri/mensili, serie più lunghe, pause) di un utente, ciascuno con lo **stato attuale** (oggi, questo mese, serie e pausa in corso). Omesso per il tuo record. |
+| `/record [@username \| io]`            | Senza argomenti mostra i **record del gruppo** (chi detiene ciascun record e chi è in testa adesso). Con `io` i tuoi record, con `@username` (o rispondendo a un messaggio) quelli di un altro utente: massimi giornalieri/mensili, serie più lunghe, pause, ciascuno con lo **stato attuale** (oggi, questo mese, serie e pausa in corso). |
 | `/aggiungi [@username] DD-MM-YYYY`     | Aggiunge manualmente +1 al conteggio per un giorno passato o corrente.                                                |
 | `/togli [@username] DD-MM-YYYY`        | Sottrae manualmente -1 al conteggio (fino a 0) per un giorno passato o corrente.                                      |
 | `/conto_giorno [@username] DD-MM-YYYY` | Restituisce il conteggio totale per un utente in un giorno specifico.                                                 |
@@ -158,6 +158,7 @@ Nei comandi con `[@username]` il destinatario può essere indicato anche **rispo
 - **Giorno / serie / pause:** sul giorno con più 💩, sulla serie più lunga di giorni consecutivi con almeno un 💩, sulla serie con più 💩 complessivi e sulla pausa più lunga tra due giorni con 💩. A parità vengono elencati tutti i periodi.
 - **Mese migliore:** solo mesi completi (il mese in corso non vale ancora).
 - **Mese peggiore:** solo mesi completi, escluso il primo mese con dati (potresti aver iniziato a metà) e quelli dopo l'ultimo mese con dati (potresti essere uscito dal gruppo); i mesi in mezzo senza nessun 💩 contano come 0. Serve quindi almeno un secondo mese di dati.
+- **Record del gruppo:** per ogni metrica il valore migliore tra tutti gli utenti (anche chi è uscito dal gruppo) e chi lo detiene; a parità sono elencati tutti. Il blocco "Adesso" considera solo chi ha fatto 💩 negli ultimi 90 giorni.
 - **Stato attuale:** una serie è "in corso" se l'ultimo 💩 è di oggi o di ieri; la pausa in corso sono i giorni dall'ultimo 💩. Il 🔥 compare quando raggiungi un record (da 2 in su) o superi la pausa record.
 
 ---
