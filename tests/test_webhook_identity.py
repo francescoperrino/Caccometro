@@ -11,6 +11,8 @@ import caccometro
 import database
 from conftest import CHAT_ID
 
+SECRET = {"X-Telegram-Bot-Api-Secret-Token": "test-secret"}   # as Telegram sends it
+
 BOT_USER = {"id": 7, "is_bot": True, "first_name": "Caccometro", "username": "caccometro_test_bot"}
 
 
@@ -81,7 +83,7 @@ def test_two_webhook_requests_ask_getme_once_and_both_are_processed(telegram_cal
     pytest.importorskip("asgiref")   # Flask async views need it
     client = caccometro.app.test_client()
     for update_id in (1, 2):
-        response = client.post(f"/{caccometro.BOT_TOKEN}", json=telegram_update(update_id=update_id))
+        response = client.post("/webhook", headers=SECRET, json=telegram_update(update_id=update_id))
         assert response.status_code == 200
     assert telegram_calls.count("getMe") == 1
     assert telegram_calls.count("sendMessage") == 2
@@ -93,9 +95,27 @@ def test_webhook_command_with_bot_suffix_is_recognized(telegram_calls):
     """/cmd@botname needs the cached bot username to be matched."""
     pytest.importorskip("asgiref")   # Flask async views need it
     client = caccometro.app.test_client()
-    client.post(f"/{caccometro.BOT_TOKEN}", json=telegram_update(text="💩", update_id=1))
+    client.post("/webhook", headers=SECRET, json=telegram_update(text="💩", update_id=1))
     update = telegram_update(text="/costipazione@caccometro_test_bot", update_id=2)
     update["message"]["entities"] = [{"type": "bot_command", "offset": 0, "length": len("/costipazione@caccometro_test_bot")}]
-    response = client.post(f"/{caccometro.BOT_TOKEN}", json=update)
+    response = client.post("/webhook", headers=SECRET, json=update)
     assert response.status_code == 200
     assert telegram_calls.count("sendMessage") == 2      # the 💩 reply and the /costipazione reply
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-Telegram-Bot-Api-Secret-Token": "wrong"}])
+def test_a_call_without_the_right_secret_is_refused(telegram_calls, headers):
+    pytest.importorskip("asgiref")   # Flask async views need it
+    client = caccometro.app.test_client()
+    response = client.post("/webhook", headers=headers, json=telegram_update(update_id=9))
+    assert response.status_code == 403
+    assert telegram_calls == []
+    today = database.now_rome().strftime("%Y-%m-%d")
+    assert database.get_count(42, today, CHAT_ID) == 0
+
+
+def test_the_old_path_with_the_token_is_gone(telegram_calls):
+    pytest.importorskip("asgiref")   # Flask async views need it
+    client = caccometro.app.test_client()
+    response = client.post(f"/{caccometro.BOT_TOKEN}", headers=SECRET, json=telegram_update(update_id=10))
+    assert response.status_code == 404

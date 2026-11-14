@@ -47,6 +47,7 @@ Crea un file denominato `.env` nella directory principale del progetto (non comm
 ```env
 BOT_USERNAME = '@username_bot'
 BOT_TOKEN = '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11'
+WEBHOOK_SECRET = 'una_stringa_casuale_lunga' # lettere, numeri, _ e -: Telegram la rimanda a ogni chiamata del webhook
 
 USERNAME = 'il_tuo_username_di_pythonanywhere'
 PATH = '/home/il_tuo_username_di_pythonanywhere/home_repo'

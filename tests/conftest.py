@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT))
 os.environ.setdefault("BOT_TOKEN", "123456:TEST-TOKEN")
 os.environ.setdefault("BOT_USERNAME", "@caccometro_test_bot")
 os.environ.setdefault("RUN_MODE", "POLLING")
+os.environ.setdefault("WEBHOOK_SECRET", "test-secret")
 
 locale.setlocale = lambda *args, **kwargs: "C"  # noqa: E731
 
