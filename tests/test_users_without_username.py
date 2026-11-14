@@ -78,7 +78,7 @@ def test_commands_work_for_users_without_username(chat_id):
     assert "Anna Rossi oggi hai fatto" in upd.message.reply_text.call_args[0][0]
     upd = make_update(**sender)
     run(caccometro.classifica_mese_command(upd, make_context()))
-    assert "Anna Rossi" in upd.message.reply_text.call_args[0][0]
+    assert "Anna Rossi" in upd.message.reply_photo.call_args.kwargs["caption"]
 
 
 def test_markdown_characters_in_names_are_escaped(chat_id):
