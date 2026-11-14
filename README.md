@@ -142,7 +142,7 @@ python set_webhook.py
 | `/classifica_anno [YYYY]`              | Mostra la classifica annuale. Se la data è omessa, usa l'anno corrente.                                               |
 | `/statistiche_mese [MM-YYYY]`          | Mostra statistiche avanzate (Media, Mediana, Varianza) per il mese. Se la data è omessa, usa il mese corrente.        |
 | `/statistiche_anno [YYYY]`             | Mostra statistiche avanzate (Media, Mediana, Varianza) per l'anno. Se la data è omessa, usa l'anno corrente.          |
-| `/record [@username]`                  | Visualizza i record personali (massimi giornalieri/mensili, serie più lunghe) di un utente. Omesso per il tuo record. |
+| `/record [@username]`                  | Visualizza i record personali (massimi giornalieri/mensili, serie più lunghe, pause) di un utente, ciascuno con lo **stato attuale** (oggi, questo mese, serie e pausa in corso). Omesso per il tuo record. |
 | `/aggiungi [@username] DD-MM-YYYY`     | Aggiunge manualmente +1 al conteggio per un giorno passato o corrente.                                                |
 | `/togli [@username] DD-MM-YYYY`        | Sottrae manualmente -1 al conteggio (fino a 0) per un giorno passato o corrente.                                      |
 | `/conto_giorno [@username] DD-MM-YYYY` | Restituisce il conteggio totale per un utente in un giorno specifico.                                                 |
@@ -150,6 +150,15 @@ python set_webhook.py
 | `/collega [auto \| username storico]`  | Collega lo storico dei dati registrati per username agli utenti (vedi sotto). Senza argomenti mostra cosa resta da collegare. |
 
 Nei comandi con `[@username]` il destinatario può essere indicato anche **rispondendo a un messaggio** della persona (utile per chi non ha uno username).
+
+---
+
+## 🏅 Come si calcolano i record
+
+- **Giorno / serie / pause:** sul giorno con più 💩, sulla serie più lunga di giorni consecutivi con almeno un 💩, sulla serie con più 💩 complessivi e sulla pausa più lunga tra due giorni con 💩. A parità vengono elencati tutti i periodi.
+- **Mese migliore:** solo mesi completi (il mese in corso non vale ancora).
+- **Mese peggiore:** solo mesi completi, escluso il primo mese con dati (potresti aver iniziato a metà) e quelli dopo l'ultimo mese con dati (potresti essere uscito dal gruppo); i mesi in mezzo senza nessun 💩 contano come 0. Serve quindi almeno un secondo mese di dati.
+- **Stato attuale:** una serie è "in corso" se l'ultimo 💩 è di oggi o di ieri; la pausa in corso sono i giorni dall'ultimo 💩. Il 🔥 compare quando raggiungi un record (da 2 in su) o superi la pausa record.
 
 ---
 

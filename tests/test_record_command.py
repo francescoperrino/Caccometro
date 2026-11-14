@@ -1,6 +1,6 @@
 """Fixes for the /record command."""
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 
@@ -36,7 +36,7 @@ def test_record_single_month_uses_singular(seed):
 def test_record_multiple_tied_months_uses_plural(seed):
     seed({"mario": {"2024-01-01": 2, "2024-02-01": 2, "2024-03-01": 1}})
     text = record_text()
-    assert "nei mesi 01-2024, 02-2024" in text
+    assert "nei mesi 02-2024, 01-2024" in text
 
 
 def test_record_streak_count_line_does_not_reuse_longest_streak_length(seed):
@@ -50,3 +50,15 @@ def test_record_streak_count_line_does_not_reuse_longest_streak_length(seed):
     assert "10 volte" in count_line
     assert "3 giorni" not in count_line
     assert "10-02-2024 - 11-02-2024" in count_line
+
+
+def test_record_shows_the_current_status_of_every_metric(seed):
+    today = datetime.now(pytz.timezone("Europe/Rome")).date()
+    days = [today - timedelta(days=n) for n in (2, 1, 0)]                     # a run that includes today
+    seed({"mario": {**{d.strftime("%Y-%m-%d"): 1 for d in days}, "2020-01-10": 2, "2020-02-10": 1}})
+    text = record_text()
+    assert "↳ Oggi: 1 💩" in text
+    assert "↳ Questo mese:" in text
+    assert "↳ In corso: 3 giorni di fila" in text
+    assert "↳ In corso: 3 💩 nella serie" in text
+    assert "↳ In corso: oggi hai fatto 💩, nessuna pausa" in text
