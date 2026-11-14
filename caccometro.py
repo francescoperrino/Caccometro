@@ -571,9 +571,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text:
         text: str = update.message.text.lower().strip()
         response: str = ""
-        if not text: # Check for empty message
-            logger.info(f"{sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Messaggio vuoto.")
-            return # Exit the function, no further processing needed
         if BOT_USERNAME and BOT_USERNAME.lower() in text:
             response = "Cosa vuoi dirmi?"
         elif "💩" in text or "🚽" in text:
@@ -582,16 +579,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             response = f"{escape_md(sender.mention)} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu."
         if response:
             await update.message.reply_text(response, parse_mode='Markdown')
-        # Log for debugging
-        logger.info(f"{sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: {text} | Risposta: {response}")
+            # Only answered messages are logged, never their text: the bot reads every group message
+            logger.info(f"{sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Risposta: {response}")
     elif update.message.sticker:
         emoji = update.message.sticker.emoji # Get the emoji from sticker
         if emoji == "💩" or emoji == "🚽":
             response = record_poop(sender, chat_id)
             await update.message.reply_text(response, parse_mode='Markdown')
-            logger.info(f"{sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Sticker  | Risposta: {response}")
-        else:
-            logger.info(f"{sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Sticker {emoji} | Emoji non gestita.")
+            logger.info(f"{sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Sticker | Risposta: {response}")
     else:
         logger.info(f"Update type not managed")
 
