@@ -1,11 +1,15 @@
 import os
+import asyncio
 import logging
+from collections import deque
+import httpx
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 from datetime import datetime
 import pytz
 from telegram import Update
-from telegram.constants import ChatMemberStatus
+from telegram.constants import ChatMemberStatus, MessageLimit
+from telegram.error import NetworkError
 from telegram.ext import Application, CommandHandler, ExtBot, MessageHandler, filters, ContextTypes
 from telegram.request import HTTPXRequest
 import re
@@ -132,6 +136,15 @@ def record_poop(sender, chat_id):
     return f"Complimenti {escape_md(sender.mention)}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
 
 
+async def reply_chart(update: Update, path: str, message: str):
+    """Send a chart with the message as its caption: one request instead of two, when it fits."""
+    with open(path, 'rb') as chart:
+        if len(message.encode('utf-16-le')) // 2 <= MessageLimit.CAPTION_LENGTH:  # Telegram counts UTF-16 units
+            await update.message.reply_photo(chart, caption=message, parse_mode='Markdown')
+            return
+        await update.message.reply_photo(chart)
+    await update.message.reply_text(message, parse_mode='Markdown')
+
 def legacy_hint(chat_id):
     """Suffix for 'no data' replies when old username-based history is still waiting to be linked."""
     if list_legacy_users(chat_id):
@@ -200,10 +213,7 @@ async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_
     date_parts = date.split('-')
     saving_date = f"{date_parts[1]}_{date_parts[0]}"
 
-    with open(os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{saving_date}_chart.png'), 'rb') as chart:
-        await update.message.reply_photo(chart)
-
-    await update.message.reply_text(message, parse_mode='Markdown')
+    await reply_chart(update, os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{saving_date}_chart.png'), message)
     logger.info(f"Command /classifica_mese completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -242,10 +252,7 @@ async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_
     daily_counts = get_daily_counts(update.message.chat_id, 'year', year)
     generate_rank_chart(rank, daily_counts, update.message.chat_id, 'year', year)
 
-    with open(os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{year}_chart.png'), 'rb') as chart:
-        await update.message.reply_photo(chart)
-
-    await update.message.reply_text(message, parse_mode='Markdown')
+    await reply_chart(update, os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{year}_chart.png'), message)
     logger.info(f"Command /classifica_anno completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -289,10 +296,7 @@ async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT
 
     date_parts = date.split('-')
     saving_date = f"{date_parts[1]}_{date_parts[0]}"
-    with open(os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{saving_date}_stats.png'), 'rb') as stats:
-        await update.message.reply_photo(stats)
-
-    await update.message.reply_text(message, parse_mode='Markdown')
+    await reply_chart(update, os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{saving_date}_stats.png'), message)
     logger.info(f"Command /statistica_mese completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -334,10 +338,7 @@ async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT
     daily_counts = get_daily_counts(update.message.chat_id, 'year', year)
     generate_statistics_chart(statistics, daily_counts, update.message.chat_id, 'year', year)
 
-    with open(os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{year}_stats.png'), 'rb') as stats:
-        await update.message.reply_photo(stats)
-
-    await update.message.reply_text(message, parse_mode='Markdown')
+    await reply_chart(update, os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{year}_stats.png'), message)
     logger.info(f"Command /statistica_anno completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -617,10 +618,32 @@ class CachedMeBot(ExtBot):
         return await super().get_me(*args, **kwargs)
 
 
+class RetryingRequest(HTTPXRequest):
+    """HTTPXRequest that tries a request again when the connection to Telegram fails.
+
+    Outgoing requests sometimes fail at once with a proxy error (503) and work a moment later.
+    Only errors raised before the request reached Telegram are retried: after a timeout or a
+    dropped connection the message may already have been delivered, and a retry would send it twice.
+    """
+    RETRYABLE = (httpx.ProxyError, httpx.ConnectError)
+    RETRY_DELAYS = (1, 2)  # seconds before the 2nd and the 3rd attempt
+
+    async def do_request(self, *args, **kwargs):
+        for delay in self.RETRY_DELAYS:
+            try:
+                return await super().do_request(*args, **kwargs)
+            except NetworkError as e:
+                if not isinstance(e.__cause__, self.RETRYABLE):
+                    raise
+                logger.warning(f"Telegram request failed ({e}), new attempt in {delay} s")
+                await asyncio.sleep(delay)
+        return await super().do_request(*args, **kwargs)
+
+
 # Create the Application instance (same connection pools as Application.builder().token(...) would use)
 application = Application.builder().bot(CachedMeBot(
     BOT_TOKEN,
-    request=HTTPXRequest(connection_pool_size=256),
+    request=RetryingRequest(connection_pool_size=256),
     get_updates_request=HTTPXRequest(connection_pool_size=1),
 )).build()
 
@@ -645,6 +668,10 @@ application.add_error_handler(error)
 
 app = Flask(__name__)
 
+# Telegram sends an update again when the webhook fails or answers late: remember the last ones
+# so that a 💩 is never counted twice. Kept in memory: enough, as a resend comes within minutes.
+SEEN_UPDATE_IDS = deque(maxlen=500)
+
 @app.route(f'/{BOT_TOKEN}', methods=['POST'])
 async def webhook():
     """This function receives the update from Telegram and passes it to the library."""
@@ -655,6 +682,10 @@ async def webhook():
 
         # 2. Process the update as before
         update = Update.de_json(request.get_json(force=True), application.bot)
+        if update.update_id in SEEN_UPDATE_IDS:
+            logger.warning(f'Update "{update.update_id}" already processed: ignored.')
+            return Response('ok', status=200)
+        SEEN_UPDATE_IDS.append(update.update_id)
         await application.process_update(update)
 
         # Respond to Telegram that everything is ok

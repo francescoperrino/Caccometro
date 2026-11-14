@@ -48,6 +48,7 @@ def isolated_folders(tmp_path, monkeypatch):
         if hasattr(module, "CHARTS_FOLDER"):
             monkeypatch.setattr(module, "CHARTS_FOLDER", str(charts_dir))
     database.init_database(CHAT_ID)
+    caccometro.SEEN_UPDATE_IDS.clear()   # every test starts like a fresh process
     return tmp_path
 
 

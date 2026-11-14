@@ -58,7 +58,7 @@ def test_classifica_mese_sends_chart_and_text(seed):
     upd = make_update()
     run(caccometro.classifica_mese_command(upd, make_context("03-2024")))
     upd.message.reply_photo.assert_called_once()
-    text = upd.message.reply_text.call_args[0][0]
+    text = upd.message.reply_photo.call_args.kwargs["caption"]   # one message: chart + caption
     assert text.index("luigi") < text.index("mario")
 
 
@@ -67,7 +67,7 @@ def test_statistiche_mese_sends_chart_and_text(seed):
     upd = make_update()
     run(caccometro.statistiche_mese_command(upd, make_context("03-2024")))
     upd.message.reply_photo.assert_called_once()
-    assert "Media" in upd.message.reply_text.call_args[0][0]
+    assert "Media" in upd.message.reply_photo.call_args.kwargs["caption"]
 
 
 def test_record_happy_path(seed):
