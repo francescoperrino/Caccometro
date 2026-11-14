@@ -71,7 +71,7 @@ def test_commands_work_for_users_without_username(chat_id):
     sender = dict(username=None, user_id=777, full_name="Anna Rossi")
     run(caccometro.handle_message(make_update(text="💩", **sender), make_context()))
     upd = make_update(**sender)
-    run(caccometro.record_command(upd, make_context()))
+    run(caccometro.record_command(upd, make_context("io")))
     assert "Record per Anna Rossi" in upd.message.reply_text.call_args[0][0]
     upd = make_update(**sender)
     run(caccometro.costipazione_command(upd, make_context()))

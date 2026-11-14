@@ -147,3 +147,69 @@ def analyze_user(rows, today: date) -> UserRecords:
     )
     return UserRecords(daily, best_month, worst_month, streak_days, streak_count, gap_days, status)
 
+
+# ---------------------------------------------------------------- the whole group
+
+ACTIVE_DAYS = 90   # a user whose last 💩 is older than this is not considered when looking at "right now"
+
+
+class Holder(NamedTuple):
+    """Someone who holds (or shares) a group record."""
+    key: object      # whatever identifies the user (the user ID)
+    when: list       # dates, months or Periods where the value was reached (see UserRecords)
+
+
+class Leaders(NamedTuple):
+    """The best value of a metric in the group and everyone who reached it."""
+    value: int
+    holders: list    # [Holder]
+
+
+class GroupBoard(NamedTuple):
+    # records of all times
+    daily: Optional[Leaders]          # most 💩 in one day
+    best_month: Optional[Leaders]     # most 💩 in a completed month
+    worst_month: Optional[Leaders]    # fewest 💩 in a completed month
+    streak_days: Optional[Leaders]    # longest run of consecutive days
+    streak_count: Optional[Leaders]   # most 💩 in one run
+    gap_days: Optional[Leaders]       # longest completed pause
+    # right now (active users only)
+    today: Optional[Leaders]          # most 💩 today
+    active_streak: Optional[Leaders]  # longest run in progress (value in days)
+    active_gap: Optional[Leaders]     # longest pause in progress (value in days)
+
+
+def _leaders(candidates, lowest=False):
+    """candidates: [(key, value, when)] -> Leaders of the highest (or lowest) value; None if empty."""
+    if not candidates:
+        return None
+    pick = min if lowest else max
+    top = pick(value for _, value, _ in candidates)
+    return Leaders(top, [Holder(key, when) for key, value, when in candidates if value == top])
+
+
+def analyze_group(users_rows, today: date) -> GroupBoard:
+    """Who holds each record of the group, and who leads right now.
+
+    users_rows: {user key: [(date 'YYYY-MM-DD', count)]}; users without any 💩 are ignored.
+    """
+    records = {key: analyze_user(rows, today) for key, rows in users_rows.items()
+               if any(count > 0 for _, count in rows)}
+
+    def from_records(pick, lowest=False):
+        return _leaders([(key, record.value, record.when) for key, record in
+                         ((key, pick(r)) for key, r in records.items()) if record is not None], lowest)
+
+    active = {key: r.status for key, r in records.items() if r.status.gap_days <= ACTIVE_DAYS}
+    return GroupBoard(
+        daily=from_records(lambda r: r.daily),
+        best_month=from_records(lambda r: r.best_month),
+        worst_month=from_records(lambda r: r.worst_month, lowest=True),
+        streak_days=from_records(lambda r: r.streak_days),
+        streak_count=from_records(lambda r: r.streak_count),
+        gap_days=from_records(lambda r: r.gap_days),
+        today=_leaders([(key, s.today_count, []) for key, s in active.items() if s.today_count > 0]),
+        active_streak=_leaders([(key, s.streak_days, [s.streak_period])
+                                for key, s in active.items() if s.streak_days > 0]),
+        active_gap=_leaders([(key, s.gap_days, []) for key, s in active.items() if s.gap_days > 0]),
+    )

@@ -387,6 +387,23 @@ def get_record(user_id, chat_id):
     finally:
         conn.close()
 
+# Function to get the records of every user of a chat
+def get_all_user_rows(chat_id):
+    """All the (date, count) rows of every user of the chat, read with a single query.
+
+    Returns ({user_id: [(date, count), ...] sorted by date}, {user_id: User}).
+    """
+    conn = _connect(chat_id)
+    try:
+        rows = {}
+        for user_id, day, count in conn.execute('SELECT user_id, date, count FROM user_count ORDER BY user_id, date'):
+            rows.setdefault(user_id, []).append((day, count))
+        users = {user_id: _to_user(user_id, username, display_name)
+                 for user_id, username, display_name in conn.execute('SELECT user_id, username, display_name FROM users')}
+    finally:
+        conn.close()
+    return rows, users
+
 # Function to get constipation days for the specific user
 def get_constipation_days(user_id, chat_id):
     """Get the constipation days for the specific user."""
