@@ -76,7 +76,7 @@ class RetryingRequest(HTTPXRequest):
     dropped connection the message may already have been delivered, and a retry would send it twice.
     """
     RETRYABLE = (httpx.ProxyError, httpx.ConnectError)
-    RETRY_DELAYS = (1, 2)  # seconds before the 2nd and the 3rd attempt
+    RETRY_DELAYS = (1, 2, 4, 8)  # seconds between the 5 attempts: proxy 503 bursts can last more than 3 s
 
     async def do_request(self, *args, **kwargs):
         for delay in self.RETRY_DELAYS:

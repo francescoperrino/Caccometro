@@ -20,6 +20,7 @@ class Attempts(list):
 def attempts(monkeypatch):
     """Fake HTTP layer: fails with the errors in `attempts.errors`, one per call, then succeeds."""
     calls = Attempts()
+    calls.sleeps = []
 
     async def fake_do_request(self, *args, **kwargs):
         calls.append(args)
@@ -28,7 +29,7 @@ def attempts(monkeypatch):
         return 200, b'{"ok": true, "result": true}'
 
     async def no_sleep(seconds):
-        pass
+        calls.sleeps.append(seconds)
 
     monkeypatch.setattr(HTTPXRequest, "do_request", fake_do_request)
     monkeypatch.setattr(bot.asyncio, "sleep", no_sleep)
@@ -46,17 +47,18 @@ def send(request):
     return asyncio.run(request.do_request("https://api.telegram.org/x", "POST"))
 
 
-def test_a_proxy_error_is_retried_and_the_request_succeeds(attempts):
-    attempts.errors = [network_error(httpx.ProxyError("503 Service Unavailable"))] * 2
+def test_a_proxy_error_burst_longer_than_3_seconds_is_retried_and_the_request_succeeds(attempts):
+    attempts.errors = [network_error(httpx.ProxyError("503 Service Unavailable"))] * 4
     assert send(bot.RetryingRequest())[0] == 200
-    assert len(attempts) == 3
+    assert len(attempts) == 5
+    assert attempts.sleeps == [1, 2, 4, 8]
 
 
-def test_after_three_failures_the_error_is_raised(attempts):
-    attempts.errors = [network_error(httpx.ConnectError("refused"))] * 3
+def test_after_five_failures_the_error_is_raised(attempts):
+    attempts.errors = [network_error(httpx.ConnectError("refused"))] * 5
     with pytest.raises(NetworkError):
         send(bot.RetryingRequest())
-    assert len(attempts) == 3
+    assert len(attempts) == 5
 
 
 @pytest.mark.parametrize("cause", [httpx.ReadTimeout("slow"), httpx.ReadError("connection dropped")])
