@@ -6,7 +6,7 @@ import runpy
 import pytest
 from telegram.ext import Application
 
-import caccometro
+from caccometro import bot as caccometro
 from conftest import make_context, make_update
 
 
@@ -49,5 +49,5 @@ def test_polling_receives_a_list_of_allowed_updates(monkeypatch):
 
     monkeypatch.setattr(Application, "run_polling", fake_run_polling)
     monkeypatch.setenv("RUN_MODE", "POLLING")
-    runpy.run_path(caccometro.__file__, run_name="__main__")
+    runpy.run_module("caccometro", run_name="__main__")
     assert captured["allowed_updates"] == ["message"]

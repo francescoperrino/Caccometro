@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import pytz
 
-import caccometro
+from caccometro import bot as caccometro
 from conftest import make_context, make_update
 
 

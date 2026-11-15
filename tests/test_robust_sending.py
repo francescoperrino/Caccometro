@@ -6,8 +6,8 @@ import pytest
 from telegram.error import NetworkError, TimedOut
 from telegram.request import HTTPXRequest
 
-import caccometro
-import database
+from caccometro import bot as caccometro
+from caccometro import database
 from conftest import CHAT_ID, make_update
 from test_webhook_identity import SECRET, telegram_calls, telegram_update  # noqa: F401  (fixture)
 

@@ -9,4 +9,4 @@ if path not in sys.path:
     sys.path.insert(0, path)
 
 # The hosting looks for a variable named "application"
-from caccometro import app as application
+from caccometro.bot import app as application

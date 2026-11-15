@@ -1,8 +1,8 @@
 """Every "today" computation must use Europe/Rome, not the server timezone (UTC)."""
 from datetime import datetime
 
-import database
-import utils
+from caccometro import database
+from caccometro import charts
 from conftest import uid
 
 
@@ -35,7 +35,7 @@ def test_statistics_current_year_uses_rome_today(seed, chat_id, monkeypatch):
 def test_record_uses_rome_today_for_the_current_month_and_status(seed, monkeypatch):
     """/record decides "today" and "the current month" with the Rome date, not the server date."""
     import asyncio
-    import caccometro
+    from caccometro import bot as caccometro
     from conftest import make_context, make_update
 
     seed({"mario": {"2024-03-10": 2, "2024-04-01": 1}})

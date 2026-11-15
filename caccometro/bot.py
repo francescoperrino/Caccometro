@@ -15,13 +15,13 @@ from telegram.request import HTTPXRequest
 import re
 from flask import Flask, request, Response
 
-from database import (STORING_FORMAT, DISPLAY_FORMAT, ROME_TZ, User, init_database, now_rome, upsert_user,
+from caccometro.database import (STORING_FORMAT, DISPLAY_FORMAT, ROME_TZ, User, init_database, now_rome, upsert_user,
                       find_user_by_username, add_count, get_count, get_daily_counts, get_rank, get_statistics, get_record,
                       get_all_user_rows, get_constipation_days, list_legacy_users, count_legacy_orphans, link_legacy_username,
                       link_legacy_by_username)
-from utils import generate_rank_chart, generate_statistics_chart
-from analysis import analyze_group, analyze_user
-from formatting import format_group_record, format_user_record
+from caccometro.charts import generate_rank_chart, generate_statistics_chart
+from caccometro.analysis import analyze_group, analyze_user
+from caccometro.formatting import format_group_record, format_user_record
 
 # Load bot info from .env
 load_dotenv()
@@ -670,10 +670,8 @@ def index():
     """Welcome page, useful for testing if the web app works."""
     return 'Ciao! Sono il Caccometro Bot. Il mio webhook è pronto.'
 
-# Main function to handle bot interactions
-if __name__ == '__main__':
-
-    # In webhook mode the web server imports `app` (see wsgi.py): nothing to start here
+def main():
+    """Run the bot in polling mode (local development); in webhook mode the web server imports `app` (see wsgi.py)."""
     if RUN_MODE == 'POLLING':
         logger.info("Starting bot in POLLING mode...")
         # run_polling retries network errors by itself and stops on Ctrl+C: no restart loop needed

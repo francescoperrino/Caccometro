@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.colors as mcolors
-from database import now_rome, STORING_FORMAT
+from caccometro.database import now_rome, STORING_FORMAT
 from math import ceil, floor, log10
 from datetime import datetime, timedelta
 from collections import defaultdict

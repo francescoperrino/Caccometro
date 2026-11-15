@@ -1,7 +1,7 @@
 """The users table: current username and display name of every user the bot has seen."""
-import database
+from caccometro import database
 from conftest import get_user
-from database import User
+from caccometro.database import User
 
 
 def test_user_name_and_mention():

@@ -5,7 +5,7 @@ from logging.handlers import RotatingFileHandler
 
 import pytest
 
-import caccometro
+from caccometro import bot as caccometro
 
 
 def test_the_log_file_handler_rotates():

@@ -2,7 +2,7 @@
 
 The functions return Telegram (legacy) Markdown. Names must already be escaped by the caller.
 """
-from analysis import GroupBoard, Leaders, Period, UserRecords
+from caccometro.analysis import GroupBoard, Leaders, Period, UserRecords
 
 DISPLAY_FORMAT = "%d-%m-%Y"
 

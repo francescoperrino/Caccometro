@@ -4,9 +4,9 @@ import threading
 
 import pytest
 
-import caccometro
-import database
-import utils
+from caccometro import bot as caccometro
+from caccometro import database
+from caccometro import charts
 from conftest import make_context, make_update, uid
 
 
@@ -92,7 +92,7 @@ def test_chart_commands_use_a_handful_of_connections(seed, connections, command,
 def table_of_rank_chart(monkeypatch, rank, daily, period, date, chat_id):
     """Run generate_rank_chart and return the text of its table."""
     captured = {}
-    real_png = utils.png_bytes
+    real_png = charts.png_bytes
 
     def capture(fig):
         cells = fig.axes[0].tables[0].get_celld()
@@ -101,8 +101,8 @@ def table_of_rank_chart(monkeypatch, rank, daily, period, date, chat_id):
         captured["table"] = [[cells[(r, c)].get_text().get_text() for c in range(cols)] for r in range(rows)]
         return real_png(fig)
 
-    monkeypatch.setattr(utils, "png_bytes", capture)
-    utils.generate_rank_chart(rank, daily, period, date)
+    monkeypatch.setattr(charts, "png_bytes", capture)
+    charts.generate_rank_chart(rank, daily, period, date)
     return captured["table"]
 
 
@@ -129,7 +129,7 @@ def test_month_table_shows_daily_and_total_counts(seed, chat_id, monkeypatch):
 
 def test_rank_chart_tolerates_a_user_without_daily_counts(chat_id, isolated_folders):
     rank = [(database.User(uid("mario"), "mario", "Mario"), 0)]
-    assert utils.generate_rank_chart(rank, {}, "month", "03-2024").startswith(b"\x89PNG")
+    assert charts.generate_rank_chart(rank, {}, "month", "03-2024").startswith(b"\x89PNG")
 
 
 # ---------------------------------------------------------------- add_count

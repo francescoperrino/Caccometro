@@ -3,8 +3,8 @@ import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-import caccometro
-import database
+from caccometro import bot as caccometro
+from caccometro import database
 from conftest import make_context, make_legacy_db, make_tg_user, make_update
 
 CHAT = -2002

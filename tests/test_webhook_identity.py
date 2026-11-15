@@ -7,8 +7,8 @@ from telegram.error import NetworkError
 from telegram.ext import Application
 from unittest.mock import AsyncMock
 
-import caccometro
-import database
+from caccometro import bot as caccometro
+from caccometro import database
 from conftest import CHAT_ID
 
 SECRET = {"X-Telegram-Bot-Api-Secret-Token": "test-secret"}   # as Telegram sends it

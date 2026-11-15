@@ -3,8 +3,8 @@ import asyncio
 
 import pytest
 
-import caccometro
-import database
+from caccometro import bot as caccometro
+from caccometro import database
 from conftest import make_context, make_update, uid
 
 

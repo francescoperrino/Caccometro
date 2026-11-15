@@ -20,9 +20,9 @@ os.environ.setdefault("WEBHOOK_SECRET", "test-secret")
 # The tests never write to the real bot log
 os.environ["LOG_FILE"] = os.path.join(tempfile.mkdtemp(prefix="caccometro_tests_"), "caccometro.log")
 
-import database  # noqa: E402
-import utils  # noqa: E402
-import caccometro  # noqa: E402
+from caccometro import database  # noqa: E402
+from caccometro import charts  # noqa: E402
+from caccometro import bot as caccometro  # noqa: E402
 
 CHAT_ID = -1001
 

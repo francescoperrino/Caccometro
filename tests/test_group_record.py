@@ -3,11 +3,11 @@ import asyncio
 import random
 from datetime import date, timedelta
 
-import caccometro
-import database
-from analysis import Holder, Leaders, Period, analyze_group, analyze_user
+from caccometro import bot as caccometro
+from caccometro import database
+from caccometro.analysis import Holder, Leaders, Period, analyze_group, analyze_user
 from conftest import make_context, make_tg_user, make_update, uid
-from formatting import format_group_record
+from caccometro.formatting import format_group_record
 
 TODAY = date(2024, 4, 15)
 

@@ -1,7 +1,7 @@
 """Characterization tests for database.py: they pin the current behavior (counts are keyed by user ID)."""
 from datetime import datetime, timedelta
 
-import database
+from caccometro import database
 from conftest import uid
 
 

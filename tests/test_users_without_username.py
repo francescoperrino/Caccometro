@@ -1,8 +1,8 @@
 """Users are identified by their Telegram user ID: a missing username is not a problem."""
 import asyncio
 
-import caccometro
-import database
+from caccometro import bot as caccometro
+from caccometro import database
 from conftest import get_user, make_context, make_tg_user, make_update, uid
 
 
