@@ -156,67 +156,17 @@ def find_user_by_username(chat_id, username):
         conn.close()
     return _to_user(*row) if row else None
 
-def get_user(chat_id, user_id):
-    """Find a known user by Telegram user ID."""
-    conn = _connect(chat_id)
-    try:
-        row = conn.execute('SELECT user_id, username, display_name FROM users WHERE user_id = ?', (user_id,)).fetchone()
-    finally:
-        conn.close()
-    return _to_user(*row) if row else None
-
 
 # Counts
 
-# Function to get the count of poop emojis for a given user and date
 def get_count(user_id, date, chat_id):
-    """Get the count of poop emojis for a given user ID and date."""
-    # Determine if the input date is a day, a month, or invalid
-    try:
-        parsed_date = datetime.strptime(date, STORING_FORMAT)
-        start_date = parsed_date.strftime(STORING_FORMAT)
-        end_date = parsed_date.strftime(STORING_FORMAT)
-    except ValueError:
-        try:
-            parsed_date = datetime.strptime(date, '%Y-%m')
-            year = parsed_date.year
-            month = parsed_date.month
-            _, days_in_month = calendar.monthrange(year, month)
-            start_date = parsed_date.strftime('%Y-%m-01')
-            end_date = parsed_date.strftime(f'%Y-%m-{days_in_month}')
-        except ValueError:
-            try:
-                parsed_date = datetime.strptime(date, '%d-%m-%Y')
-                start_date = parsed_date.strftime(STORING_FORMAT)
-                end_date = parsed_date.strftime(STORING_FORMAT)
-            except ValueError:
-                return 0
-
+    """Count of 💩 of a user on a day ('YYYY-MM-DD'); 0 if none."""
     conn = _connect(chat_id)
     try:
-        # Execute SQL query to retrieve the count for the specified user and date or month
-        row = conn.execute('SELECT SUM(count) FROM user_count WHERE user_id = ? AND date BETWEEN ? AND ?',
-                           (user_id, start_date, end_date)).fetchone()
+        row = conn.execute('SELECT count FROM user_count WHERE user_id = ? AND date = ?', (user_id, date)).fetchone()
     finally:
         conn.close()
-
-    # Return the count if found, otherwise return 0
-    return row[0] if row[0] is not None else 0
-
-# Function to update the count of poop emojis for a given user and date
-def update_count(user_id, date, count, chat_id):
-    """Set the count of poop emojis for a given user ID and date (a count of 0 removes the row)."""
-    conn = _connect(chat_id)
-    try:
-        if count > 0:
-            conn.execute('''INSERT INTO user_count (user_id, date, count) VALUES (?, ?, ?)
-                            ON CONFLICT(user_id, date) DO UPDATE SET count = excluded.count''',
-                         (user_id, date, count))
-        else:
-            conn.execute('DELETE FROM user_count WHERE user_id = ? AND date = ?', (user_id, date))
-        conn.commit()
-    finally:
-        conn.close()
+    return row[0] if row else 0
 
 def add_count(user_id, date, delta, chat_id):
     """Add delta (e.g. +1 or -1) to the count of a user on a day, in a single transaction.
@@ -310,19 +260,12 @@ def get_rank(chat_id, time_period, date):
 def get_statistics(chat_id, time_period, date):
     """Get the statistics of users for the specified period, as a list of dicts with a 'user' (User) key."""
     now = now_rome()
-    current_month = now.month
-    current_year = now.year
     start_period, end_period = _period_bounds(time_period, date)
-    if time_period == 'month':
-        date_parts = date.split('-')
-        month = int(date_parts[0])
-        year = int(date_parts[1])
-        _, days = calendar.monthrange(year, month)  # Number of days in the month
-        current_days = now.day
-    else:
-        year = int(date)
-        days = 366 if calendar.isleap(int(date)) else 365  # Number of days in a year
-        current_days = (now - datetime(current_year, 1, 1)).days + 1
+    first_day = datetime.strptime(start_period, STORING_FORMAT)
+    last_day = datetime.strptime(end_period, STORING_FORMAT)
+    # The current period counts only the days gone by, today included
+    ongoing = start_period <= now.strftime(STORING_FORMAT) <= end_period
+    valid_days = ((now if ongoing else last_day) - first_day).days + 1
 
     conn = _connect(chat_id)
     try:
@@ -338,29 +281,14 @@ def get_statistics(chat_id, time_period, date):
     user_statistics = []
     for user_id, per_day in user_daily_counts.items():
         counts = [per_day[day] for day in sorted(per_day)]
-        if time_period == 'month':
-            expected_days = calendar.monthrange(year, month)[1]
-        else:
-            expected_days = 366 if calendar.isleap(year) else 365
-
-        if time_period == 'month' and year == current_year and month == current_month:
-            valid_days = current_days
-        elif time_period == 'year' and year == current_year:
-            valid_days = (now - datetime(current_year, 1, 1)).days + 1
-        else:
-            valid_days = expected_days
-
         if len(counts) < valid_days:
             counts += [0] * (valid_days - len(counts))
         elif len(counts) > valid_days:
             counts = counts[:valid_days]
 
-        if counts:
-            mean = round(sum(counts) / valid_days, 2)
-            median = np.median(counts)
-            variance = round(sum((x - mean) ** 2 for x in counts) / valid_days, 2)
-        else:
-            median = mean = variance = 0  # If there's not enough data, set default values
+        mean = round(sum(counts) / valid_days, 2)
+        median = np.median(counts)
+        variance = round(sum((x - mean) ** 2 for x in counts) / valid_days, 2)
 
         user_statistics.append({
             'user': users.get(user_id) or _to_user(user_id, None, None),

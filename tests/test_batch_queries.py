@@ -155,8 +155,10 @@ def test_add_count_keeps_users_and_days_separate(chat_id):
     database.add_count(1, "2024-03-10", 1, chat_id)
     database.add_count(2, "2024-03-10", 1, chat_id)
     database.add_count(1, "2024-03-11", 1, chat_id)
-    assert database.get_count(1, "2024-03", chat_id) == 2
-    assert database.get_count(2, "2024-03", chat_id) == 1
+    assert database.get_count(1, "2024-03-10", chat_id) == 1
+    assert database.get_count(1, "2024-03-11", chat_id) == 1
+    assert database.get_count(2, "2024-03-10", chat_id) == 1
+    assert database.get_count(2, "2024-03-11", chat_id) == 0
 
 
 def test_concurrent_increments_are_not_lost(chat_id):

@@ -45,7 +45,7 @@ def test_link_is_case_insensitive(tmp_path):
 
 def test_link_sums_with_counts_the_user_already_has(tmp_path):
     chat = legacy_chat(tmp_path)
-    database.update_count(42, "2024-03-10", 5, chat)   # the user wrote after the migration
+    database.add_count(42, "2024-03-10", 5, chat)   # the user wrote after the migration
     database.link_legacy_username(chat, "mario", 42)
     assert database.get_count(42, "2024-03-10", chat) == 7
 

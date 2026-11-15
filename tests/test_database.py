@@ -5,30 +5,11 @@ import database
 from conftest import uid
 
 
-def test_update_and_get_count_roundtrip(seed, chat_id):
+def test_seed_and_get_count_roundtrip(seed, chat_id):
     seed({"mario": {"2024-03-10": 2}, "luigi": {}})
     assert database.get_count(uid("mario"), "2024-03-10", chat_id) == 2
     assert database.get_count(uid("mario"), "2024-03-11", chat_id) == 0
     assert database.get_count(uid("luigi"), "2024-03-10", chat_id) == 0
-
-
-def test_update_count_zero_deletes_row(seed, chat_id):
-    seed({"mario": {"2024-03-10": 2}})
-    database.update_count(uid("mario"), "2024-03-10", 0, chat_id)
-    assert database.get_record(uid("mario"), chat_id) == []
-
-
-def test_update_count_overwrites_the_previous_value(seed, chat_id):
-    seed({"mario": {"2024-03-10": 2}})
-    database.update_count(uid("mario"), "2024-03-10", 5, chat_id)
-    assert database.get_count(uid("mario"), "2024-03-10", chat_id) == 5
-
-
-def test_get_count_accepts_day_month_and_display_format(seed, chat_id):
-    seed({"mario": {"2024-03-10": 2, "2024-03-20": 1, "2024-04-01": 5}})
-    assert database.get_count(uid("mario"), "2024-03", chat_id) == 3      # month
-    assert database.get_count(uid("mario"), "10-03-2024", chat_id) == 2   # DD-MM-YYYY
-    assert database.get_count(uid("mario"), "non-una-data", chat_id) == 0
 
 
 def ranking(chat_id, period, date):

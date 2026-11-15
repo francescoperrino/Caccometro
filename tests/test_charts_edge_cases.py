@@ -50,7 +50,7 @@ def test_charts_accept_names_with_dollar_signs_and_equal_names(seed, chat_id):
     # '$' would start a math expression in matplotlib; two users may share the same display name
     for user_id, day in ((1, "2024-03-01"), (2, "2024-03-02")):
         database.upsert_user(chat_id, user_id, None, "Pay $$ me")
-        database.update_count(user_id, day, 1, chat_id)
+        database.add_count(user_id, day, 1, chat_id)
     rank = database.get_rank(chat_id, "month", "03-2024")
     daily = database.get_daily_counts(chat_id, "month", "03-2024")
     assert utils.generate_rank_chart(rank, daily, "month", "03-2024").startswith(b"\x89PNG")

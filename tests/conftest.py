@@ -2,6 +2,7 @@
 import os
 import sqlite3
 import sys
+import tempfile
 import zlib
 from pathlib import Path
 from types import SimpleNamespace
@@ -16,6 +17,8 @@ os.environ.setdefault("BOT_TOKEN", "123456:TEST-TOKEN")
 os.environ.setdefault("BOT_USERNAME", "@caccometro_test_bot")
 os.environ.setdefault("RUN_MODE", "POLLING")
 os.environ.setdefault("WEBHOOK_SECRET", "test-secret")
+# The tests never write to the real bot log
+os.environ["LOG_FILE"] = os.path.join(tempfile.mkdtemp(prefix="caccometro_tests_"), "caccometro.log")
 
 import database  # noqa: E402
 import utils  # noqa: E402
@@ -54,8 +57,18 @@ def seed(chat_id):
         for name, days in data.items():
             database.upsert_user(chat_id, uid(name), name, name.capitalize())
             for date, count in days.items():
-                database.update_count(uid(name), date, count, chat_id)
+                database.add_count(uid(name), date, count, chat_id)
     return _seed
+
+
+def get_user(chat_id, user_id):
+    """The stored user with this Telegram ID, or None (the bot itself never needs this lookup)."""
+    conn = database._connect(chat_id)
+    try:
+        row = conn.execute('SELECT user_id, username, display_name FROM users WHERE user_id = ?', (user_id,)).fetchone()
+    finally:
+        conn.close()
+    return database.User(*row) if row else None
 
 
 def make_tg_user(username="mario", user_id=None, full_name=None, is_bot=False):

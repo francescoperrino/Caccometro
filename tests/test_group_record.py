@@ -218,7 +218,7 @@ def test_record_of_someone_without_data_says_so(seed):
 
 def test_group_message_escapes_markdown_in_names(chat_id):
     database.upsert_user(chat_id, 5, None, "Mario_*[x")
-    database.update_count(5, "2024-03-10", 2, chat_id)
+    database.add_count(5, "2024-03-10", 2, chat_id)
     assert "*Mario\\_\\*\\[x*" in record()
 
 

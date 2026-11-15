@@ -7,7 +7,6 @@ import httpx
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 from datetime import datetime
-import pytz
 from telegram import Update
 from telegram.constants import ChatMemberStatus, MessageLimit
 from telegram.error import NetworkError
@@ -32,7 +31,7 @@ WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')  # also given to set_webhook: 
 RUN_MODE = os.environ.get('RUN_MODE', 'POLLING').upper()
 
 # Enable logging
-log_filename = "caccometro.log"
+log_filename = os.environ.get('LOG_FILE', 'caccometro.log')  # the tests point it elsewhere
 LOG_MAX_BYTES = 1_000_000  # 1 MB per file...
 LOG_BACKUPS = 3            # ...and 3 older files: the logs never take more than about 4 MB
 file_handler = RotatingFileHandler(log_filename, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUPS, encoding='utf-8')
@@ -82,6 +81,12 @@ def register_sender(update: Update):
     return register_user(update.message.chat_id, tg_user)
 
 
+def where(update: Update):
+    """'PVT - <chat name>' or 'GROUP - <chat name>', for the log lines."""
+    chat = update.effective_message.chat
+    return f"{'PVT' if chat.type == 'private' else 'GROUP'} - {chat.effective_name}"
+
+
 def escape_md(name):
     """Escape a name for Telegram (legacy) Markdown."""
     for char in ('_', '*', '`', '['):
@@ -115,7 +120,7 @@ def parse_date_arg(arg):
     """'DD-MM-YYYY' -> (display date, storing date); raises ValueError if invalid or in the future."""
     parsed_date = datetime.strptime(arg, DISPLAY_FORMAT)
     selected_date = parsed_date.strftime(STORING_FORMAT)
-    today = datetime.now(pytz.timezone('Europe/Rome')).strftime(STORING_FORMAT)
+    today = now_rome().strftime(STORING_FORMAT)
     if selected_date > today:
         raise ValueError("La data selezionata è nel futuro.")
     return arg, selected_date
@@ -146,7 +151,7 @@ def resolve_target(update: Update, args, sender, usage):
 
 def record_poop(sender, chat_id):
     """Add one 💩 to today's count of the sender and return the message to reply with."""
-    today = datetime.now(pytz.timezone("Europe/Rome")).strftime(STORING_FORMAT)
+    today = now_rome().strftime(STORING_FORMAT)
     _, count = add_count(sender.user_id, today, 1, chat_id)
     return f"Complimenti {escape_md(sender.mention)}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
 
@@ -190,172 +195,118 @@ async def may_change_counts_of(update: Update, context: ContextTypes.DEFAULT_TYP
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /start command."""
     sender = register_sender(update)
-    logger.info(f"Command received: /start from {sender.mention if sender else None} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command received: /start from {sender.mention if sender else None} in {where(update)}")
     init_database(update.message.chat_id)
     await update.message.reply_text("Ciao, sono 🤖 *Caccometro* 🤖.\n"
                                     "Manda 💩 quando hai fatto il tuo dovere.", parse_mode='Markdown')
-    logger.info(f"Command /start completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command /start completed in {where(update)}")
+
+# Wording of the two kinds of period, for the rank and statistics commands
+PERIODS = {
+    'month': {'name': 'mese', 'parse': parse_month_arg, 'current': '%m-%Y',
+              'format_error': "Formato data non valido. Usa MM-YYYY.",
+              'of': "del mese", 'in': "Nel mese", 'for': "per il mese"},
+    'year': {'name': 'anno', 'parse': parse_year_arg, 'current': '%Y',
+             'format_error': "Formato anno non valido. Usa YYYY.",
+             'of': "dell'anno", 'in': "Nell'anno", 'for': "per l'anno"},
+}
+MEDALS = {1: '🥇', 2: '🥈', 3: '🥉'}
+
+
+def ranked_line(position, name, value):
+    """One line of a ranking: a medal and the name in bold for the first three."""
+    if position in MEDALS:
+        return f"{MEDALS[position]} *{name}*: {value}\n"
+    return f"{position}. {name}: {value}\n"
+
+
+async def period_from_args(update: Update, args, time_period):
+    """The period asked for ('MM-YYYY' or 'YYYY'), the current one without arguments.
+
+    Returns None, after telling the user, when the argument is not a valid period.
+    """
+    period = PERIODS[time_period]
+    if not args:
+        return now_rome().strftime(period['current'])
+    date = period['parse'](args[0])
+    if date is None:
+        await update.message.reply_text(period['format_error'])
+    return date
+
+
+async def rank_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
+    """/classifica_mese and /classifica_anno: total 💩 per person in the period, with a chart."""
+    sender = register_sender(update)
+    if sender is None:
+        return
+    period = PERIODS[time_period]
+    command = f"classifica_{period['name']}"
+    logger.info(f"Command received: /{command} from {sender.mention} in {where(update)}")
+    date = await period_from_args(update, context.args, time_period)
+    if date is None:
+        return
+
+    rank = get_rank(update.message.chat_id, time_period, date)
+    if not rank:
+        await update.message.reply_text(f"{period['in']} {date} non sono state contate 💩." + legacy_hint(update.message.chat_id))
+        return
+
+    message = f"Ecco la *classifica {period['of']} {date}*:\n"
+    message += "".join(ranked_line(i, escape_md(user.mention), total_count)
+                       for i, (user, total_count) in enumerate(rank, start=1))
+
+    daily_counts = get_daily_counts(update.message.chat_id, time_period, date)
+    await reply_chart(update, generate_rank_chart(rank, daily_counts, time_period, date), message)
+    logger.info(f"Command /{command} completed in {where(update)}")
+
+async def statistics_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
+    """/statistiche_mese and /statistiche_anno: mean, median and variance per person, with a chart."""
+    sender = register_sender(update)
+    if sender is None:
+        return
+    period = PERIODS[time_period]
+    command = f"statistiche_{period['name']}"
+    logger.info(f"Command received: /{command} from {sender.mention} in {where(update)}")
+    date = await period_from_args(update, context.args, time_period)
+    if date is None:
+        return
+
+    statistics = get_statistics(update.message.chat_id, time_period, date)
+    if not statistics:
+        await update.message.reply_text(f"Nessuna statistica disponibile {period['for']} {date}." + legacy_hint(update.message.chat_id))
+        return
+
+    message = f"*Statistiche {period['for']} {date}*:\n"
+    message += "".join(ranked_line(i, escape_md(s['user'].mention),
+                                   f"Media: {s['mean']}, Mediana: {s['median']}, Var.: {s['variance']}")
+                       for i, s in enumerate(statistics, start=1))
+
+    daily_counts = get_daily_counts(update.message.chat_id, time_period, date)
+    await reply_chart(update, generate_statistics_chart(statistics, daily_counts, time_period, date), message)
+    logger.info(f"Command /{command} completed in {where(update)}")
 
 async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /classifica_mese command."""
-    sender = register_sender(update)
-    if sender is None:
-        return
-    logger.info(f"Command received: /classifica_mese from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
-    args = context.args
-    if args:
-        date = parse_month_arg(args[0])
-        if date is None:
-            await update.message.reply_text("Formato data non valido. Usa MM-YYYY.")
-            return
-    else:
-        now = datetime.now(pytz.timezone('Europe/Rome'))
-        date = now.strftime("%m-%Y")
-
-    rank = get_rank(update.message.chat_id, 'month', date)
-    if not rank:
-        await update.message.reply_text(f"Nel mese {date} non sono state contate 💩." + legacy_hint(update.message.chat_id))
-        return
-
-    message = f"Ecco la *classifica del mese {date}*:\n"
-    for i, (user, total_count) in enumerate(rank, start=1):
-        escaped_name = escape_md(user.mention)
-        if i == 1:
-            message += f"🥇 *{escaped_name}*: {total_count}\n"
-        elif i == 2:
-            message += f"🥈 *{escaped_name}*: {total_count}\n"
-        elif i == 3:
-            message += f"🥉 *{escaped_name}*: {total_count}\n"
-        else:
-            message += f"{i}. {escaped_name}: {total_count}\n"
-
-    daily_counts = get_daily_counts(update.message.chat_id, 'month', date)
-    await reply_chart(update, generate_rank_chart(rank, daily_counts, 'month', date), message)
-    logger.info(f"Command /classifica_mese completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    await rank_command(update, context, 'month')
 
 async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /classifica_anno command."""
-    sender = register_sender(update)
-    if sender is None:
-        return
-    logger.info(f"Command received: /classifica_anno from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
-    args = context.args
-    if args:
-        year = parse_year_arg(args[0])
-        if year is None:
-            await update.message.reply_text("Formato anno non valido. Usa YYYY.")
-            return
-    else:
-        now = datetime.now(pytz.timezone('Europe/Rome'))
-        year = now.strftime("%Y")
-
-    rank = get_rank(update.message.chat_id, 'year', year)
-    if not rank:
-        await update.message.reply_text(f'Nell\'anno {year} non sono state contate 💩.' + legacy_hint(update.message.chat_id))
-        return
-
-    message = f"Ecco la *classifica dell\'anno {year}*:\n"
-    for i, (user, total_count) in enumerate(rank, start=1):
-        escaped_name = escape_md(user.mention)
-        if i == 1:
-            message += f"🥇 *{escaped_name}*: {total_count}\n"
-        elif i == 2:
-            message += f"🥈 *{escaped_name}*: {total_count}\n"
-        elif i == 3:
-            message += f"🥉 *{escaped_name}*: {total_count}\n"
-        else:
-            message += f"{i}. {escaped_name}: {total_count}\n"
-
-    daily_counts = get_daily_counts(update.message.chat_id, 'year', year)
-    await reply_chart(update, generate_rank_chart(rank, daily_counts, 'year', year), message)
-    logger.info(f"Command /classifica_anno completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    await rank_command(update, context, 'year')
 
 async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /statistiche_mese command."""
-    sender = register_sender(update)
-    if sender is None:
-        return
-    logger.info(f"Command received: /statistiche_mese from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
-    args = context.args
-    if args:
-        date = parse_month_arg(args[0])
-        if date is None:
-            await update.message.reply_text("Formato data non valido. Usa MM-YYYY.")
-            return
-    else:
-        now = datetime.now(pytz.timezone('Europe/Rome'))
-        date = now.strftime("%m-%Y")
-
-    statistics = get_statistics(update.message.chat_id, 'month', date)
-    if not statistics:
-        await update.message.reply_text(f"Nessuna statistica disponibile per il mese {date}." + legacy_hint(update.message.chat_id))
-        return
-
-    message = f"*Statistiche per il mese {date}*:\n"
-    for i, statistic in enumerate(statistics, start=1):
-        escaped_name = escape_md(statistic['user'].mention)
-        mean = str(statistic['mean'])
-        median = str(statistic['median'])
-        variance = str(statistic['variance'])
-        if i == 1:
-            message += f"🥇 *{escaped_name}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
-        elif i == 2:
-            message += f"🥈 *{escaped_name}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
-        elif i == 3:
-            message += f"🥉 *{escaped_name}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
-        else:
-            message += f"{i}. {escaped_name}: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
-
-    daily_counts = get_daily_counts(update.message.chat_id, 'month', date)
-    await reply_chart(update, generate_statistics_chart(statistics, daily_counts, 'month', date), message)
-    logger.info(f"Command /statistica_mese completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    await statistics_command(update, context, 'month')
 
 async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /statistiche_anno command."""
-    sender = register_sender(update)
-    if sender is None:
-        return
-    logger.info(f"Command received: /statistiche_anno from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
-    args = context.args
-    if args:
-        year = parse_year_arg(args[0])
-        if year is None:
-            await update.message.reply_text("Formato anno non valido. Usa YYYY.")
-            return
-    else:
-        now = datetime.now(pytz.timezone('Europe/Rome'))
-        year = now.strftime("%Y")
-
-    statistics = get_statistics(update.message.chat_id, 'year', year)
-    if not statistics:
-        await update.message.reply_text(f"Nessuna statistica disponibile per l\'anno {year}." + legacy_hint(update.message.chat_id))
-        return
-
-    message = f"*Statistiche per l\'anno {year}*:\n"
-    for i, statistic in enumerate(statistics, start=1):
-        escaped_name = escape_md(statistic['user'].mention)
-        mean = str(statistic['mean'])
-        median = str(statistic['median'])
-        variance = str(statistic['variance'])
-        if i == 1:
-            message += f"🥇 *{escaped_name}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
-        elif i == 2:
-            message += f"🥈 *{escaped_name}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
-        elif i == 3:
-            message += f"🥉 *{escaped_name}*: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
-        else:
-            message += f"{i}. {escaped_name}: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
-
-    daily_counts = get_daily_counts(update.message.chat_id, 'year', year)
-    await reply_chart(update, generate_statistics_chart(statistics, daily_counts, 'year', year), message)
-    logger.info(f"Command /statistica_anno completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    await statistics_command(update, context, 'year')
 
 async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /record command."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /record from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command received: /record from {sender.mention} in {where(update)}")
     usage = "/record [@username | io]"
     chat_id = update.message.chat_id
     replied = update.message.reply_to_message
@@ -371,7 +322,7 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         board = analyze_group(rows_by_user, now_rome().date())
         names = {user_id: escape_md(user.mention) for user_id, user in users.items()}
         await update.message.reply_text(format_group_record(board, names), parse_mode='Markdown')
-        logger.info(f"Command /record (group) completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+        logger.info(f"Command /record (group) completed in {where(update)}")
         return
 
     if keyword in ("io", "me"):
@@ -391,14 +342,14 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = format_user_record(escape_md(target.mention), records)
 
     await update.message.reply_text(message, parse_mode='Markdown')
-    logger.info(f"Command /record completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command /record completed in {where(update)}")
 
 async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /aggiungi command."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /aggiungi from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command received: /aggiungi from {sender.mention} in {where(update)}")
     usage = "/aggiungi @username DD-MM-YYYY"
     target, args, error = resolve_target(update, context.args, sender, usage)
     if error is None and len(args) != 1:
@@ -417,14 +368,14 @@ async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _, new_count = add_count(target.user_id, selected_date, 1, update.message.chat_id)
     await update.message.reply_text(
         f"Il conteggio di {target.mention} nel giorno {date} è stato aggiornato a {new_count} 💩.")
-    logger.info(f"Command /aggiungi completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command /aggiungi completed in {where(update)}")
 
 async def togli_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /togli command."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /togli from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command received: /togli from {sender.mention} in {where(update)}")
     usage = "/togli @username DD-MM-YYYY"
     target, args, error = resolve_target(update, context.args, sender, usage)
     if error is None and len(args) != 1:
@@ -447,14 +398,14 @@ async def togli_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(
             f"Il conteggio di {target.mention} nel giorno {date} non può essere aggiornato poiché era già 0 💩.")
-    logger.info(f"Command /togli completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command /togli completed in {where(update)}")
 
 async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /conto_giorno command."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /conto_giorno from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command received: /conto_giorno from {sender.mention} in {where(update)}")
     usage = "/conto_giorno @username DD-MM-YYYY"
     target, args, error = resolve_target(update, context.args, sender, usage)
     if error is None and len(args) > 1:
@@ -469,21 +420,21 @@ async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYP
             await update.message.reply_text(f"Errore: {str(e)}")
             return
     else:
-        selected_date = datetime.now(pytz.timezone('Europe/Rome')).strftime(STORING_FORMAT)
+        selected_date = now_rome().strftime(STORING_FORMAT)
 
     count = get_count(target.user_id, selected_date, update.message.chat_id)
     if count != 0:
         await update.message.reply_text(f"{target.mention} il giorno {date if args else 'oggi'} hai fatto 💩 {count} {'volte' if count > 1 else 'volta'}.")
     else:
         await update.message.reply_text(f"{target.mention} {'il giorno ' + date if args else 'oggi'} non hai fatto 💩.")
-    logger.info(f"Command /conto_giorno completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command /conto_giorno completed in {where(update)}")
 
 async def costipazione_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /costipazione command."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /costipazione from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command received: /costipazione from {sender.mention} in {where(update)}")
     usage = "/costipazione @username"
     target, args, error = resolve_target(update, context.args, sender, usage)
     if error is None and args:
@@ -499,7 +450,7 @@ async def costipazione_command(update: Update, context: ContextTypes.DEFAULT_TYP
             await update.message.reply_text(f"{target.mention} non fai 💩 da {constipation_days} {'giorni' if constipation_days > 1 else 'giorno'}.")
     else:
         await update.message.reply_text(f"{target.mention} non ci sono dati sulla costipazione.")
-    logger.info(f"Command /costipazione completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command /costipazione completed in {where(update)}")
 
 async def collega_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /collega command: link the old username-based history to Telegram users.
@@ -511,7 +462,7 @@ async def collega_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /collega from {sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command received: /collega from {sender.mention} in {where(update)}")
     chat_id = update.message.chat_id
     args = context.args
 
@@ -567,7 +518,7 @@ async def collega_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Nessun dato storico trovato per «{legacy_username}» (già collegato o inesistente).")
     else:
         await update.message.reply_text(f"Collegati {days} giorni di dati storici di «{legacy_username}» a {target.mention}.")
-    logger.info(f"Command /collega completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
+    logger.info(f"Command /collega completed in {where(update)}")
 
 
 # Messages handler
@@ -593,13 +544,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if response:
             await update.message.reply_text(response, parse_mode='Markdown')
             # Only answered messages are logged, never their text: the bot reads every group message
-            logger.info(f"{sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Risposta: {response}")
+            logger.info(f"{sender.mention} in {where(update)}: Risposta: {response}")
     elif update.message.sticker:
         emoji = update.message.sticker.emoji # Get the emoji from sticker
         if emoji == "💩" or emoji == "🚽":
             response = record_poop(sender, chat_id)
             await update.message.reply_text(response, parse_mode='Markdown')
-            logger.info(f"{sender.mention} in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}: Sticker | Risposta: {response}")
+            logger.info(f"{sender.mention} in {where(update)}: Sticker | Risposta: {response}")
     else:
         logger.info(f"Update type not managed")
 
@@ -690,7 +641,7 @@ async def webhook():
         return Response('forbidden', status=403)
     logger.info("Webhook received...")
     try:
-        # 1. Start the application)
+        # 1. Start the application
         await application.initialize()
 
         # 2. Process the update as before
@@ -722,23 +673,9 @@ def index():
 # Main function to handle bot interactions
 if __name__ == '__main__':
 
-    # Run the bot in the selected mode
-    if RUN_MODE == 'WEBHOOK':
-        logger.info("Starting bot in WEBHOOK mode...")
-
-        pass
-
-    elif RUN_MODE == 'POLLING':
+    # In webhook mode the web server imports `app` (see wsgi.py): nothing to start here
+    if RUN_MODE == 'POLLING':
         logger.info("Starting bot in POLLING mode...")
-
-        while True:
-            try:
-                application.run_polling(allowed_updates=[Update.MESSAGE])
-                break
-
-            except KeyboardInterrupt:
-                logger.info("Bot stopped by user.")
-                break
-
-            except Exception as e:
-                logger.error(f"Error in polling: {e}")
+        # run_polling retries network errors by itself and stops on Ctrl+C: no restart loop needed
+        # (a loop restarted it on a closed event loop and failed again at once, forever)
+        application.run_polling(allowed_updates=[Update.MESSAGE])
