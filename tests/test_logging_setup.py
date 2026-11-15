@@ -1,5 +1,6 @@
 """The log file is bounded: it must not grow forever on a disk with a small quota."""
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 
 import pytest
@@ -33,6 +34,10 @@ def test_rotation_really_happens(tmp_path):
         handler.close()
     assert sorted(p.name for p in folder.iterdir()) == ["test.log", "test.log.1", "test.log.2"]
     assert all(p.stat().st_size <= 2_100 for p in folder.iterdir())
+
+
+def test_the_tests_never_write_to_the_real_log():
+    assert caccometro.file_handler.baseFilename != os.path.abspath("caccometro.log")
 
 
 def test_webhook_mode_writes_the_log_only_to_the_file():

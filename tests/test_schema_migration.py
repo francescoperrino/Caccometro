@@ -78,7 +78,7 @@ def test_migration_is_idempotent_and_does_not_touch_new_data(tmp_path):
     database.init_database(LEGACY_CHAT)
     path = db_file(tmp_path, LEGACY_CHAT)
     database.upsert_user(LEGACY_CHAT, 1, "mario", "Mario")
-    database.update_count(1, "2024-04-01", 5, LEGACY_CHAT)
+    database.add_count(1, "2024-04-01", 5, LEGACY_CHAT)
     backup_before = os.path.getmtime(path + ".v1.bak")
 
     forget_schema_check(path)

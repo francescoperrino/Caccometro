@@ -3,7 +3,7 @@ import asyncio
 
 import caccometro
 import database
-from conftest import make_context, make_tg_user, make_update, uid
+from conftest import get_user, make_context, make_tg_user, make_update, uid
 
 
 def run(coro):
@@ -31,7 +31,7 @@ def test_plain_message_registers_the_user_and_stays_silent(chat_id):
     upd = make_update(text="ciao", username=None, user_id=777, full_name="Anna Rossi")
     run(caccometro.handle_message(upd, make_context()))
     upd.message.reply_text.assert_not_called()
-    assert database.get_user(chat_id, 777) == database.User(777, None, "Anna Rossi")
+    assert get_user(chat_id, 777) == database.User(777, None, "Anna Rossi")
 
 
 def test_message_without_sender_is_ignored():
@@ -44,7 +44,7 @@ def test_messages_from_bots_are_ignored(chat_id):
     upd = make_update(text="💩", username="GroupAnonymousBot", user_id=1087968824, is_bot=True)
     run(caccometro.handle_message(upd, make_context()))
     upd.message.reply_text.assert_not_called()
-    assert database.get_user(chat_id, 1087968824) is None
+    assert get_user(chat_id, 1087968824) is None
 
 
 def test_two_users_with_the_same_display_name_are_kept_apart(chat_id):
@@ -106,4 +106,4 @@ def test_reply_to_a_bot_message_falls_back_to_the_sender(chat_id):
     upd = make_update(reply_to=replied)
     run(caccometro.aggiungi_command(upd, make_context("10-03-2024")))
     assert database.get_count(uid("mario"), "2024-03-10", chat_id) == 1
-    assert database.get_user(chat_id, 999) is None
+    assert get_user(chat_id, 999) is None

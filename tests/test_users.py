@@ -1,5 +1,6 @@
 """The users table: current username and display name of every user the bot has seen."""
 import database
+from conftest import get_user
 from database import User
 
 
@@ -12,21 +13,21 @@ def test_user_name_and_mention():
 
 def test_upsert_user_inserts_and_get_user_finds_it(chat_id):
     database.upsert_user(chat_id, 10, "mario", "Mario Rossi")
-    assert database.get_user(chat_id, 10) == User(10, "mario", "Mario Rossi")
-    assert database.get_user(chat_id, 11) is None
+    assert get_user(chat_id, 10) == User(10, "mario", "Mario Rossi")
+    assert get_user(chat_id, 11) is None
 
 
 def test_upsert_user_updates_username_and_name(chat_id):
     database.upsert_user(chat_id, 10, "mario", "Mario Rossi")
     database.upsert_user(chat_id, 10, "mario_new", "Mario R.")
-    assert database.get_user(chat_id, 10) == User(10, "mario_new", "Mario R.")
+    assert get_user(chat_id, 10) == User(10, "mario_new", "Mario R.")
     assert database.find_user_by_username(chat_id, "mario") is None
 
 
 def test_upsert_user_can_drop_the_username(chat_id):
     database.upsert_user(chat_id, 10, "mario", "Mario Rossi")
     database.upsert_user(chat_id, 10, None, "Mario Rossi")
-    assert database.get_user(chat_id, 10) == User(10, None, "Mario Rossi")
+    assert get_user(chat_id, 10) == User(10, None, "Mario Rossi")
 
 
 def test_find_user_by_username_is_case_insensitive(chat_id):
@@ -39,7 +40,7 @@ def test_a_reassigned_username_moves_to_the_new_holder(chat_id):
     database.upsert_user(chat_id, 10, "mario", "Mario Rossi")
     database.upsert_user(chat_id, 20, "Mario", "Another Mario")  # the old holder changed username elsewhere
     assert database.find_user_by_username(chat_id, "mario").user_id == 20
-    assert database.get_user(chat_id, 10) == User(10, None, "Mario Rossi")
+    assert get_user(chat_id, 10) == User(10, None, "Mario Rossi")
 
 
 def test_upsert_without_changes_does_not_write(chat_id, monkeypatch):

@@ -102,7 +102,7 @@ def test_auto_links_matches_and_lists_the_rest(tmp_path):
     text = reply_of(upd)
     assert "→ @mario (2 giorni)" in text
     assert "Da collegare a mano" in text and "luigi: 4" in text
-    assert database.get_count(42, "2024-03", CHAT) == 3
+    assert sum(count for _, count in database.get_record(42, CHAT)) == 3
 
 
 def test_auto_without_matches(tmp_path):
