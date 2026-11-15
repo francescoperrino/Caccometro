@@ -5,12 +5,12 @@ from datetime import datetime
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from caccometro.analysis import analyze_group, analyze_user
+from caccometro.analysis import analyze_group, analyze_user, period_statistics
 from caccometro.charts import generate_rank_chart, generate_statistics_chart
 from caccometro.chat import escape_md, is_chat_admin, register_sender, register_user, reply_chart, where
-from caccometro.config import DISPLAY_FORMAT, STORING_FORMAT, now_rome
+from caccometro.config import DISPLAY_FORMAT, STORING_FORMAT, now_rome, period_bounds
 from caccometro.database import (init_database, find_user_by_username, add_count, get_count, get_daily_counts,
-                                 get_rank, get_statistics, get_record, get_all_user_rows, get_constipation_days,
+                                 get_rank, get_users, get_record, get_all_user_rows, get_constipation_days,
                                  list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username)
 from caccometro.formatting import format_group_record, format_user_record
 
@@ -167,7 +167,10 @@ async def statistics_command(update: Update, context: ContextTypes.DEFAULT_TYPE,
     if date is None:
         return
 
-    statistics = get_statistics(update.message.chat_id, time_period, date)
+    chat_id = update.message.chat_id
+    daily_counts = get_daily_counts(chat_id, time_period, date)
+    statistics = period_statistics(daily_counts, get_users(chat_id), *period_bounds(time_period, date),
+                                   now_rome().date())
     if not statistics:
         await update.message.reply_text(f"Nessuna statistica disponibile {period['for']} {date}." + legacy_hint(update.message.chat_id))
         return
@@ -177,7 +180,6 @@ async def statistics_command(update: Update, context: ContextTypes.DEFAULT_TYPE,
                                    f"Media: {s['mean']}, Mediana: {s['median']}, Var.: {s['variance']}")
                        for i, s in enumerate(statistics, start=1))
 
-    daily_counts = get_daily_counts(update.message.chat_id, time_period, date)
     await reply_chart(update, generate_statistics_chart(statistics, daily_counts, time_period, date), message)
     logger.info(f"Command /{command} completed in {where(update)}")
 

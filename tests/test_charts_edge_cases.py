@@ -1,7 +1,10 @@
 """Chart edge cases."""
+from datetime import date
+
 import pytest
 
 from caccometro import database
+from caccometro.analysis import period_statistics
 from caccometro import charts
 from conftest import uid
 
@@ -54,7 +57,7 @@ def test_charts_accept_names_with_dollar_signs_and_equal_names(seed, chat_id):
     rank = database.get_rank(chat_id, "month", "03-2024")
     daily = database.get_daily_counts(chat_id, "month", "03-2024")
     assert charts.generate_rank_chart(rank, daily, "month", "03-2024").startswith(b"\x89PNG")
-    stats = database.get_statistics(chat_id, "month", "03-2024")
+    stats = period_statistics(daily, database.get_users(chat_id), "2024-03-01", "2024-03-31", date(2024, 4, 1))
     assert charts.generate_statistics_chart(stats, daily, "month", "03-2024").startswith(b"\x89PNG")
 
 

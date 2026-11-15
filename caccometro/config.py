@@ -1,4 +1,5 @@
 """Configuration: environment variables, date formats and the Rome time zone."""
+import calendar
 import os
 from datetime import datetime
 
@@ -23,3 +24,24 @@ def now_rome():
     between 22:00/23:00 and midnight in Italy.
     """
     return datetime.now(ROME_TZ).replace(tzinfo=None)
+
+
+def period_bounds(time_period, date):
+    """Start and end date (storing format) of a month ('MM-YYYY') or year ('YYYY')."""
+    if time_period == 'month':
+        # Parse the input date for monthly rank (format: month-year)
+        date_parts = date.split('-')
+        month_str = date_parts[0].zfill(2)  # Add leading zero, if necessary
+        year_str = date_parts[1]
+        start_period = datetime.strptime(f'{month_str}-{year_str}', '%m-%Y').strftime(STORING_FORMAT)
+        # Get the end of the month
+        end_period = datetime.strptime(f'{month_str}-{year_str}', '%m-%Y')\
+                        .replace(day=calendar.monthrange(int(year_str), int(month_str))[1])\
+                        .strftime(STORING_FORMAT)
+    elif time_period == 'year':
+        # Parse the input date for yearly rank (format: year)
+        start_period = datetime.strptime(f'01-01-{date}', '%d-%m-%Y').strftime(STORING_FORMAT)
+        end_period = datetime.strptime(f'31-12-{date}', '%d-%m-%Y').strftime(STORING_FORMAT)
+    else:
+        raise ValueError("Invalid time_period. It should be 'month' or 'year'.")
+    return start_period, end_period

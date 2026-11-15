@@ -6,6 +6,10 @@ the database or Telegram, so they can be tested with hand-computed examples.
 from datetime import date, datetime, timedelta
 from typing import NamedTuple, Optional, Tuple
 
+import numpy as np
+
+from caccometro.database import User
+
 STORING_FORMAT = "%Y-%m-%d"
 
 Month = Tuple[int, int]  # (year, month)
@@ -213,3 +217,33 @@ def analyze_group(users_rows, today: date) -> GroupBoard:
                                 for key, s in active.items() if s.streak_days > 0]),
         active_gap=_leaders([(key, s.gap_days, []) for key, s in active.items() if s.gap_days > 0]),
     )
+
+
+def period_statistics(daily_counts, users, start_period, end_period, today: date):
+    """Mean, median and variance of the daily 💩 of every user in a period, best mean first (ties: lower variance).
+
+    daily_counts: {user_id: {'YYYY-MM-DD': count}}, days without 💩 absent (they count as 0);
+    users: {user_id: User}; start_period/end_period: 'YYYY-MM-DD'.
+    The current period counts only the days gone by, today included.
+    """
+    first_day = date.fromisoformat(start_period)
+    last_day = date.fromisoformat(end_period)
+    ongoing = first_day <= today <= last_day
+    valid_days = ((today if ongoing else last_day) - first_day).days + 1
+
+    statistics = []
+    for user_id, per_day in daily_counts.items():
+        counts = [per_day[day] for day in sorted(per_day)]
+        if len(counts) < valid_days:
+            counts += [0] * (valid_days - len(counts))
+        elif len(counts) > valid_days:
+            counts = counts[:valid_days]
+
+        mean = round(sum(counts) / valid_days, 2)
+        statistics.append({
+            'user': users.get(user_id) or User(user_id, None, str(user_id)),
+            'mean': mean,
+            'median': np.median(counts),
+            'variance': round(sum((x - mean) ** 2 for x in counts) / valid_days, 2),
+        })
+    return sorted(statistics, key=lambda s: (-s['mean'], s['variance']))

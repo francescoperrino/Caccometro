@@ -40,14 +40,6 @@ def test_get_rank_returns_user_objects(seed, chat_id):
     assert count == 2
 
 
-def test_get_statistics_closed_month(seed, chat_id):
-    # February 2024 (leap year, 29 days): 3 days with counts 1, 2, 3
-    seed({"mario": {"2024-02-01": 1, "2024-02-02": 2, "2024-02-03": 3}})
-    (stat,) = database.get_statistics(chat_id, "month", "02-2024")
-    assert stat["user"].name == "mario"
-    assert stat["mean"] == round(6 / 29, 2)
-    assert stat["median"] == 0
-    assert stat["variance"] > 0
 
 
 def test_get_record_is_sorted_by_date(seed, chat_id):

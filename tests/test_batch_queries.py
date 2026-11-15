@@ -57,13 +57,6 @@ def test_daily_counts_accept_month_without_leading_zero(seed, chat_id):
 
 # ---------------------------------------------------------------- number of database accesses
 
-def test_statistics_read_the_database_once(seed, chat_id, connections):
-    seed_busy_chat(seed)
-    connections["n"] = 0
-    database.get_statistics(chat_id, "year", "2024")
-    assert connections["n"] == 1
-
-
 def test_daily_counts_and_rank_read_the_database_once_each(seed, chat_id, connections):
     seed_busy_chat(seed)
     connections["n"] = 0
