@@ -7,8 +7,8 @@ from telegram.error import NetworkError
 from telegram.ext import Application
 from unittest.mock import AsyncMock
 
-import caccometro
-import database
+from caccometro import bot, config, webhook
+from caccometro import database
 from conftest import CHAT_ID
 
 SECRET = {"X-Telegram-Bot-Api-Secret-Token": "test-secret"}   # as Telegram sends it
@@ -39,8 +39,8 @@ def telegram_calls(monkeypatch):
             return BOT_USER
         return message_dict()
 
-    monkeypatch.setattr(caccometro.application.bot, "_post", fake_post)
-    monkeypatch.setattr(caccometro.application.bot, "_bot_user", None)   # fresh process
+    monkeypatch.setattr(bot.application.bot, "_post", fake_post)
+    monkeypatch.setattr(bot.application.bot, "_bot_user", None)   # fresh process
     return calls
 
 
@@ -52,14 +52,14 @@ def cycle(bot):
 
 def test_get_me_is_called_once_across_many_initialize_shutdown_cycles(telegram_calls):
     for _ in range(4):
-        cycle(caccometro.application.bot)
+        cycle(bot.application.bot)
     assert telegram_calls.count("getMe") == 1
 
 
 def test_bot_identity_is_available_after_the_cached_initialize(telegram_calls):
-    cycle(caccometro.application.bot)
-    cycle(caccometro.application.bot)
-    assert caccometro.application.bot.username == "caccometro_test_bot"
+    cycle(bot.application.bot)
+    cycle(bot.application.bot)
+    assert bot.application.bot.username == "caccometro_test_bot"
 
 
 def test_a_failed_get_me_is_not_cached(monkeypatch):
@@ -71,17 +71,17 @@ def test_a_failed_get_me_is_not_cached(monkeypatch):
             raise NetworkError("503 Service Unavailable")
         return BOT_USER
 
-    monkeypatch.setattr(caccometro.application.bot, "_post", flaky_post)
-    monkeypatch.setattr(caccometro.application.bot, "_bot_user", None)
+    monkeypatch.setattr(bot.application.bot, "_post", flaky_post)
+    monkeypatch.setattr(bot.application.bot, "_bot_user", None)
     with pytest.raises(NetworkError):
-        asyncio.run(caccometro.application.bot.initialize())
-    cycle(caccometro.application.bot)          # the next update retries and succeeds
+        asyncio.run(bot.application.bot.initialize())
+    cycle(bot.application.bot)          # the next update retries and succeeds
     assert attempts == ["getMe", "getMe"]
 
 
 def test_two_webhook_requests_ask_getme_once_and_both_are_processed(telegram_calls):
     pytest.importorskip("asgiref")   # Flask async views need it
-    client = caccometro.app.test_client()
+    client = webhook.app.test_client()
     for update_id in (1, 2):
         response = client.post("/webhook", headers=SECRET, json=telegram_update(update_id=update_id))
         assert response.status_code == 200
@@ -94,7 +94,7 @@ def test_two_webhook_requests_ask_getme_once_and_both_are_processed(telegram_cal
 def test_webhook_command_with_bot_suffix_is_recognized(telegram_calls):
     """/cmd@botname needs the cached bot username to be matched."""
     pytest.importorskip("asgiref")   # Flask async views need it
-    client = caccometro.app.test_client()
+    client = webhook.app.test_client()
     client.post("/webhook", headers=SECRET, json=telegram_update(text="💩", update_id=1))
     update = telegram_update(text="/costipazione@caccometro_test_bot", update_id=2)
     update["message"]["entities"] = [{"type": "bot_command", "offset": 0, "length": len("/costipazione@caccometro_test_bot")}]
@@ -106,7 +106,7 @@ def test_webhook_command_with_bot_suffix_is_recognized(telegram_calls):
 @pytest.mark.parametrize("headers", [{}, {"X-Telegram-Bot-Api-Secret-Token": "wrong"}])
 def test_a_call_without_the_right_secret_is_refused(telegram_calls, headers):
     pytest.importorskip("asgiref")   # Flask async views need it
-    client = caccometro.app.test_client()
+    client = webhook.app.test_client()
     response = client.post("/webhook", headers=headers, json=telegram_update(update_id=9))
     assert response.status_code == 403
     assert telegram_calls == []
@@ -116,6 +116,6 @@ def test_a_call_without_the_right_secret_is_refused(telegram_calls, headers):
 
 def test_the_old_path_with_the_token_is_gone(telegram_calls):
     pytest.importorskip("asgiref")   # Flask async views need it
-    client = caccometro.app.test_client()
-    response = client.post(f"/{caccometro.BOT_TOKEN}", headers=SECRET, json=telegram_update(update_id=10))
+    client = webhook.app.test_client()
+    response = client.post(f"/{config.BOT_TOKEN}", headers=SECRET, json=telegram_update(update_id=10))
     assert response.status_code == 404

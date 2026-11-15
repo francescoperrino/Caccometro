@@ -5,17 +5,17 @@ from logging.handlers import RotatingFileHandler
 
 import pytest
 
-import caccometro
+from caccometro import bot
 
 
 def test_the_log_file_handler_rotates():
-    assert isinstance(caccometro.file_handler, RotatingFileHandler)
+    assert isinstance(bot.file_handler, RotatingFileHandler)
 
 
 def test_the_log_stays_within_a_few_megabytes():
-    handler = caccometro.file_handler
-    assert handler.maxBytes == caccometro.LOG_MAX_BYTES == 1_000_000
-    assert handler.backupCount == caccometro.LOG_BACKUPS == 3
+    handler = bot.file_handler
+    assert handler.maxBytes == bot.LOG_MAX_BYTES == 1_000_000
+    assert handler.backupCount == bot.LOG_BACKUPS == 3
     assert handler.maxBytes * (handler.backupCount + 1) <= 5_000_000
 
 
@@ -37,18 +37,18 @@ def test_rotation_really_happens(tmp_path):
 
 
 def test_the_tests_never_write_to_the_real_log():
-    assert caccometro.file_handler.baseFilename != os.path.abspath("caccometro.log")
+    assert bot.file_handler.baseFilename != os.path.abspath("caccometro.log")
 
 
 def test_webhook_mode_writes_the_log_only_to_the_file():
     """The console is the web server error log there: one copy is enough."""
-    handlers = caccometro.log_handlers("WEBHOOK")
-    assert handlers == [caccometro.file_handler]
+    handlers = bot.log_handlers("WEBHOOK")
+    assert handlers == [bot.file_handler]
 
 
 def test_polling_mode_also_prints_to_the_console():
-    handlers = caccometro.log_handlers("POLLING")
-    assert handlers[0] is caccometro.file_handler
+    handlers = bot.log_handlers("POLLING")
+    assert handlers[0] is bot.file_handler
     assert type(handlers[1]) is logging.StreamHandler
 
 

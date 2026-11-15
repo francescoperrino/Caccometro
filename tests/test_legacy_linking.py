@@ -1,5 +1,5 @@
 """Linking the old username-based history to Telegram users (database level)."""
-import database
+from caccometro import database
 from conftest import make_legacy_db
 
 CHAT = -2002

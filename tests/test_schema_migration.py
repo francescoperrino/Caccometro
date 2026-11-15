@@ -5,7 +5,7 @@ import sqlite3
 import pytest
 
 import conftest
-import database
+from caccometro import database
 
 LEGACY_CHAT = -2002
 LEGACY_ROWS = [

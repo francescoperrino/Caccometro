@@ -20,9 +20,9 @@ os.environ.setdefault("WEBHOOK_SECRET", "test-secret")
 # The tests never write to the real bot log
 os.environ["LOG_FILE"] = os.path.join(tempfile.mkdtemp(prefix="caccometro_tests_"), "caccometro.log")
 
-import database  # noqa: E402
-import utils  # noqa: E402
-import caccometro  # noqa: E402
+from caccometro import database  # noqa: E402
+from caccometro import charts  # noqa: E402
+from caccometro import webhook  # noqa: E402
 
 CHAT_ID = -1001
 
@@ -38,7 +38,7 @@ def isolated_folders(tmp_path, monkeypatch):
     db_dir = tmp_path / "db"
     monkeypatch.setattr(database, "DB_FOLDER", str(db_dir))
     database.init_database(CHAT_ID)
-    caccometro.SEEN_UPDATE_IDS.clear()   # every test starts like a fresh process
+    webhook.SEEN_UPDATE_IDS.clear()   # every test starts like a fresh process
     return tmp_path
 
 

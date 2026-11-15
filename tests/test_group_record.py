@@ -3,11 +3,11 @@ import asyncio
 import random
 from datetime import date, timedelta
 
-import caccometro
-import database
-from analysis import Holder, Leaders, Period, analyze_group, analyze_user
+from caccometro import commands
+from caccometro import database
+from caccometro.analysis import Holder, Leaders, Period, analyze_group, analyze_user
 from conftest import make_context, make_tg_user, make_update, uid
-from formatting import format_group_record
+from caccometro.formatting import format_group_record
 
 TODAY = date(2024, 4, 15)
 
@@ -165,7 +165,7 @@ def test_get_all_user_rows_reads_the_database_once(seed, chat_id, monkeypatch):
 
 def record(*args, reply_to=None, username="mario"):
     upd = make_update(username=username, reply_to=reply_to)
-    run(caccometro.record_command(upd, make_context(*args)))
+    run(commands.record_command(upd, make_context(*args)))
     return upd.message.reply_text.call_args[0][0]
 
 

@@ -1,97 +1,20 @@
-import os
-import asyncio
-import hmac
+"""Command handlers: parse the arguments, read or change the data, reply."""
 import logging
-from collections import deque
-import httpx
-from logging.handlers import RotatingFileHandler
-from dotenv import load_dotenv
 from datetime import datetime
+
 from telegram import Update
-from telegram.constants import ChatMemberStatus, MessageLimit
-from telegram.error import NetworkError
-from telegram.ext import Application, CommandHandler, ExtBot, MessageHandler, filters, ContextTypes
-from telegram.request import HTTPXRequest
-import re
-from flask import Flask, request, Response
+from telegram.ext import ContextTypes
 
-from database import (STORING_FORMAT, DISPLAY_FORMAT, ROME_TZ, User, init_database, now_rome, upsert_user,
-                      find_user_by_username, add_count, get_count, get_daily_counts, get_rank, get_statistics, get_record,
-                      get_all_user_rows, get_constipation_days, list_legacy_users, count_legacy_orphans, link_legacy_username,
-                      link_legacy_by_username)
-from utils import generate_rank_chart, generate_statistics_chart
-from analysis import analyze_group, analyze_user
-from formatting import format_group_record, format_user_record
+from caccometro.analysis import analyze_group, analyze_user, period_statistics
+from caccometro.charts import generate_rank_chart, generate_statistics_chart
+from caccometro.chat import escape_md, is_chat_admin, register_sender, register_user, reply_chart, where
+from caccometro.config import DISPLAY_FORMAT, STORING_FORMAT, now_rome, period_bounds
+from caccometro.database import (init_database, find_user_by_username, add_count, get_count, get_daily_counts,
+                                 get_rank, get_users, get_record, get_all_user_rows, get_constipation_days,
+                                 list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username)
+from caccometro.formatting import format_group_record, format_user_record
 
-# Load bot info from .env
-load_dotenv()
-BOT_USERNAME = os.environ.get('BOT_USERNAME')
-BOT_TOKEN = os.environ.get('BOT_TOKEN')
-WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')  # also given to set_webhook: Telegram sends it back
-RUN_MODE = os.environ.get('RUN_MODE', 'POLLING').upper()
-
-# Enable logging
-log_filename = os.environ.get('LOG_FILE', 'caccometro.log')  # the tests point it elsewhere
-LOG_MAX_BYTES = 1_000_000  # 1 MB per file...
-LOG_BACKUPS = 3            # ...and 3 older files: the logs never take more than about 4 MB
-file_handler = RotatingFileHandler(log_filename, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUPS, encoding='utf-8')
-
-
-def log_handlers(run_mode):
-    """The bot log goes to the rotating file; to the console too only when running locally (polling).
-
-    In webhook mode the console is the web server error log: writing there too kept every line twice.
-    Crashes before logging is set up (e.g. at import) still reach it.
-    """
-    if run_mode == 'POLLING':
-        return [file_handler, logging.StreamHandler()]
-    return [file_handler]
-
-
-# Log times in Italian time, like every date the bot shows (the server clock runs in UTC)
-logging.Formatter.converter = staticmethod(lambda seconds: datetime.fromtimestamp(seconds, ROME_TZ).timetuple())
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                    level=logging.INFO,
-                    handlers=log_handlers(RUN_MODE))
-# Set higher logging level for httpx to avoid all GET and POST requests being logged
-logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
-
-
-def display_name_of(tg_user):
-    """Name shown for users without a username: their full name, falling back to the numeric ID."""
-    return tg_user.full_name or str(tg_user.id)
-
-
-def register_user(chat_id, tg_user):
-    """Store the current username/name of a Telegram user and return it as a database.User."""
-    user = User(tg_user.id, tg_user.username, display_name_of(tg_user))
-    upsert_user(chat_id, user.user_id, user.username, user.display_name)
-    return user
-
-
-def register_sender(update: Update):
-    """Record the sender of the message in the users table and return it.
-
-    Returns None when there is no usable sender (channel posts, anonymous admins, bots).
-    """
-    tg_user = update.message.from_user if update.message else None
-    if tg_user is None or tg_user.is_bot:
-        return None
-    return register_user(update.message.chat_id, tg_user)
-
-
-def where(update: Update):
-    """'PVT - <chat name>' or 'GROUP - <chat name>', for the log lines."""
-    chat = update.effective_message.chat
-    return f"{'PVT' if chat.type == 'private' else 'GROUP'} - {chat.effective_name}"
-
-
-def escape_md(name):
-    """Escape a name for Telegram (legacy) Markdown."""
-    for char in ('_', '*', '`', '['):
-        name = name.replace(char, '\\' + char)
-    return name
 
 
 def parse_username_arg(arg):
@@ -149,38 +72,11 @@ def resolve_target(update: Update, args, sender, usage):
     return sender, args, None
 
 
-def record_poop(sender, chat_id):
-    """Add one 💩 to today's count of the sender and return the message to reply with."""
-    today = now_rome().strftime(STORING_FORMAT)
-    _, count = add_count(sender.user_id, today, 1, chat_id)
-    return f"Complimenti {escape_md(sender.mention)}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
-
-
-async def reply_chart(update: Update, chart: bytes, message: str):
-    """Send a chart with the message as its caption: one request instead of two, when it fits."""
-    if len(message.encode('utf-16-le')) // 2 <= MessageLimit.CAPTION_LENGTH:  # Telegram counts UTF-16 units
-        await update.message.reply_photo(chart, caption=message, parse_mode='Markdown')
-        return
-    await update.message.reply_photo(chart)
-    await update.message.reply_text(message, parse_mode='Markdown')
-
 def legacy_hint(chat_id):
     """Suffix for 'no data' replies when old username-based history is still waiting to be linked."""
     if list_legacy_users(chat_id):
         return "\n\nℹ️ Ci sono dati storici ancora da collegare: usa /collega."
     return ""
-
-
-async def is_chat_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """True if the sender is an administrator (or the owner) of the chat; always True in private chats."""
-    if update.message.chat.type == 'private':
-        return True
-    try:
-        member = await context.bot.get_chat_member(update.message.chat_id, update.message.from_user.id)
-    except Exception:
-        logger.exception("Could not read the chat member status")
-        return False
-    return member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER)
 
 
 async def may_change_counts_of(update: Update, context: ContextTypes.DEFAULT_TYPE, sender, target):
@@ -271,7 +167,10 @@ async def statistics_command(update: Update, context: ContextTypes.DEFAULT_TYPE,
     if date is None:
         return
 
-    statistics = get_statistics(update.message.chat_id, time_period, date)
+    chat_id = update.message.chat_id
+    daily_counts = get_daily_counts(chat_id, time_period, date)
+    statistics = period_statistics(daily_counts, get_users(chat_id), *period_bounds(time_period, date),
+                                   now_rome().date())
     if not statistics:
         await update.message.reply_text(f"Nessuna statistica disponibile {period['for']} {date}." + legacy_hint(update.message.chat_id))
         return
@@ -281,7 +180,6 @@ async def statistics_command(update: Update, context: ContextTypes.DEFAULT_TYPE,
                                    f"Media: {s['mean']}, Mediana: {s['median']}, Var.: {s['variance']}")
                        for i, s in enumerate(statistics, start=1))
 
-    daily_counts = get_daily_counts(update.message.chat_id, time_period, date)
     await reply_chart(update, generate_statistics_chart(statistics, daily_counts, time_period, date), message)
     logger.info(f"Command /{command} completed in {where(update)}")
 
@@ -519,163 +417,3 @@ async def collega_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"Collegati {days} giorni di dati storici di «{legacy_username}» a {target.mention}.")
     logger.info(f"Command /collega completed in {where(update)}")
-
-
-# Messages handler
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for processing messages."""
-    if not update.message:
-        logger.info(f"Update type not managed")
-        return
-    sender = register_sender(update)
-    if sender is None:
-        logger.info("Message without a usable sender (channel post, anonymous admin or bot): ignored.")
-        return
-    chat_id = update.message.chat_id
-    if update.message.text:
-        text: str = update.message.text.lower().strip()
-        response: str = ""
-        if BOT_USERNAME and BOT_USERNAME.lower() in text:
-            response = "Cosa vuoi dirmi?"
-        elif "💩" in text or "🚽" in text:
-            response = record_poop(sender, chat_id)
-        elif re.search(r'\brun\b', text):
-            response = f"{escape_md(sender.mention)} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu."
-        if response:
-            await update.message.reply_text(response, parse_mode='Markdown')
-            # Only answered messages are logged, never their text: the bot reads every group message
-            logger.info(f"{sender.mention} in {where(update)}: Risposta: {response}")
-    elif update.message.sticker:
-        emoji = update.message.sticker.emoji # Get the emoji from sticker
-        if emoji == "💩" or emoji == "🚽":
-            response = record_poop(sender, chat_id)
-            await update.message.reply_text(response, parse_mode='Markdown')
-            logger.info(f"{sender.mention} in {where(update)}: Sticker | Risposta: {response}")
-    else:
-        logger.info(f"Update type not managed")
-
-# Error handler
-async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for logging errors."""
-    if update:
-        logger.error(f'Update "{update.update_id}" caused error "{context.error}"', exc_info=context.error)
-    else:
-        logger.error(f'Error: "{context.error}"', exc_info=context.error)
-
-class CachedMeBot(ExtBot):
-    """ExtBot that asks Telegram 'who am I?' (getMe) only once per process.
-
-    The webhook initializes and shuts down the application for every update, and Bot.initialize()
-    calls getMe each time: one extra outbound request per message, and one more chance to hit a
-    proxy error. The answer never changes, so it is kept after the first success (a failed call is
-    not cached and is simply tried again).
-    """
-
-    async def get_me(self, *args, **kwargs):
-        if self._bot_user is not None:
-            return self._bot_user
-        return await super().get_me(*args, **kwargs)
-
-
-class RetryingRequest(HTTPXRequest):
-    """HTTPXRequest that tries a request again when the connection to Telegram fails.
-
-    Outgoing requests sometimes fail at once with a proxy error (503) and work a moment later.
-    Only errors raised before the request reached Telegram are retried: after a timeout or a
-    dropped connection the message may already have been delivered, and a retry would send it twice.
-    """
-    RETRYABLE = (httpx.ProxyError, httpx.ConnectError)
-    RETRY_DELAYS = (1, 2)  # seconds before the 2nd and the 3rd attempt
-
-    async def do_request(self, *args, **kwargs):
-        for delay in self.RETRY_DELAYS:
-            try:
-                return await super().do_request(*args, **kwargs)
-            except NetworkError as e:
-                if not isinstance(e.__cause__, self.RETRYABLE):
-                    raise
-                logger.warning(f"Telegram request failed ({e}), new attempt in {delay} s")
-                await asyncio.sleep(delay)
-        return await super().do_request(*args, **kwargs)
-
-
-# Create the Application instance (same connection pools as Application.builder().token(...) would use)
-application = Application.builder().bot(CachedMeBot(
-    BOT_TOKEN,
-    request=RetryingRequest(connection_pool_size=256),
-    get_updates_request=HTTPXRequest(connection_pool_size=1),
-)).build()
-
-# Add handlers
-application.add_handler(CommandHandler('start', start_command))
-application.add_handler(CommandHandler('classifica_mese', classifica_mese_command))
-application.add_handler(CommandHandler('classifica_anno', classifica_anno_command))
-application.add_handler(CommandHandler('statistiche_mese', statistiche_mese_command))
-application.add_handler(CommandHandler('statistiche_anno', statistiche_anno_command))
-application.add_handler(CommandHandler('record', record_command))
-application.add_handler(CommandHandler('aggiungi', aggiungi_command))
-application.add_handler(CommandHandler('togli', togli_command))
-application.add_handler(CommandHandler('conto_giorno', conto_giorno_command))
-application.add_handler(CommandHandler('costipazione', costipazione_command))
-application.add_handler(CommandHandler('collega', collega_command))
-
-# Messages
-application.add_handler(MessageHandler(filters.ALL, handle_message))
-
-# Errors
-application.add_error_handler(error)
-
-app = Flask(__name__)
-
-# Telegram sends an update again when the webhook fails or answers late: remember the last ones
-# so that a 💩 is never counted twice. Kept in memory: enough, as a resend comes within minutes.
-SEEN_UPDATE_IDS = deque(maxlen=500)
-
-@app.route('/webhook', methods=['POST'])
-async def webhook():
-    """This function receives the update from Telegram and passes it to the library."""
-    # Only Telegram knows the secret: without it anybody could send fake updates
-    received_secret = request.headers.get('X-Telegram-Bot-Api-Secret-Token', '')
-    if not WEBHOOK_SECRET or not hmac.compare_digest(received_secret, WEBHOOK_SECRET):
-        logger.warning("Webhook call without the right secret token: refused.")
-        return Response('forbidden', status=403)
-    logger.info("Webhook received...")
-    try:
-        # 1. Start the application
-        await application.initialize()
-
-        # 2. Process the update as before
-        update = Update.de_json(request.get_json(force=True), application.bot)
-        if update.update_id in SEEN_UPDATE_IDS:
-            logger.warning(f'Update "{update.update_id}" already processed: ignored.')
-            return Response('ok', status=200)
-        SEEN_UPDATE_IDS.append(update.update_id)
-        await application.process_update(update)
-
-        # Respond to Telegram that everything is ok
-        return Response('ok', status=200)
-    
-    except Exception as e:
-        logger.error(f"Error in webhook: {e}")
-        return Response('error', status=500)
-    
-    finally:
-        # 3. Terminate the application
-        # This "turns off" the bot and cleans up resources,
-        # both in case of success (try) and in case of error (except).
-        await application.shutdown()
-
-@app.route('/')
-def index():
-    """Welcome page, useful for testing if the web app works."""
-    return 'Ciao! Sono il Caccometro Bot. Il mio webhook è pronto.'
-
-# Main function to handle bot interactions
-if __name__ == '__main__':
-
-    # In webhook mode the web server imports `app` (see wsgi.py): nothing to start here
-    if RUN_MODE == 'POLLING':
-        logger.info("Starting bot in POLLING mode...")
-        # run_polling retries network errors by itself and stops on Ctrl+C: no restart loop needed
-        # (a loop restarted it on a closed event loop and failed again at once, forever)
-        application.run_polling(allowed_updates=[Update.MESSAGE])

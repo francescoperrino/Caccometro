@@ -1,5 +1,5 @@
 # WSGI configuration for the hosting: copy this file over the WSGI file the hosting created
-# for the web app and set `path` to the folder that holds caccometro.py.
+# for the web app and set `path` to the folder that holds the caccometro package.
 
 import sys
 
@@ -9,4 +9,4 @@ if path not in sys.path:
     sys.path.insert(0, path)
 
 # The hosting looks for a variable named "application"
-from caccometro import app as application
+from caccometro.webhook import app as application

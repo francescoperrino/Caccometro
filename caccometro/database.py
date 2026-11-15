@@ -2,29 +2,16 @@ import os
 import sqlite3
 from datetime import datetime
 from typing import NamedTuple, Optional
-import numpy as np
-import calendar
-import pytz
+
+from caccometro.config import now_rome, period_bounds
 
 # Configurations
-STORING_FORMAT = "%Y-%m-%d"  # Format used for storing dates in the database
-DISPLAY_FORMAT = "%d-%m-%Y"  # Format used for displaying dates in messages
 DB_FOLDER = 'db'
-ROME_TZ = pytz.timezone('Europe/Rome')
 
 # Schema versions (stored in PRAGMA user_version):
 #   0/1 = legacy: counts keyed by Telegram username
 #   2   = counts keyed by Telegram user ID, plus a users table
 SCHEMA_VERSION = 2
-
-def now_rome():
-    """Current date/time in Rome, without tzinfo (comparable with the naive datetimes used in the code).
-
-    The server runs in UTC: datetime.now() would return the wrong day
-    between 22:00/23:00 and midnight in Italy.
-    """
-    return datetime.now(ROME_TZ).replace(tzinfo=None)
-
 
 class User(NamedTuple):
     """A Telegram user known to a chat."""
@@ -126,6 +113,18 @@ def init_database(chat_id):
 def _to_user(user_id, username, display_name):
     return User(user_id, username, display_name or str(user_id))
 
+def _users(conn):
+    return {user_id: _to_user(user_id, username, display_name)
+            for user_id, username, display_name in conn.execute('SELECT user_id, username, display_name FROM users')}
+
+def get_users(chat_id):
+    """Every user known to the chat, as {user_id: User}."""
+    conn = _connect(chat_id)
+    try:
+        return _users(conn)
+    finally:
+        conn.close()
+
 def upsert_user(chat_id, user_id, username, display_name):
     """Record the current username and display name of a user (writes only when something changed)."""
     conn = _connect(chat_id)
@@ -210,37 +209,17 @@ def get_daily_counts(chat_id, time_period, date):
 
     One query for the whole period. Returns {user_id: {'YYYY-MM-DD': count}}; days without 💩 are absent.
     """
-    start_period, end_period = _period_bounds(time_period, date)
+    start_period, end_period = period_bounds(time_period, date)
     conn = _connect(chat_id)
     try:
         return _daily_counts(conn, start_period, end_period)
     finally:
         conn.close()
 
-def _period_bounds(time_period, date):
-    """Start and end date (storing format) of a month ('MM-YYYY') or year ('YYYY')."""
-    if time_period == 'month':
-        # Parse the input date for monthly rank (format: month-year)
-        date_parts = date.split('-')
-        month_str = date_parts[0].zfill(2)  # Add leading zero, if necessary
-        year_str = date_parts[1]
-        start_period = datetime.strptime(f'{month_str}-{year_str}', '%m-%Y').strftime(STORING_FORMAT)
-        # Get the end of the month
-        end_period = datetime.strptime(f'{month_str}-{year_str}', '%m-%Y')\
-                        .replace(day=calendar.monthrange(int(year_str), int(month_str))[1])\
-                        .strftime(STORING_FORMAT)
-    elif time_period == 'year':
-        # Parse the input date for yearly rank (format: year)
-        start_period = datetime.strptime(f'01-01-{date}', '%d-%m-%Y').strftime(STORING_FORMAT)
-        end_period = datetime.strptime(f'31-12-{date}', '%d-%m-%Y').strftime(STORING_FORMAT)
-    else:
-        raise ValueError("Invalid time_period. It should be 'month' or 'year'.")
-    return start_period, end_period
-
 # Function to get the rank of users based on the count of poop emojis
 def get_rank(chat_id, time_period, date):
     """Get the rank of users for the specified period, as a list of (User, count) sorted by count."""
-    start_period, end_period = _period_bounds(time_period, date)
+    start_period, end_period = period_bounds(time_period, date)
 
     conn = _connect(chat_id)
     try:
@@ -255,52 +234,6 @@ def get_rank(chat_id, time_period, date):
     finally:
         conn.close()
     return [(_to_user(user_id, username, display_name), total) for user_id, username, display_name, total in rows]
-
-# Function to get statistics of users based on the count of poop emojis
-def get_statistics(chat_id, time_period, date):
-    """Get the statistics of users for the specified period, as a list of dicts with a 'user' (User) key."""
-    now = now_rome()
-    start_period, end_period = _period_bounds(time_period, date)
-    first_day = datetime.strptime(start_period, STORING_FORMAT)
-    last_day = datetime.strptime(end_period, STORING_FORMAT)
-    # The current period counts only the days gone by, today included
-    ongoing = start_period <= now.strftime(STORING_FORMAT) <= end_period
-    valid_days = ((now if ongoing else last_day) - first_day).days + 1
-
-    conn = _connect(chat_id)
-    try:
-        # Counts of every user for the whole period, with a single query
-        user_daily_counts = _daily_counts(conn, start_period, end_period)
-
-        users = {user_id: _to_user(user_id, username, display_name)
-                 for user_id, username, display_name in conn.execute('SELECT user_id, username, display_name FROM users')}
-    finally:
-        conn.close()
-
-    # Calculate statistics for each user
-    user_statistics = []
-    for user_id, per_day in user_daily_counts.items():
-        counts = [per_day[day] for day in sorted(per_day)]
-        if len(counts) < valid_days:
-            counts += [0] * (valid_days - len(counts))
-        elif len(counts) > valid_days:
-            counts = counts[:valid_days]
-
-        mean = round(sum(counts) / valid_days, 2)
-        median = np.median(counts)
-        variance = round(sum((x - mean) ** 2 for x in counts) / valid_days, 2)
-
-        user_statistics.append({
-            'user': users.get(user_id) or _to_user(user_id, None, None),
-            'mean': mean,
-            'median': median,
-            'variance': variance
-        })
-
-    # Sort user_statistics by mean in descending order and variance in ascending order
-    sorted_user_statistics = sorted(user_statistics, key=lambda x: (-x['mean'], x['variance']))
-
-    return sorted_user_statistics
 
 # Function to get the records for the specific user
 def get_record(user_id, chat_id):
@@ -325,8 +258,7 @@ def get_all_user_rows(chat_id):
         rows = {}
         for user_id, day, count in conn.execute('SELECT user_id, date, count FROM user_count ORDER BY user_id, date'):
             rows.setdefault(user_id, []).append((day, count))
-        users = {user_id: _to_user(user_id, username, display_name)
-                 for user_id, username, display_name in conn.execute('SELECT user_id, username, display_name FROM users')}
+        users = _users(conn)
     finally:
         conn.close()
     return rows, users

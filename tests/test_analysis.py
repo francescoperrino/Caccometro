@@ -1,10 +1,11 @@
-"""analysis.analyze_user: records and current status, with hand-computed expectations."""
+"""analysis: records, current status and period statistics, with hand-computed expectations."""
 import random
 from datetime import date, timedelta
 
 import pytest
 
-from analysis import Period, analyze_user
+from caccometro.analysis import Period, analyze_user, period_statistics
+from caccometro.database import User
 
 # Jan 2024: 1,2,1 on days 1-3, then day 7 | Feb: day 10 (x3) | Mar: day 1
 ROWS = [
@@ -192,3 +193,33 @@ def test_invariants_on_random_data():
 def test_months_are_in_chronological_order_even_if_the_rows_are_not():
     rows = [("2024-03-10", 2), ("2024-01-10", 2), ("2024-02-10", 2)]
     assert analyze_user(rows, date(2024, 6, 1)).best_month.when == [(2024, 1), (2024, 2), (2024, 3)]
+
+
+# ---------------------------------------------------------------- period statistics
+
+MARIO = User(1, "mario", "Mario")
+
+
+def test_period_statistics_closed_month():
+    # February 2024 (leap year, 29 days): 3 days with counts 1, 2, 3, the other 26 days count as 0
+    daily = {1: {"2024-02-01": 1, "2024-02-02": 2, "2024-02-03": 3}}
+    (stat,) = period_statistics(daily, {1: MARIO}, "2024-02-01", "2024-02-29", date(2024, 11, 15))
+    assert stat["user"] == MARIO
+    assert stat["mean"] == round(6 / 29, 2)
+    assert stat["median"] == 0
+    assert stat["variance"] > 0
+
+
+def test_period_statistics_current_period_counts_only_the_days_gone_by():
+    # Today is March 10: the month has 10 valid days, not 31
+    (stat,) = period_statistics({1: {"2024-03-02": 5}}, {1: MARIO}, "2024-03-01", "2024-03-31", date(2024, 3, 10))
+    assert stat["mean"] == 0.5
+
+
+def test_period_statistics_sorts_by_mean_then_variance_and_names_unknown_users():
+    # Two closed days. Means: user 2 = 1.5, users 1 and 3 = 1; variances: user 1 = 1, user 3 = 0
+    daily = {1: {"2024-03-01": 2}, 2: {"2024-03-01": 3}, 3: {"2024-03-01": 1, "2024-03-02": 1}}
+    stats = period_statistics(daily, {1: MARIO}, "2024-03-01", "2024-03-02", date(2024, 11, 15))
+    assert [(s["user"], s["mean"], s["variance"]) for s in stats] == [
+        (User(2, None, "2"), 1.5, 2.25), (User(3, None, "3"), 1.0, 0.0), (MARIO, 1.0, 1.0)]
+

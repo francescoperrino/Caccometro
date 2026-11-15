@@ -1,8 +1,8 @@
 """formatting.format_user_record: the /record message of a user, with the current status of every metric."""
 from datetime import date
 
-from analysis import analyze_user
-from formatting import format_user_record
+from caccometro.analysis import analyze_user
+from caccometro.formatting import format_user_record
 
 ROWS = [
     ("2024-01-01", 1), ("2024-01-02", 2), ("2024-01-03", 1),
