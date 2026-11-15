@@ -60,18 +60,23 @@ RUN_MODE = 'WEBHOOK' # 'WEBHOOK' or 'POLLING'
 Utilizza il comando `/setcommands` su **[@BotFather](https://t.me/botfather)** per registrare i comandi:
 
 ```
-start - Avvia il bot.
-classifica_mese - Classifica mese (corrente o specifico [MM-YYYY]).
-classifica_anno - Classifica dell'anno (corrente o specifico [YYYY]).
-statistiche_mese - Statistiche del mese (corrente o specifico [MM-YYYY]).
-statistiche_anno - Statistiche dell'anno (corrente o specifico [YYYY]).
-record - Record del gruppo, o di un utente (@username / io).
-aggiungi - Aggiunge 1 all'utente nel giorno specificato (@username [DD-MM-YYYY]).
-togli - Sottrae 1 all'utente nel giorno specificato (@username [DD-MM-YYYY]).
-conto_giorno - Conteggio per il giorno (@username [DD-MM-YYYY]).
-costipazione - Conteggio giorni di costipazione (@username).
-collega - Collega lo storico dei vecchi dati agli utenti (admin).
+start - Avvia il bot e spiega come contare le 💩.
+classifica_mese - Classifica del mese, corrente o [MM-YYYY].
+classifica_anno - Classifica dell'anno, corrente o [YYYY].
+statistiche_mese - Media, mediana e varianza del mese, corrente o [MM-YYYY].
+statistiche_anno - Media, mediana e varianza dell'anno, corrente o [YYYY].
+record - Record del gruppo; con io o @username quelli di una persona.
+conto_giorno - 💩 di un giorno: [@username] [DD-MM-YYYY].
+costipazione - Giorni senza 💩: [@username].
+aggiungi - Aggiunge 1 💩 in un giorno: [@username] DD-MM-YYYY (altri: solo admin).
+togli - Toglie 1 💩 in un giorno: [@username] DD-MM-YYYY (altri: solo admin).
+collega - Collega lo storico dei vecchi username agli utenti (admin).
 ```
+
+Con `/setdescription` e `/setabouttext` imposta anche le descrizioni del bot:
+
+- **Descrizione:** Manda 💩 o 🚽 quando hai fatto il tuo dovere: il bot tiene il conto per ogni persona del gruppo, con classifiche, statistiche, grafici e record personali e di gruppo.
+- **Descrizione breve:** Conta le 💩 del gruppo: classifiche, statistiche, grafici e record.
 
 ---
 
