@@ -2,6 +2,8 @@
 import logging
 from logging.handlers import RotatingFileHandler
 
+import pytest
+
 import caccometro
 
 
@@ -31,3 +33,25 @@ def test_rotation_really_happens(tmp_path):
         handler.close()
     assert sorted(p.name for p in folder.iterdir()) == ["test.log", "test.log.1", "test.log.2"]
     assert all(p.stat().st_size <= 2_100 for p in folder.iterdir())
+
+
+def test_webhook_mode_writes_the_log_only_to_the_file():
+    """The console is the web server error log there: one copy is enough."""
+    handlers = caccometro.log_handlers("WEBHOOK")
+    assert handlers == [caccometro.file_handler]
+
+
+def test_polling_mode_also_prints_to_the_console():
+    handlers = caccometro.log_handlers("POLLING")
+    assert handlers[0] is caccometro.file_handler
+    assert type(handlers[1]) is logging.StreamHandler
+
+
+@pytest.mark.parametrize("utc_seconds,rome_time", [
+    (1782907200, "2026-07-01 14:00:00"),   # 12:00 UTC in summer: UTC+2
+    (1796126400, "2026-12-01 13:00:00"),   # 12:00 UTC in winter: UTC+1
+])
+def test_log_times_are_in_italian_time(utc_seconds, rome_time):
+    record = logging.LogRecord("x", logging.INFO, __file__, 1, "msg", None, None)
+    record.created = utc_seconds
+    assert logging.Formatter("%(asctime)s").format(record).startswith(rome_time)
