@@ -184,3 +184,7 @@ I conteggi sono associati allo **UserID di Telegram**, non più allo username: c
 ---
 
 Ora sei pronto per iniziare a sperimentare con il codice di Caccometro! Buon divertimento!
+
+## Licenza
+
+Caccometro è distribuito con licenza [MIT](LICENSE).
