@@ -83,20 +83,18 @@ def test_an_update_sent_twice_is_counted_once(telegram_calls):  # noqa: F811
 
 
 def test_a_caption_too_long_goes_in_a_separate_message(tmp_path):
-    chart = tmp_path / "c.png"
-    chart.write_bytes(b"png")
+    chart = b"png"
     upd = make_update()
     long_text = "x" * 1025
-    asyncio.run(caccometro.reply_chart(upd, str(chart), long_text))
+    asyncio.run(caccometro.reply_chart(upd, chart, long_text))
     assert "caption" not in upd.message.reply_photo.call_args.kwargs
     assert upd.message.reply_text.call_args[0][0] == long_text
 
 
 def test_emojis_count_twice_in_the_caption_length(tmp_path):
-    chart = tmp_path / "c.png"
-    chart.write_bytes(b"png")
+    chart = b"png"
     upd = make_update()
     text = "💩" * 513       # 513 characters for Python, 1026 for Telegram
-    asyncio.run(caccometro.reply_chart(upd, str(chart), text))
+    asyncio.run(caccometro.reply_chart(upd, chart, text))
     assert "caption" not in upd.message.reply_photo.call_args.kwargs
     assert upd.message.reply_text.call_args[0][0] == text

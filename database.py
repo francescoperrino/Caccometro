@@ -10,7 +10,6 @@ import pytz
 STORING_FORMAT = "%Y-%m-%d"  # Format used for storing dates in the database
 DISPLAY_FORMAT = "%d-%m-%Y"  # Format used for displaying dates in messages
 DB_FOLDER = 'db'
-CHARTS_FOLDER = 'charts'
 ROME_TZ = pytz.timezone('Europe/Rome')
 
 # Schema versions (stored in PRAGMA user_version):
