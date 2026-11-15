@@ -64,10 +64,10 @@ def test_charts_accept_names_with_dollar_signs_and_equal_names(seed, chat_id):
 def test_month_names_are_italian_whatever_the_locale(monkeypatch):
     titles = []
     monkeypatch.setattr(charts, "png_bytes", lambda fig: titles.append(fig._suptitle.get_text() if fig._suptitle else
-                                                                    " ".join(a.get_title() for a in fig.axes)))
+                                                                    " ".join(a.get_title("left") for a in fig.axes)))
     rank = [(database.User(uid("mario"), "mario", "Mario"), 1)]
     charts.generate_rank_chart(rank, {uid("mario"): {"2024-11-10": 1}}, "month", "11-2024")
-    assert "Novembre 2024" in titles[0]
+    assert "novembre 2024" in titles[0]
 
 
 def test_charts_never_touch_the_disk(tmp_path, monkeypatch):

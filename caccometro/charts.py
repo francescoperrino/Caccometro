@@ -1,25 +1,68 @@
+"""Charts of /classifica_* and /statistiche_*: one shared style, PNG bytes in memory."""
 import io
 import calendar
-import matplotlib.pyplot as plt
+from collections import defaultdict
+from datetime import datetime, timedelta
+from math import ceil, floor, log10
+from pathlib import Path
+
 import matplotlib
 matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from caccometro.config import now_rome, STORING_FORMAT
-from math import ceil, floor, log10
-from datetime import datetime, timedelta
-from collections import defaultdict
+from matplotlib import font_manager
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+from matplotlib.patches import FancyBboxPatch
+from matplotlib.ticker import MaxNLocator
 import numpy as np
+
+from caccometro.config import now_rome, STORING_FORMAT
 
 # Italian month names, written out: calendar.month_name depends on the process locale
 MONTH_NAMES = ['', 'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
                'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
 MONTH_ABBRS = ['', 'gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 
+# Colours taken from the bot avatar. The user colours are in a fixed order checked for colour
+# blindness on the card colour (8 slots; a 9th user gets a dashed line).
+PALETTE = ['#a0561e', '#e0902b', '#2aa3e0', '#4caf50', '#7d5ba6', '#c94f3d', '#2f4f8f', '#e0607e']
+BACKGROUND = '#f3e4d0'  # warm tiles behind the cards
+SURFACE = '#fffaf3'     # cards
+TEXT = '#3b2a1e'
+TEXT_MUTED = '#7a6a5c'
+GRID = '#eadccb'
+HEADER = '#2f4f8f'      # table header, the denim of the avatar
+TOTAL = '#f7ecdc'
+FUTURE = '#efe6da'      # days still to come
+
+# Emoji drawn as images (matplotlib cannot draw colour emoji as text): Noto Emoji, assets/emoji/LICENSE.txt
+EMOJI_DIR = Path(__file__).resolve().parent.parent / 'assets' / 'emoji'
+MEDALS = [plt.imread(EMOJI_DIR / f'medal_{n}.png') for n in (1, 2, 3)]  # 🥇 🥈 🥉
+
+# Rounded font (Nunito, SIL Open Font License) shipped in assets/fonts; DejaVu Sans fills the missing glyphs
+FONT_FILES = sorted((Path(__file__).resolve().parent.parent / 'assets' / 'fonts').glob('*.ttf'))
+for font_file in FONT_FILES:
+    font_manager.fontManager.addfont(str(font_file))
+FONTS = [font_manager.FontProperties(fname=str(FONT_FILES[0])).get_name()] if FONT_FILES else []
+
+STYLE = {
+    'font.family': FONTS + ['DejaVu Sans'],
+    'figure.facecolor': BACKGROUND, 'axes.facecolor': SURFACE, 'savefig.facecolor': BACKGROUND,
+    'font.size': 13, 'axes.titlesize': 22, 'axes.titleweight': 'bold', 'axes.titlelocation': 'left',
+    'axes.titlepad': 16, 'axes.titlecolor': TEXT, 'axes.labelsize': 13, 'axes.labelcolor': TEXT_MUTED,
+    'axes.edgecolor': GRID, 'axes.spines.top': False, 'axes.spines.right': False,
+    'axes.grid': True, 'axes.grid.axis': 'y', 'grid.color': GRID, 'grid.linewidth': 0.8,
+    'xtick.color': TEXT_MUTED, 'ytick.color': TEXT_MUTED, 'xtick.labelsize': 11, 'ytick.labelsize': 12,
+    'text.color': TEXT, 'lines.linewidth': 3, 'lines.solid_capstyle': 'round',
+    'legend.frameon': True, 'legend.fancybox': True, 'legend.facecolor': SURFACE, 'legend.edgecolor': GRID,
+    'legend.framealpha': 0.95, 'legend.fontsize': 13, 'legend.borderpad': 0.7,
+}
+
 
 def png_bytes(fig):
     """Render a figure to PNG in memory and close it."""
     buffer = io.BytesIO()
-    fig.savefig(buffer, format='png', bbox_inches='tight')
+    fig.savefig(buffer, format='png', dpi=110, bbox_inches='tight', pad_inches=0.35)
     plt.close(fig)
     return buffer.getvalue()
 
@@ -32,355 +75,293 @@ def chart_label(name):
     """Make a user name safe for matplotlib text ('$' would start a math expression)."""
     return name.replace('$', r'\$')
 
+def user_style(i):
+    """Colour and line style of the i-th user (users sorted by name, so a user keeps the colour across charts)."""
+    return PALETTE[i % len(PALETTE)], '-' if i < len(PALETTE) else '--'
+
+def decimal(value):
+    """Italian decimal comma: 1.25 -> '1,25'."""
+    return f'{value:.2f}'.replace('.', ',')
+
+def period_info(time_period, date):
+    """Year, month (None for a year), number of days and title of the period."""
+    if time_period == 'month':
+        month, year = (int(part) for part in date.split('-'))
+        return year, month, calendar.monthrange(year, month)[1], f'{MONTH_NAMES[month]} {year}'
+    year = int(date)
+    return year, None, 366 if calendar.isleap(year) else 365, str(year)
+
+def last_day_shown(year, month, days):
+    """Days of the period to draw: all of a past period, up to today for the current one."""
+    today = now_rome()
+    if year == today.year and (month is None or month == today.month):
+        return today.timetuple().tm_yday if month is None else today.day
+    return days
+
+def layered_grid(ax, top, round_to):
+    """Y axis from 0 to `top` rounded up to `round_to`, with three levels of dashed lines:
+    a dark one at every tick, lighter ones at its halves and at its fifths (or fifths and tenths)."""
+    max_y = max(round_to, ceil(top / round_to) * round_to)
+    order = 10 ** floor(log10(max_y))
+    tick = order / 2 if max_y / order <= 5 else order
+    levels = ((5, GRID, 0.6), (2, '#dccbb5', 0.8), (1, '#b8a48c', 1.0)) if tick == order / 2 \
+        else ((10, GRID, 0.6), (5, '#dccbb5', 0.8), (1, '#b8a48c', 1.0))
+    ax.grid(False)
+    for parts, colour, width in levels:
+        for y in np.arange(0, max_y + tick / parts / 2, tick / parts):
+            ax.axhline(y, color=colour, linestyle='--', linewidth=width, zorder=0)
+    ax.set_yticks(np.arange(0, max_y + tick / 2, tick))
+    ax.set_ylim(0, max_y)
+
+def add_cards(fig, axes):
+    """A rounded card behind every axes, its labels and its title included."""
+    renderer = fig.canvas.get_renderer()
+    boxes = [ax.get_tightbbox(renderer).transformed(fig.transFigure.inverted()) for ax in axes]
+    left = min(box.x0 for box in boxes)  # same width for every card
+    right = max(box.x1 for box in boxes)
+    pad = 0.015
+    for box in boxes:
+        fig.patches.append(FancyBboxPatch(
+            (left - pad, box.y0 - pad), right - left + 2 * pad, box.height + 2 * pad,
+            boxstyle='round,pad=0,rounding_size=0.02', transform=fig.transFigure,
+            facecolor=SURFACE, edgecolor='none', zorder=-1))
+
+def sorted_by_name(names):
+    return sorted(names, key=lambda user_id: (names[user_id].lower(), user_id))
+
+def emoji(ax, image, xy, zoom, coords='axes fraction'):
+    """Draw an emoji image centred on xy."""
+    ax.add_artist(AnnotationBbox(OffsetImage(image, zoom=zoom), xy, xycoords=coords, frameon=False,
+                                 zorder=6, annotation_clip=False))
+
+def positions(rank):
+    """Ranking positions with ties (20, 20, 18 -> 1, 1, 3)."""
+    result = []
+    for i, (_, total) in enumerate(rank):
+        result.append(result[-1] if i and total == rank[i - 1][1] else i + 1)
+    return result
+
 def generate_rank_chart(rank, daily_counts, time_period, date):
     """
-    Generates the monthly ranking table and chart.
+    Ranking chart: a table of the counts per day (month) or per month (year) with the totals and the
+    medals, and the cumulative counts of every user below it.
 
     Args:
-        rank (list): List of tuples containing a database.User and its count.
+        rank (list): (database.User, total) pairs, best first.
         daily_counts (dict): {user_id: {'YYYY-MM-DD': count}} for the period (see database.get_daily_counts).
-        chat_id (int): ID of the chat.
-        time_period (str): Time period ('month' or 'year').
-        date (str): Date in 'month-year' or 'year' format.
+        time_period (str): 'month' or 'year'.
+        date (str): 'MM-YYYY' or 'YYYY'.
 
     Returns:
-        None
+        bytes: the PNG image.
     """
-    if time_period == 'month':
-        # Parse the input date for monthly rank (format: month-year)
-        date_parts = date.split('-')
-        month = int(date_parts[0])
-        year = int(date_parts[1])
-        _, days = calendar.monthrange(year, month)
-        period_label = MONTH_NAMES[month] + ' ' + str(year)
-        steps = days
-        x_labels = [str(day) for day in range(1, days + 1)]  # Labels for each day of the month
-
-    elif time_period == 'year':
-        # Parse the input date for yearly rank (format: year)
-        year = int(date)
-        days = 366 if calendar.isleap(year) else 365  # Number of days in a year
-        steps = 12  # Number of months in a year
-        period_label = str(year)
-        x_labels = [MONTH_ABBRS[count_month] for count_month in range(1, steps + 1)]  # Labels for each month of the year
-
-    # Create the figure with two subplots
-    fig, axes = plt.subplots(2, 1, figsize=(15, 12))
-
-    # Generate the table
+    year, month, days, title = period_info(time_period, date)
+    shown = last_day_shown(year, month, days)
     names = {user.user_id: chart_label(user.name) for user, _ in rank}
-    # Sort users (by ID) alphabetically by name
-    users = sorted(names, key=lambda user_id: (names[user_id].lower(), user_id))
-    axes[1].set_xticklabels([])
+    colour_order = sorted_by_name(names)  # colours follow the user, not the position in the ranking
+    totals = {user.user_id: total for user, total in rank}
+    rows = [user.user_id for user, _ in rank]  # table rows in ranking order, leader first
+    max_total = max(totals.values(), default=0)
+
     if time_period == 'month':
-        table_data = [[''] + [f'{step}' for step in range(1, steps + 1)] + ['Total']]  # Set days when time_period is 'month'
-    elif time_period == 'year':
-        table_data = [[''] + [f'{MONTH_ABBRS[count_month]}' for count_month in range(1, steps + 1)] + ['Total']]  # Set months when time_period is 'year'
+        header = [str(day) for day in range(1, days + 1)]
+        steps_shown = shown
+    else:
+        header = MONTH_ABBRS[1:]
+        steps_shown = datetime.strptime(f'{year}-{shown}', '%Y-%j').month
 
-    max_total = 0  # Variable to store the maximum total count for highlighting
-
-    for user in users:
-        row = [names[user]]
-        total_count = 0
-        user_days = daily_counts.get(user, {})
-        if time_period == 'year':
-            # Monthly totals from the daily counts ('YYYY-MM-DD' -> month at positions 5:7)
-            month_totals = defaultdict(int)
+    table_data = []
+    for user_id in rows:
+        user_days = daily_counts.get(user_id, {})
+        if time_period == 'month':
+            counts = [user_days.get(f'{year}-{month:02}-{day:02}', 0) for day in range(1, days + 1)]
+        else:
+            month_totals = defaultdict(int)  # 'YYYY-MM-DD' -> month at positions 5:7
             for day_str, day_count in user_days.items():
                 month_totals[int(day_str[5:7])] += day_count
-        for step in range(1, steps + 1):
-            if time_period == 'month':
-                count = user_days.get(f'{year}-{month:02}-{step:02}', 0)  # Count for the specific day
-            elif time_period == 'year':
-                count = month_totals.get(step, 0)  # Count for the specific month
-            total_count += count
-            row.append(count)
-        row.append(total_count)  # Add total count for the period
-        table_data.append(row)
+            counts = [month_totals.get(m, 0) for m in range(1, 13)]
+        cells = [str(c) if c else '·' for c in counts[:steps_shown]] + [''] * (len(header) - steps_shown)
+        table_data.append([names[user_id]] + cells + [str(totals[user_id])])
 
-        # Update max_total if necessary
-        max_total = max(max_total, total_count)
+    with plt.rc_context(STYLE):
+        table_height = 0.5 * (len(rows) + 1)
+        fig, (ax_table, ax_lines) = plt.subplots(
+            2, 1, figsize=(12, table_height + 9),
+            gridspec_kw={'height_ratios': [table_height, 8], 'hspace': 0.3})
 
-    # Draw the table
-    table = axes[0].table(cellText=table_data, loc='center', colWidths=[0.1] + [0.03] * steps + [0.05],  
-                          cellLoc='center', fontsize=8)
+        # Table: header row, name column and total column stand out; every row wears its user's colour
+        name_width = 0.14
+        total_width = 0.12
+        step_width = (1 - name_width - total_width) / len(header)
+        table = ax_table.table(cellText=table_data, colLabels=[''] + header + ['Totale'],
+                               colWidths=[name_width] + [step_width] * len(header) + [total_width],
+                               cellLoc='center', bbox=[0, 0, 1, 1])
+        table.auto_set_font_size(False)
+        table.set_fontsize(12)
+        last = len(header) + 1
+        for (row, col), cell in table.get_celld().items():
+            cell.set_edgecolor(SURFACE)
+            cell.set_linewidth(1.5)
+            if row == 0:
+                cell.set_facecolor(HEADER)
+                cell.set_edgecolor(HEADER)  # one solid header band, no dividers
+                cell.set_text_props(color=SURFACE, weight='bold')
+                continue
+            colour, _ = user_style(colour_order.index(rows[row - 1]))
+            if col == 0:
+                cell.set_facecolor(mcolors.to_rgba(colour, 0.4))
+                cell.set_text_props(ha='left', weight='bold')
+                cell.PAD = 0.06
+            elif col == last:
+                cell.set_facecolor(TOTAL)
+                cell.set_text_props(ha='right', weight='bold', fontsize=13)
+                cell.PAD = 0.12
+            elif col > steps_shown:
+                cell.set_facecolor(FUTURE)
+            else:
+                cell.set_facecolor(mcolors.to_rgba(colour, 0.12))
+        # Medals (or the plain position) at the left of every total
+        badge_x = 1 - total_width * 0.7
+        for row, position in enumerate(positions(rank), start=1):
+            y = 1 - (row + 0.5) / (len(rows) + 1)
+            if position <= 3:
+                emoji(ax_table, MEDALS[position - 1], (badge_x, y), 0.2)
+            else:
+                ax_table.text(badge_x, y, f'{position}°', ha='center', va='center', fontsize=11,
+                              color=TEXT_MUTED, transform=ax_table.transAxes, zorder=6)
+        ax_table.axis('off')
+        ax_table.set_title(f'Classifica di {title}' if month else f'Classifica del {title}')
 
-    for key, cell in table.get_celld().items():
-        cell.set_edgecolor('black')  # Set edge color for each cell
-        cell.set_linewidth(1)  # Set linewidth for each cell
+        # Cumulative counts, up to today for the current period
+        x = np.arange(1, shown + 1)
+        for user_id in colour_order:
+            user_days = daily_counts.get(user_id, {})
+            per_day = []
+            for day in x:
+                if time_period == 'month':
+                    count_date = f'{year}-{month:02}-{day:02}'
+                else:
+                    count_date = datetime.strptime(f'{year}-{day}', '%Y-%j').strftime(STORING_FORMAT)
+                per_day.append(user_days.get(count_date, 0))
+            colour, line = user_style(colour_order.index(user_id))
+            cumulative = np.cumsum(per_day)
+            ax_lines.plot(x, cumulative, color=colour, linestyle=line,
+                          label=f'{names[user_id]} ({totals[user_id]})')
+            ax_lines.scatter([x[-1]], [cumulative[-1]], s=70, color=colour, edgecolors=SURFACE,
+                             linewidths=2, zorder=4)
 
-    table.auto_set_font_size(True)
-    table.set_fontsize(8)
+        if time_period == 'month':
+            ax_lines.set_xticks(range(1, days + 1))
+            ax_lines.set_xlabel('Giorno')
+        else:
+            # Lines at the month starts, names in the middle of each month
+            month_starts = [datetime(year, m, 1).timetuple().tm_yday for m in range(1, 13)] + [days + 1]
+            ax_lines.set_xticks(month_starts[:-1], labels=[])
+            ax_lines.set_xticks([(a + b) / 2 for a, b in zip(month_starts, month_starts[1:])], labels=header,
+                                minor=True)
+            ax_lines.tick_params(axis='x', which='minor', length=0)
+            ax_lines.grid(axis='x', which='major')
+        ax_lines.set_xlim(1, days)
+        # headroom: the leader's line is not cut at the top; a year rounds to hundreds
+        layered_grid(ax_lines, max_total * 1.05, 10 if time_period == 'month' else 100)
+        ax_lines.set_ylabel('Totale progressivo')
+        ax_lines.set_title('Come è andata giorno per giorno', fontsize=15, weight='normal', color=TEXT_MUTED)
+        ax_lines.legend(loc='upper left', ncol=2 if len(rows) > 4 else 1)
 
-    # Set title for the table (month name and year)
-    axes[0].set_title(f'{period_label.capitalize()}', fontsize=14)
-
-    # Hide the axes for the table
-    axes[0].axis('off')
-
-    # Highlight cell with highest total count in brown color
-    for i, row in enumerate(table_data):
-        for j, value in enumerate(row):
-            if value == max_total and j == len(row) - 1:  # Check if it's the last cell (total column)
-                table.get_celld()[(i, j)].set_facecolor('#D2B48C')  # Set brown color for total column
-
-    # Generate the chart
-    for user in users:
-        user_days = daily_counts.get(user, {})
-        cumulative_counts = []
-        cumulative_count = 0
-        for day in range(1, days + 1):
-            if time_period == 'month':
-                count_date = f'{year}-{month:02}-{day:02}'
-            elif time_period == 'year':
-                doy = datetime.strptime(f'{year}-{day}', '%Y-%j')
-                count_date = doy.strftime(STORING_FORMAT)
-            count = user_days.get(count_date, 0)  # Count for each day in month or year
-            cumulative_count += count
-            cumulative_counts.append(cumulative_count)
-
-        axes[1].plot(range(1, days + 1), cumulative_counts, label=names[user])
-
-    # Set legend for the chart below the chart
-    axes[1].legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=len(users), fontsize=8)
-
-    # Set labels on x-axis
-    if time_period == 'month':
-        axes[1].set_xticks(range(1, days + 1))
-        axes[1].set_xticklabels(x_labels)  # Set x-axis labels based on time_period
-    elif time_period == 'year':
-        # Find the start day of each month in the year
-        start_days = [1]  # Start with the first day of January
-        for month in range(1, 12):  # Loop through the months
-            _, days_in_month = calendar.monthrange(year, month)
-            start_days.append(start_days[-1] + days_in_month)  # Add the start day of the next month
-        # Set the ticks at the start of each month
-        axes[1].set_xticks(start_days)
-        axes[1].set_xticklabels(x_labels)  # Set x-axis labels based on time_period
-
-    # Set y-axis range from 0 to the next multiple of 10 after max_total
-    max_y = max(10, ceil(max_total / 10) * 10)  # at least 10: avoids log10(0) when there are no counts
-    order_of_magnitude = 10 ** floor(log10(max_y))
-
-    tick_interval = order_of_magnitude / 2 if max_y / order_of_magnitude <= 5 else order_of_magnitude
-    
-    axes[1].set_yticks(np.arange(0, max_y + tick_interval, tick_interval))
-    axes[1].set_ylim(0, max_y)
-
-    # Add horizontal lines every count
-    if tick_interval == order_of_magnitude / 2:
-        for count in np.arange(0, max_y + tick_interval / 5, tick_interval / 5):
-            axes[1].axhline(y=count, color='#DDDDDD', linestyle='--', linewidth=0.3)
-        for count in np.arange(0, max_y + tick_interval / 2, tick_interval / 2):
-            axes[1].axhline(y=count, color='#CCCCCC', linestyle='--', linewidth=0.7)
-        for count in np.arange(0, max_y + tick_interval, tick_interval):
-            axes[1].axhline(y=count, color='#888888', linestyle='--', linewidth=1)
-    else:
-        for count in np.arange(0, max_y + tick_interval / 10, tick_interval / 10):
-            axes[1].axhline(y=count, color='#DDDDDD', linestyle='--', linewidth=0.3)
-        for count in np.arange(0, max_y + tick_interval / 5, tick_interval / 5):
-            axes[1].axhline(y=count, color='#CCCCCC', linestyle='--', linewidth=0.7)
-        for count in np.arange(0, max_y + tick_interval, tick_interval):
-            axes[1].axhline(y=count, color='#888888', linestyle='--', linewidth=1)
-
-    # Add vertical lines
-    if time_period == 'month':
-        for day in range(1, days + 1):
-            axes[1].axvline(x=day, color='#DDDDDD', linestyle='--', linewidth=0.3)
-    elif time_period == 'year':
-        # Find the start day of each month in the year and add vertical lines at those points
-        start_days = [1]  # Start with the first day of January
-        for month in range(1, 12):  # Loop through the months
-            _, days_in_month = calendar.monthrange(year, month)
-            start_days.append(start_days[-1] + days_in_month)  # Add the start day of the next month
-        for start_day in start_days:
-            axes[1].axvline(x=start_day, color='#DDDDDD', linestyle='--', linewidth=0.3)
-
-    # Set x-axis limits to include only the actual days of the month
-    axes[1].set_xlim(left=1, right=days)
-
-    # Adjust layout to prevent overlapping titles
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    
-    return png_bytes(fig)
+        add_cards(fig, [ax_table, ax_lines])
+        return png_bytes(fig)
 
 def generate_statistics_chart(statistics, daily_counts, time_period, date):
     """
-    Generates charts (histogram and box plot) for monthly and yearly statistics in a single plot,
-    with added Gaussian fitting to the histogram.
+    Statistics chart: a normal curve per user built from the mean and the variance of the daily counts,
+    and a box plot of the daily counts below it.
 
     Args:
-        statistics (list): List of dictionaries containing user statistics.
+        statistics (list): dicts with 'user' (database.User), 'mean', 'median' and 'variance'.
         daily_counts (dict): {user_id: {'YYYY-MM-DD': count}} for the period (see database.get_daily_counts).
-        chat_id (int): ID of the chat.
-        time_period (str): Time period ('month' or 'year').
-        date (str): Date in 'month-year' or 'year' format.
+        time_period (str): 'month' or 'year'.
+        date (str): 'MM-YYYY' or 'YYYY'.
 
     Returns:
-        None
+        bytes: the PNG image.
     """
+    year, month, days, title = period_info(time_period, date)
     names = {stat['user'].user_id: chart_label(stat['user'].name) for stat in statistics}
-    users_stats = sorted([(stat['user'].user_id, stat['mean'], stat['variance']) for stat in statistics],
-                         key=lambda item: (names[item[0]].lower(), item[0]))
-    users, means, variances = zip(*users_stats)
-    counts = []
+    stats = {stat['user'].user_id: stat for stat in statistics}
+    users = sorted_by_name(names)
 
-    today = now_rome()
+    # Daily counts of every user, from the first day of the period to today (or its last day)
+    start = datetime(year, month or 1, 1)
+    end = start + timedelta(days=last_day_shown(year, month, days) - 1)
+    period_days = [(start + timedelta(days=i)).strftime(STORING_FORMAT) for i in range((end - start).days + 1)]
+    user_daily_counts = {user: [daily_counts.get(user, {}).get(day, 0) for day in period_days] for user in users}
+    max_count = max(max(counts) for counts in user_daily_counts.values())
 
-    if time_period == 'month':
-        date_parts = date.split('-')
-        month = int(date_parts[0])
-        year = int(date_parts[1])
-        _, days = calendar.monthrange(year, month)
-        period_label = MONTH_NAMES[month] + ' ' + str(year)
-        end_date = datetime(year, month, days)
-        if year == today.year and month == today.month:
-            end_date = today
-    elif time_period == 'year':
-        year = int(date)
-        period_label = str(year)
-        end_date = datetime(year, 12, 31)
-        if year == today.year:
-            end_date = today
+    with plt.rc_context(STYLE):
+        fig, (ax_curves, ax_box) = plt.subplots(2, 1, figsize=(12, 15), gridspec_kw={'hspace': 0.45})
 
-    # Daily counts of every user, from the first day of the period to the last valid day
-    user_daily_counts = {}
-    for user in users:
-        user_days = daily_counts.get(user, {})
-        user_daily_counts[user] = []
-        current_date = datetime(year, 1, 1) if time_period == 'year' else datetime(year, month, 1)
-        delta = timedelta(days=1)
-        while current_date <= end_date:
-            user_daily_counts[user].append(user_days.get(current_date.strftime(STORING_FORMAT), 0))
-            current_date += delta
+        # Normal curves scaled to the number of days, a dotted line and a label at each mean
+        x = np.linspace(0, max(max_count, 1), 200)
+        peaks = []
+        for i, user in enumerate(users):
+            colour, line = user_style(i)
+            mean, variance = stats[user]['mean'], stats[user]['variance']
+            if variance <= 0:
+                continue
+            y = normal_pdf(x, mean, np.sqrt(variance)) * len(period_days)
+            peak = normal_pdf(mean, mean, np.sqrt(variance)) * len(period_days)
+            ax_curves.plot(x, y, color=colour, linestyle=line, label=names[user])
+            ax_curves.fill_between(x, y, color=colour, alpha=0.05, linewidth=0)
+            ax_curves.vlines(mean, 0, peak, colors=colour, linestyles=':', linewidth=1.5)
+            peaks.append((mean, peak, colour))
+        # Mean labels above the peaks; a label that would cover another one moves up, joined by a thin line
+        top = max((peak for _, peak, _ in peaks), default=1)
+        width, height = 0.13 * max(max_count, 1), 0.09 * top  # label size in data units, roughly
+        placed = []
+        for mean, peak, colour in sorted(peaks, key=lambda p: p[1]):
+            label_y = peak + height * 0.6
+            for other_x, other_y in sorted(placed, key=lambda p: p[1]):
+                if abs(mean - other_x) < width and abs(label_y - other_y) < height:
+                    label_y = other_y + height
+            placed.append((mean, label_y))
+            ax_curves.annotate(decimal(mean), (mean, peak), xytext=(mean, label_y), ha='center', va='center',
+                               fontsize=11, weight='bold', color=TEXT,
+                               arrowprops={'arrowstyle': '-', 'color': colour, 'lw': 1, 'shrinkA': 0, 'shrinkB': 0},
+                               bbox={'boxstyle': 'round,pad=0.3', 'fc': SURFACE, 'ec': colour, 'lw': 1.5})
+        ax_curves.set_xlim(0, max(max_count, 1))
+        layered_grid(ax_curves, max([top] + [y for _, y in placed]) + height, 5)  # headroom for the labels
+        ax_curves.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax_curves.set_xlabel('Volte al giorno')
+        ax_curves.set_ylabel('Giorni')
+        ax_curves.set_title(f'Statistiche di {title}' if month else f'Statistiche del {title}')
+        if peaks:  # no legend when there are no curves (zero variance)
+            ax_curves.legend(loc='upper right', ncol=2 if len(peaks) > 4 else 1)
 
-    # How many days each user had each count (for the distribution curves)
-    user_occurrence_counts = {}
-    max_occurrence = 0
-    for user in users:
-        user_occurrence_counts[user] = {}
-        for count in user_daily_counts[user]:
-            user_occurrence_counts[user][count] = user_occurrence_counts[user].get(count, 0) + 1
-            max_occurrence = max(max_occurrence, count)
+        # Box plot: box = middle half of the days, line = median, diamond = mean
+        box_plot = ax_box.boxplot([user_daily_counts[user] for user in users],
+                                  labels=[names[user] for user in users], patch_artist=True, widths=0.55,
+                                  showmeans=True,
+                                  meanprops={'marker': 'D', 'markerfacecolor': SURFACE,
+                                             'markeredgecolor': TEXT, 'markersize': 9},
+                                  medianprops={'color': TEXT, 'linewidth': 2.5},
+                                  flierprops={'marker': 'o', 'markersize': 7, 'alpha': 0.7})
+        for i, patch in enumerate(box_plot['boxes']):
+            colour, _ = user_style(i)
+            patch.set_facecolor(mcolors.to_rgba(colour, 0.35))
+            patch.set_edgecolor(colour)
+            patch.set_linewidth(2)
+            for part in ('whiskers', 'caps'):
+                for artist in box_plot[part][i * 2:i * 2 + 2]:
+                    artist.set_color(colour)
+                    artist.set_linewidth(2)
+            box_plot['fliers'][i].set_markeredgecolor(colour)
+            box_plot['fliers'][i].set_markerfacecolor(colour)
+        ax_box.set_yticks(np.arange(0, max_count + 2, 1))
+        ax_box.set_ylim(-0.3, max_count + 0.6)
+        ax_box.set_ylabel('Volte al giorno')
+        ax_box.tick_params(axis='x', labelsize=13, colors=TEXT)
+        ax_box.set_title('Distribuzione giornaliera  (◆ media, — mediana)', fontsize=15, weight='normal',
+                         color=TEXT_MUTED)
 
-    fig, axes = plt.subplots(2, 1, figsize=(15, 12))
-
-    occurrence_values = range(max(max_occurrence, 1) + 1)  # at least 0..1: avoids a zero-width x axis
-    bar_width = 1
-    max_y = 0
-
-    # Gaussian fitting in axes[0]
-    for i, user in enumerate(users):
-        counts = [user_occurrence_counts[user].get(val, 0) for val in occurrence_values]
-        mean = means[i]
-        std = np.sqrt(variances[i]) if variances[i] > 0 else 0
-        if std > 0:
-            x = np.linspace(min(occurrence_values), max(occurrence_values), 100)
-            p = normal_pdf(x, mean, std)
-            axes[0].plot(x, p * sum(counts) * bar_width, '-', label=names[user])
-            axes[0].fill_between(x, p * sum(counts) * bar_width, alpha=0.3)
-
-            # Add vertical line at the mean
-            gaussian_value_at_mean = normal_pdf(mean, mean, std) * sum(counts) * bar_width
-            axes[0].vlines(mean, 0, gaussian_value_at_mean, linestyles='--', colors=f'C{i}', linewidth=2)
-
-    axes[0].grid(axis='y', linestyle='--', alpha=0.7)
-
-    # Calculate max height of gaussian curves
-    max_gaussian_height = 0
-    for i, user in enumerate(users):
-        counts = [user_occurrence_counts[user].get(val, 0) for val in occurrence_values]
-        mean = means[i]
-        std = np.sqrt(variances[i]) if variances[i] > 0 else 0
-        if std > 0:
-            x = np.linspace(min(occurrence_values), max(occurrence_values), 100)
-            p = normal_pdf(x, mean, std)
-            max_gaussian_height = max(max_gaussian_height, max(p * sum(counts) * bar_width))
-
-    # Calculate max y value for the plot
-    if max_gaussian_height > 0:
-        max_y = ceil(max_gaussian_height / 5) * 5
-    else:
-        max_y = 5  # no drawable curve (zero variance): minimum scale, avoids log10(0)
-    order_of_magnitude = 10 ** floor(log10(max_y))
-
-    tick_interval = order_of_magnitude / 2 if max_y / order_of_magnitude <= 5 else order_of_magnitude
-
-    axes[0].set_yticks(np.arange(0, max_y + tick_interval, tick_interval))
-    axes[0].set_ylim(0, max_y)
-
-    # Adapt hline to order of magnitude
-    if tick_interval == order_of_magnitude / 2:
-        for count in np.arange(0, max_y + tick_interval / 5, tick_interval / 5):
-            axes[0].axhline(y=count, color='#DDDDDD', linestyle='--', linewidth=0.3)
-        for count in np.arange(0, max_y + tick_interval / 2, tick_interval / 2):
-            axes[0].axhline(y=count, color='#CCCCCC', linestyle='--', linewidth=0.7)
-        for count in np.arange(0, max_y + tick_interval, tick_interval):
-            axes[0].axhline(y=count, color='#888888', linestyle='--', linewidth=1)
-    else:
-        for count in np.arange(0, max_y + tick_interval / 10, tick_interval / 10):
-            axes[0].axhline(y=count, color='#DDDDDD', linestyle='--', linewidth=0.3)
-        for count in np.arange(0, max_y + tick_interval / 5, tick_interval / 5):
-            axes[0].axhline(y=count, color='#CCCCCC', linestyle='--', linewidth=0.7)
-        for count in np.arange(0, max_y + tick_interval, tick_interval):
-            axes[0].axhline(y=count, color='#888888', linestyle='--', linewidth=1)
-
-    axes[0].set_xlim(min(occurrence_values), max(occurrence_values))
-
-    # Add mean values as x-axis ticks
-    xticks = sorted(list(set(list(occurrence_values) + list(means))))
-    axes[0].set_xticks(xticks)
-
-    tick_labels = []
-    for tick in xticks:
-        if tick in means:
-            tick_labels.append(f'{tick:.2f}')
-        else:
-            tick_labels.append(str(int(tick)))
-
-    axes[0].set_xticklabels(tick_labels, rotation=0, ha='center')
-
-    # Set colors and font sizes for mean ticks
-    for tick in xticks:
-        if tick in means:
-            i = means.index(tick)
-            for text in axes[0].get_xticklabels():
-                if text.get_text() == f'{tick:.2f}':
-                    text.set_color(f'C{i}')
-                    text.set_fontsize(6)
-
-    axes[0].set_title(f'{period_label.capitalize()}', fontsize=14)
-    if axes[0].get_legend_handles_labels()[0]:  # no legend when there are no curves
-        axes[0].legend(loc='upper right')
-
-    # Box plot in axes[1]
-    max_user_daily_counts = max(max(user_daily_counts[user]) for user in users if user_daily_counts[user])
-
-    box_plot = axes[1].boxplot(list(user_daily_counts.values()), labels=[names[user] for user in users], patch_artist=True, sym='x')
-
-    for i, (user, patch) in enumerate(zip(users, box_plot['boxes'])):
-        color = f'C{i}'
-        rgba_color = mcolors.to_rgba(color)
-        patch.set_facecolor((rgba_color[0], rgba_color[1], rgba_color[2], 0.5))
-        patch.set_edgecolor(color)
-        patch.set_linewidth(1.5)
-
-        box_plot['whiskers'][i * 2].set_color(color)
-        box_plot['whiskers'][i * 2 + 1].set_color(color)
-
-        box_plot['caps'][i*2].set_color(color)
-        box_plot['caps'][i*2+1].set_color(color)
-
-        box_plot['fliers'][i].set_markeredgecolor(color)
-        box_plot['fliers'][i].set_markerfacecolor(color)
-    
-    for median in box_plot['medians']:
-        median.set(color='black', linewidth=1.5)
-
-    axes[1].grid(axis='y', linestyle='--', alpha=0.7)
-    axes[1].set_yticks(np.arange(0, max_user_daily_counts + 2, 1))
-    axes[1].set_ylim(0, max_user_daily_counts + 1)
-
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-
-    return png_bytes(fig)
+        add_cards(fig, [ax_curves, ax_box])
+        return png_bytes(fig)
