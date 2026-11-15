@@ -16,7 +16,7 @@ from telegram.request import HTTPXRequest
 import re
 from flask import Flask, request, Response
 
-from database import (STORING_FORMAT, DISPLAY_FORMAT, CHARTS_FOLDER, User, init_database, now_rome, upsert_user,
+from database import (STORING_FORMAT, DISPLAY_FORMAT, User, init_database, now_rome, upsert_user,
                       find_user_by_username, add_count, get_count, get_daily_counts, get_rank, get_statistics, get_record,
                       get_all_user_rows, get_constipation_days, list_legacy_users, count_legacy_orphans, link_legacy_username,
                       link_legacy_by_username)
@@ -138,13 +138,12 @@ def record_poop(sender, chat_id):
     return f"Complimenti {escape_md(sender.mention)}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
 
 
-async def reply_chart(update: Update, path: str, message: str):
+async def reply_chart(update: Update, chart: bytes, message: str):
     """Send a chart with the message as its caption: one request instead of two, when it fits."""
-    with open(path, 'rb') as chart:
-        if len(message.encode('utf-16-le')) // 2 <= MessageLimit.CAPTION_LENGTH:  # Telegram counts UTF-16 units
-            await update.message.reply_photo(chart, caption=message, parse_mode='Markdown')
-            return
-        await update.message.reply_photo(chart)
+    if len(message.encode('utf-16-le')) // 2 <= MessageLimit.CAPTION_LENGTH:  # Telegram counts UTF-16 units
+        await update.message.reply_photo(chart, caption=message, parse_mode='Markdown')
+        return
+    await update.message.reply_photo(chart)
     await update.message.reply_text(message, parse_mode='Markdown')
 
 def legacy_hint(chat_id):
@@ -218,12 +217,7 @@ async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_
             message += f"{i}. {escaped_name}: {total_count}\n"
 
     daily_counts = get_daily_counts(update.message.chat_id, 'month', date)
-    generate_rank_chart(rank, daily_counts, update.message.chat_id, 'month', date)
-
-    date_parts = date.split('-')
-    saving_date = f"{date_parts[1]}_{date_parts[0]}"
-
-    await reply_chart(update, os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{saving_date}_chart.png'), message)
+    await reply_chart(update, generate_rank_chart(rank, daily_counts, 'month', date), message)
     logger.info(f"Command /classifica_mese completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -260,9 +254,7 @@ async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_
             message += f"{i}. {escaped_name}: {total_count}\n"
 
     daily_counts = get_daily_counts(update.message.chat_id, 'year', year)
-    generate_rank_chart(rank, daily_counts, update.message.chat_id, 'year', year)
-
-    await reply_chart(update, os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{year}_chart.png'), message)
+    await reply_chart(update, generate_rank_chart(rank, daily_counts, 'year', year), message)
     logger.info(f"Command /classifica_anno completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -302,11 +294,7 @@ async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT
             message += f"{i}. {escaped_name}: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
 
     daily_counts = get_daily_counts(update.message.chat_id, 'month', date)
-    generate_statistics_chart(statistics, daily_counts, update.message.chat_id, 'month', date)
-
-    date_parts = date.split('-')
-    saving_date = f"{date_parts[1]}_{date_parts[0]}"
-    await reply_chart(update, os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{saving_date}_stats.png'), message)
+    await reply_chart(update, generate_statistics_chart(statistics, daily_counts, 'month', date), message)
     logger.info(f"Command /statistica_mese completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -346,9 +334,7 @@ async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT
             message += f"{i}. {escaped_name}: Media: {mean}, Mediana: {median}, Var.: {variance}\n"
 
     daily_counts = get_daily_counts(update.message.chat_id, 'year', year)
-    generate_statistics_chart(statistics, daily_counts, update.message.chat_id, 'year', year)
-
-    await reply_chart(update, os.path.join(CHARTS_FOLDER, f'{update.message.chat_id}_{year}_stats.png'), message)
+    await reply_chart(update, generate_statistics_chart(statistics, daily_counts, 'year', year), message)
     logger.info(f"Command /statistica_anno completed in {'PVT - ' if update._effective_message.chat.type == 'private' else 'GROUP - '}{update._effective_message.chat.effective_name}")
 
 async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

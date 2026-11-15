@@ -1,21 +1,27 @@
-import os
+import io
 import calendar
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.colors as mcolors
-from database import now_rome, STORING_FORMAT, CHARTS_FOLDER
-import locale
+from database import now_rome, STORING_FORMAT
 from math import ceil, floor, log10
 from datetime import datetime, timedelta
 from collections import defaultdict
 import numpy as np
 
-# Set the locale to Italian
-locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
+# Italian month names, written out: calendar.month_name depends on the process locale
+MONTH_NAMES = ['', 'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+               'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
+MONTH_ABBRS = ['', 'gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 
-# Check if charts folder exists, if not, create it
-os.makedirs(CHARTS_FOLDER, exist_ok=True)
+
+def png_bytes(fig):
+    """Render a figure to PNG in memory and close it."""
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format='png', bbox_inches='tight')
+    plt.close(fig)
+    return buffer.getvalue()
 
 def normal_pdf(x, mean, std):
     """Probability density of a normal distribution (same values as scipy.stats.norm.pdf, without scipy)."""
@@ -26,7 +32,7 @@ def chart_label(name):
     """Make a user name safe for matplotlib text ('$' would start a math expression)."""
     return name.replace('$', r'\$')
 
-def generate_rank_chart(rank, daily_counts, chat_id, time_period, date):
+def generate_rank_chart(rank, daily_counts, time_period, date):
     """
     Generates the monthly ranking table and chart.
 
@@ -46,8 +52,7 @@ def generate_rank_chart(rank, daily_counts, chat_id, time_period, date):
         month = int(date_parts[0])
         year = int(date_parts[1])
         _, days = calendar.monthrange(year, month)
-        period_label = calendar.month_name[month] + ' ' + str(year)
-        saving_date = str(date_parts[1]) + '_' + str(date_parts[0])
+        period_label = MONTH_NAMES[month] + ' ' + str(year)
         steps = days
         x_labels = [str(day) for day in range(1, days + 1)]  # Labels for each day of the month
 
@@ -57,8 +62,7 @@ def generate_rank_chart(rank, daily_counts, chat_id, time_period, date):
         days = 366 if calendar.isleap(year) else 365  # Number of days in a year
         steps = 12  # Number of months in a year
         period_label = str(year)
-        saving_date = date
-        x_labels = [calendar.month_abbr[count_month] for count_month in range(1, steps + 1)]  # Labels for each month of the year
+        x_labels = [MONTH_ABBRS[count_month] for count_month in range(1, steps + 1)]  # Labels for each month of the year
 
     # Create the figure with two subplots
     fig, axes = plt.subplots(2, 1, figsize=(15, 12))
@@ -71,7 +75,7 @@ def generate_rank_chart(rank, daily_counts, chat_id, time_period, date):
     if time_period == 'month':
         table_data = [[''] + [f'{step}' for step in range(1, steps + 1)] + ['Total']]  # Set days when time_period is 'month'
     elif time_period == 'year':
-        table_data = [[''] + [f'{calendar.month_abbr[count_month]}' for count_month in range(1, steps + 1)] + ['Total']]  # Set months when time_period is 'year'
+        table_data = [[''] + [f'{MONTH_ABBRS[count_month]}' for count_month in range(1, steps + 1)] + ['Total']]  # Set months when time_period is 'year'
 
     max_total = 0  # Variable to store the maximum total count for highlighting
 
@@ -198,13 +202,9 @@ def generate_rank_chart(rank, daily_counts, chat_id, time_period, date):
     # Adjust layout to prevent overlapping titles
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     
-    # Save the figure to an image file
-    plt.savefig(os.path.join(CHARTS_FOLDER, f'{chat_id}_{saving_date}_chart.png'), bbox_inches='tight')
+    return png_bytes(fig)
 
-    # Close figure
-    plt.close(fig)
-
-def generate_statistics_chart(statistics, daily_counts, chat_id, time_period, date):
+def generate_statistics_chart(statistics, daily_counts, time_period, date):
     """
     Generates charts (histogram and box plot) for monthly and yearly statistics in a single plot,
     with added Gaussian fitting to the histogram.
@@ -232,15 +232,13 @@ def generate_statistics_chart(statistics, daily_counts, chat_id, time_period, da
         month = int(date_parts[0])
         year = int(date_parts[1])
         _, days = calendar.monthrange(year, month)
-        period_label = calendar.month_name[month] + ' ' + str(year)
-        saving_date = str(date_parts[1]) + '_' + str(date_parts[0])
+        period_label = MONTH_NAMES[month] + ' ' + str(year)
         end_date = datetime(year, month, days)
         if year == today.year and month == today.month:
             end_date = today
     elif time_period == 'year':
         year = int(date)
         period_label = str(year)
-        saving_date = date
         end_date = datetime(year, 12, 31)
         if year == today.year:
             end_date = today
@@ -385,5 +383,4 @@ def generate_statistics_chart(statistics, daily_counts, chat_id, time_period, da
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-    plt.savefig(os.path.join(CHARTS_FOLDER, f'{chat_id}_{saving_date}_stats.png'), bbox_inches='tight')
-    plt.close(fig)
+    return png_bytes(fig)

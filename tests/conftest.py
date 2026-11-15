@@ -1,10 +1,4 @@
-"""Shared fixtures.
-
-Note: `utils.py` calls locale.setlocale('it_IT.UTF-8') at import time, which fails
-on hosts without that locale. Until the code is fixed we neutralise it
-here, so the tests run anywhere.
-"""
-import locale
+"""Shared fixtures."""
 import os
 import sqlite3
 import sys
@@ -23,8 +17,6 @@ os.environ.setdefault("BOT_USERNAME", "@caccometro_test_bot")
 os.environ.setdefault("RUN_MODE", "POLLING")
 os.environ.setdefault("WEBHOOK_SECRET", "test-secret")
 
-locale.setlocale = lambda *args, **kwargs: "C"  # noqa: E731
-
 import database  # noqa: E402
 import utils  # noqa: E402
 import caccometro  # noqa: E402
@@ -39,15 +31,9 @@ def chat_id():
 
 @pytest.fixture(autouse=True)
 def isolated_folders(tmp_path, monkeypatch):
-    """DB and charts go to a temporary folder, never to the real ones."""
+    """The databases go to a temporary folder, never to the real one."""
     db_dir = tmp_path / "db"
-    charts_dir = tmp_path / "charts"
-    charts_dir.mkdir()
-    for module in (database, utils, caccometro):
-        if hasattr(module, "DB_FOLDER"):
-            monkeypatch.setattr(module, "DB_FOLDER", str(db_dir))
-        if hasattr(module, "CHARTS_FOLDER"):
-            monkeypatch.setattr(module, "CHARTS_FOLDER", str(charts_dir))
+    monkeypatch.setattr(database, "DB_FOLDER", str(db_dir))
     database.init_database(CHAT_ID)
     caccometro.SEEN_UPDATE_IDS.clear()   # every test starts like a fresh process
     return tmp_path
