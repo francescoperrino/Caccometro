@@ -3,8 +3,6 @@
 .env
 db/
 db/*.db
-charts/
-charts/*.png
 *.log
 *.log.*
 __pycache__/
