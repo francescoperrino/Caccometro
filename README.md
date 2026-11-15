@@ -42,15 +42,14 @@ Prima di poter avviare il bot, è necessario crearne uno nuovo su Telegram e con
 
 ### 2. Variabili d'Ambiente (`.env`)
 
-Crea un file denominato `.env` nella directory principale del progetto (non committarlo su Git).
+Copia `.env.example` in un file `.env` nella directory principale del progetto e inserisci i tuoi valori. `.env` è escluso da Git: non va mai committato.
 
 ```env
 BOT_USERNAME = '@username_bot'
 BOT_TOKEN = '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11'
 WEBHOOK_SECRET = 'una_stringa_casuale_lunga' # lettere, numeri, _ e -: Telegram la rimanda a ogni chiamata del webhook
 
-USERNAME = 'il_tuo_username_di_pythonanywhere'
-PATH = '/home/il_tuo_username_di_pythonanywhere/home_repo'
+HOSTING_USERNAME = 'il_tuo_username_di_pythonanywhere' # usato solo da set_webhook.py
 
 RUN_MODE = 'WEBHOOK' # 'WEBHOOK' or 'POLLING'
 ```
@@ -106,24 +105,17 @@ Quando crei una nuova Web App su PythonAnywhere, essa genera automaticamente un 
 Devi integrare l'applicazione Flask del bot (`caccometro.py`) in questo file WSGI di PythonAnywhere.
 
 ```python
-# This file contains the WSGI configuration required to serve up your
-# web application at http://<your-username>.pythonanywhere.com/
-# It works by setting the variable 'application' to a WSGI handler of some
-# description.
-#
-# The below has been auto-generated for your Flask project
+# WSGI configuration for the hosting: copy this file over the WSGI file the hosting created
+# for the web app and set `path` to the folder that holds caccometro.py.
 
 import sys
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-# add your project directory to the sys.path
-PATH = os.environ.get('PATH')
-if PATH not in sys.path:
-    sys.path.insert(0, PATH)
+# Folder of the project, written out: the environment and .env are not loaded yet at this point
+path = '/home/<your-username>'
+if path not in sys.path:
+    sys.path.insert(0, path)
 
-# import flask app but need to call it "application" for WSGI to work
+# The hosting looks for a variable named "application"
 from caccometro import app as application
 ```
 
