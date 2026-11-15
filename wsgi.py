@@ -1,5 +1,5 @@
 # WSGI configuration for the hosting: copy this file over the WSGI file the hosting created
-# for the web app and set `path` to the folder that holds caccometro.py.
+# for the web app and set `path` to the folder that holds the caccometro package.
 
 import sys
 

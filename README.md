@@ -51,7 +51,7 @@ BOT_USERNAME = '@username_bot'
 BOT_TOKEN = '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11'
 WEBHOOK_SECRET = 'una_stringa_casuale_lunga' # lettere, numeri, _ e -: Telegram la rimanda a ogni chiamata del webhook
 
-HOSTING_USERNAME = 'il_tuo_username_di_pythonanywhere' # usato solo da set_webhook.py
+HOSTING_USERNAME = 'il_tuo_username_di_pythonanywhere' # usato solo da scripts/set_webhook.py
 
 RUN_MODE = 'WEBHOOK' # 'WEBHOOK' or 'POLLING'
 ```
@@ -91,7 +91,7 @@ In questa modalità, il bot interroga direttamente i server di Telegram per rice
 
 ```bash
 # Assicurati che RUN_MODE = 'POLLING' in .env
-python caccometro.py
+python -m caccometro
 ```
 
 > 💡 **Suggerimento:** Per terminare l'esecuzione in modo pulito in console, usa `CTRL+C`.
@@ -104,11 +104,11 @@ Questa modalità è ottimizzata per l'hosting su servizi esterni (PAAS) come Pyt
 
 Quando crei una nuova Web App su PythonAnywhere, essa genera automaticamente un file WSGI (solitamente `/var/www/USERNAME_com_wsgi.py`).
 
-Devi integrare l'applicazione Flask del bot (`caccometro.py`) in questo file WSGI di PythonAnywhere.
+Devi integrare l'applicazione Flask del bot (`caccometro/webhook.py`) in questo file WSGI di PythonAnywhere: il contenuto è quello di `wsgi.py`.
 
 ```python
 # WSGI configuration for the hosting: copy this file over the WSGI file the hosting created
-# for the web app and set `path` to the folder that holds caccometro.py.
+# for the web app and set `path` to the folder that holds the caccometro package.
 
 import sys
 
@@ -118,20 +118,41 @@ if path not in sys.path:
     sys.path.insert(0, path)
 
 # The hosting looks for a variable named "application"
-from caccometro import app as application
+from caccometro.webhook import app as application
 ```
 
 #### 2. Configurazione del Webhook (Passaggio Unico)
 
-Dopo che l'applicazione è stata avviata correttamente tramite la configurazione WSGI, devi comunicare a Telegram l'URL del tuo server. Esegui il tuo script `set_webhook.py` **una sola volta** dalla console Bash del tuo host:
+Dopo che l'applicazione è stata avviata correttamente tramite la configurazione WSGI, devi comunicare a Telegram l'URL del tuo server. Esegui lo script `scripts/set_webhook.py` **una sola volta** dalla console Bash del tuo host:
 
 ```bash
-python set_webhook.py
+python scripts/set_webhook.py
 ```
 
 > 💡 Dopo l'esecuzione, puoi chiudere lo script. Telegram invierà i Webhook all'URL specificato..
 
 ---
+
+## 🗂️ Struttura del progetto
+
+```
+caccometro/          il bot, come pacchetto Python
+  __main__.py        python -m caccometro: avvio in polling (sviluppo locale)
+  config.py          variabili d'ambiente, formati delle date, ora italiana
+  bot.py             logging, richieste a Telegram con nuovi tentativi, registrazione dei comandi
+  webhook.py         app Flask che riceve gli aggiornamenti da Telegram (produzione)
+  commands.py        i comandi (/classifica_mese, /record, ...)
+  messages.py        il conteggio delle 💩 dai messaggi e dagli sticker
+  chat.py            funzioni comuni su utenti e messaggi Telegram
+  database.py        database SQLite: schema, migrazione, query
+  analysis.py        record, serie e statistiche (funzioni pure, senza database)
+  formatting.py      testi dei messaggi di /record
+  charts.py          grafici di classifiche e statistiche
+scripts/set_webhook.py   registra il webhook su Telegram (una volta)
+tests/               test pytest
+wsgi.py              punto di ingresso per l'hosting
+assets/              avatar e animazione del bot
+```
 
 ## 📚 Comandi Dettagliati
 
