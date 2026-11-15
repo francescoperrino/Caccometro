@@ -16,7 +16,7 @@ from telegram.request import HTTPXRequest
 import re
 from flask import Flask, request, Response
 
-from database import (STORING_FORMAT, DISPLAY_FORMAT, User, init_database, now_rome, upsert_user,
+from database import (STORING_FORMAT, DISPLAY_FORMAT, ROME_TZ, User, init_database, now_rome, upsert_user,
                       find_user_by_username, add_count, get_count, get_daily_counts, get_rank, get_statistics, get_record,
                       get_all_user_rows, get_constipation_days, list_legacy_users, count_legacy_orphans, link_legacy_username,
                       link_legacy_by_username)
@@ -24,27 +24,40 @@ from utils import generate_rank_chart, generate_statistics_chart
 from analysis import analyze_group, analyze_user
 from formatting import format_group_record, format_user_record
 
-# Enable logging
-log_filename = "caccometro.log"
-LOG_MAX_BYTES = 1_000_000  # 1 MB per file...
-LOG_BACKUPS = 3            # ...and 3 older files: the logs never take more than about 4 MB
-file_handler = RotatingFileHandler(log_filename, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUPS, encoding='utf-8')
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                    level=logging.INFO,
-                    handlers=[
-                        file_handler,
-                        logging.StreamHandler()
-                    ])
-# Set higher logging level for httpx to avoid all GET and POST requests being logged
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logger = logging.getLogger(__name__)
-
 # Load bot info from .env
 load_dotenv()
 BOT_USERNAME = os.environ.get('BOT_USERNAME')
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')  # also given to set_webhook: Telegram sends it back
 RUN_MODE = os.environ.get('RUN_MODE', 'POLLING').upper()
+
+# Enable logging
+log_filename = "caccometro.log"
+LOG_MAX_BYTES = 1_000_000  # 1 MB per file...
+LOG_BACKUPS = 3            # ...and 3 older files: the logs never take more than about 4 MB
+file_handler = RotatingFileHandler(log_filename, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUPS, encoding='utf-8')
+
+
+def log_handlers(run_mode):
+    """The bot log goes to the rotating file; to the console too only when running locally (polling).
+
+    In webhook mode the console is the web server error log: writing there too kept every line twice.
+    Crashes before logging is set up (e.g. at import) still reach it.
+    """
+    if run_mode == 'POLLING':
+        return [file_handler, logging.StreamHandler()]
+    return [file_handler]
+
+
+# Log times in Italian time, like every date the bot shows (the server clock runs in UTC)
+logging.Formatter.converter = staticmethod(lambda seconds: datetime.fromtimestamp(seconds, ROME_TZ).timetuple())
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                    level=logging.INFO,
+                    handlers=log_handlers(RUN_MODE))
+# Set higher logging level for httpx to avoid all GET and POST requests being logged
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
+
 
 def display_name_of(tg_user):
     """Name shown for users without a username: their full name, falling back to the numeric ID."""
