@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
-USERNAME = os.environ.get('USERNAME')
+HOSTING_USERNAME = os.environ.get('HOSTING_USERNAME')  # not USERNAME: on Windows that is the login name
 WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')
-WEBHOOK_URL = f"https://{USERNAME}.pythonanywhere.com/webhook"
+WEBHOOK_URL = f"https://{HOSTING_USERNAME}.pythonanywhere.com/webhook"
 
 async def main():
     bot = Bot(token=BOT_TOKEN)
