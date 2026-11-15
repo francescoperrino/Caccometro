@@ -1,5 +1,7 @@
 # 💩 Caccometro Bot Telegram
 
+<p align="center"><img src="assets/avatar.png" alt="Caccometro avatar" width="200"></p>
+
 Benvenuto in Caccometro, un bot Telegram open source progettato per tracciare i movimenti intestinali (💩) e sfidare gli amici a mantenere un conteggio accurato! \
 
 Il bot offre classifiche mensili/annuali, statistiche dettagliate e il calcolo dei giorni di "costipazione" per mantenere alta la motivazione del gruppo.
