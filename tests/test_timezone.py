@@ -35,13 +35,13 @@ def test_statistics_current_year_uses_rome_today(seed, chat_id, monkeypatch):
 def test_record_uses_rome_today_for_the_current_month_and_status(seed, monkeypatch):
     """/record decides "today" and "the current month" with the Rome date, not the server date."""
     import asyncio
-    from caccometro import bot as caccometro
+    from caccometro import commands
     from conftest import make_context, make_update
 
     seed({"mario": {"2024-03-10": 2, "2024-04-01": 1}})
-    monkeypatch.setattr(caccometro, "now_rome", lambda: datetime(2024, 4, 1, 0, 30))
+    monkeypatch.setattr(commands, "now_rome", lambda: datetime(2024, 4, 1, 0, 30))
     upd = make_update()
-    asyncio.run(caccometro.record_command(upd, make_context("io")))
+    asyncio.run(commands.record_command(upd, make_context("io")))
     text = upd.message.reply_text.call_args[0][0]
     assert "↳ Oggi: 1" in text                      # April 1st is "today" in Rome
     assert "nel mese 03-2024" in text               # March is completed, April is the current month

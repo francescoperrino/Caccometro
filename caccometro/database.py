@@ -4,27 +4,16 @@ from datetime import datetime
 from typing import NamedTuple, Optional
 import numpy as np
 import calendar
-import pytz
+
+from caccometro.config import STORING_FORMAT, now_rome
 
 # Configurations
-STORING_FORMAT = "%Y-%m-%d"  # Format used for storing dates in the database
-DISPLAY_FORMAT = "%d-%m-%Y"  # Format used for displaying dates in messages
 DB_FOLDER = 'db'
-ROME_TZ = pytz.timezone('Europe/Rome')
 
 # Schema versions (stored in PRAGMA user_version):
 #   0/1 = legacy: counts keyed by Telegram username
 #   2   = counts keyed by Telegram user ID, plus a users table
 SCHEMA_VERSION = 2
-
-def now_rome():
-    """Current date/time in Rome, without tzinfo (comparable with the naive datetimes used in the code).
-
-    The server runs in UTC: datetime.now() would return the wrong day
-    between 22:00/23:00 and midnight in Italy.
-    """
-    return datetime.now(ROME_TZ).replace(tzinfo=None)
-
 
 class User(NamedTuple):
     """A Telegram user known to a chat."""

@@ -4,7 +4,7 @@ import threading
 
 import pytest
 
-from caccometro import bot as caccometro
+from caccometro import commands, messages
 from caccometro import database
 from caccometro import charts
 from conftest import make_context, make_update, uid
@@ -73,10 +73,10 @@ def test_daily_counts_and_rank_read_the_database_once_each(seed, chat_id, connec
 
 
 @pytest.mark.parametrize("command,arg", [
-    (caccometro.classifica_anno_command, "2024"),
-    (caccometro.classifica_mese_command, "03-2024"),
-    (caccometro.statistiche_anno_command, "2024"),
-    (caccometro.statistiche_mese_command, "03-2024"),
+    (commands.classifica_anno_command, "2024"),
+    (commands.classifica_mese_command, "03-2024"),
+    (commands.statistiche_anno_command, "2024"),
+    (commands.statistiche_mese_command, "03-2024"),
 ])
 def test_chart_commands_use_a_handful_of_connections(seed, connections, command, arg):
     seed_busy_chat(seed)
@@ -186,7 +186,7 @@ def test_concurrent_increments_are_not_lost(chat_id):
 def test_togli_from_one_goes_to_zero(chat_id, seed):
     seed({"mario": {"2024-03-10": 1}})
     upd = make_update()
-    run(caccometro.togli_command(upd, make_context("10-03-2024")))
+    run(commands.togli_command(upd, make_context("10-03-2024")))
     assert "aggiornato a 0" in upd.message.reply_text.call_args[0][0]
     assert database.get_count(uid("mario"), "2024-03-10", chat_id) == 0
 
@@ -194,7 +194,7 @@ def test_togli_from_one_goes_to_zero(chat_id, seed):
 def test_togli_at_zero_is_refused(chat_id, seed):
     seed({"mario": {}})
     upd = make_update()
-    run(caccometro.togli_command(upd, make_context("10-03-2024")))
+    run(commands.togli_command(upd, make_context("10-03-2024")))
     assert "era già 0" in upd.message.reply_text.call_args[0][0]
     assert database.get_record(uid("mario"), chat_id) == []
 
@@ -202,14 +202,14 @@ def test_togli_at_zero_is_refused(chat_id, seed):
 def test_aggiungi_reports_the_new_count(chat_id, seed):
     seed({"mario": {"2024-03-10": 2}})
     upd = make_update()
-    run(caccometro.aggiungi_command(upd, make_context("10-03-2024")))
+    run(commands.aggiungi_command(upd, make_context("10-03-2024")))
     assert "aggiornato a 3" in upd.message.reply_text.call_args[0][0]
 
 
 def test_poop_messages_sent_at_the_same_time_are_all_counted(chat_id):
     today = database.now_rome().strftime("%Y-%m-%d")
-    sender = caccometro.User(uid("mario"), "mario", "Mario")
-    threads = [threading.Thread(target=caccometro.record_poop, args=(sender, chat_id)) for _ in range(12)]
+    sender = database.User(uid("mario"), "mario", "Mario")
+    threads = [threading.Thread(target=messages.record_poop, args=(sender, chat_id)) for _ in range(12)]
     for thread in threads:
         thread.start()
     for thread in threads:

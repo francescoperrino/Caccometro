@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import pytz
 
-from caccometro import bot as caccometro
+from caccometro import commands
 from conftest import make_context, make_update
 
 
@@ -14,7 +14,7 @@ def run(coro):
 
 def record_text(username="mario"):
     upd = make_update(username=username)
-    run(caccometro.record_command(upd, make_context("io")))
+    run(commands.record_command(upd, make_context("io")))
     return upd.message.reply_text.call_args[0][0]
 
 

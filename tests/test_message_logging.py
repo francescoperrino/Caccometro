@@ -2,13 +2,13 @@
 import asyncio
 import logging
 
-from caccometro import bot as caccometro
+from caccometro import messages
 from conftest import make_context, make_update
 
 
 def handle(text, caplog):
     with caplog.at_level(logging.INFO, logger="caccometro"):
-        asyncio.run(caccometro.handle_message(make_update(text=text), make_context()))
+        asyncio.run(messages.handle_message(make_update(text=text), make_context()))
     return caplog.text
 
 
