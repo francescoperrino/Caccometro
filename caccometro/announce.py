@@ -73,10 +73,15 @@ async def announce(today: date, dry_run=False):
 
 
 def wait_for_midnight(now: datetime):
-    """Sleep until the next midnight in Italy when it is less than MAX_WAIT away."""
+    """Sleep until the next midnight in Italy when it is less than MAX_WAIT away; return that midnight, or None.
+
+    The caller announces for the returned day: waking up a moment before midnight must not change it.
+    """
     midnight = datetime.combine(now.date() + timedelta(days=1), datetime.min.time())
-    if midnight - now <= MAX_WAIT:
-        time.sleep((midnight - now).total_seconds())
+    if midnight - now > MAX_WAIT:
+        return None
+    time.sleep((midnight - now).total_seconds())
+    return midnight
 
 
 def main(argv=None):
@@ -88,8 +93,8 @@ def main(argv=None):
 
     today = args.date
     if today is None:
-        wait_for_midnight(now_rome())
-        today = now_rome().date()
+        midnight = wait_for_midnight(now_rome())
+        today = midnight.date() if midnight else now_rome().date()
     if today.day != 1:
         logger.info(f"Announcement: {today} is not the first day of a month, nothing to do")
         return
