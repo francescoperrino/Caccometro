@@ -13,7 +13,8 @@ from telegram.request import HTTPXRequest
 
 from caccometro.commands import (start_command, classifica_mese_command, classifica_anno_command,
                                  statistiche_mese_command, statistiche_anno_command, record_command, aggiungi_command,
-                                 togli_command, conto_giorno_command, costipazione_command, collega_command)
+                                 togli_command, conto_giorno_command, costipazione_command, collega_command,
+                                 trofei_command)
 from caccometro.config import BOT_TOKEN, ROME_TZ, RUN_MODE
 from caccometro.messages import handle_message
 
@@ -106,6 +107,7 @@ application.add_handler(CommandHandler('classifica_anno', classifica_anno_comman
 application.add_handler(CommandHandler('statistiche_mese', statistiche_mese_command))
 application.add_handler(CommandHandler('statistiche_anno', statistiche_anno_command))
 application.add_handler(CommandHandler('record', record_command))
+application.add_handler(CommandHandler('trofei', trofei_command))
 application.add_handler(CommandHandler('aggiungi', aggiungi_command))
 application.add_handler(CommandHandler('togli', togli_command))
 application.add_handler(CommandHandler('conto_giorno', conto_giorno_command))

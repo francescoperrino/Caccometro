@@ -3,6 +3,8 @@
 The functions return Telegram (legacy) Markdown. Names must already be escaped by the caller.
 """
 from caccometro.analysis import GroupBoard, Leaders, Period, UserRecords
+from caccometro.config import MONTH_NAMES
+from caccometro.trophies import STREAK_STEP
 
 DISPLAY_FORMAT = "%d-%m-%Y"
 
@@ -185,4 +187,104 @@ def format_group_record(board: GroupBoard, names):
         lines += now
 
     lines.append("\nIl tuo: /record io — di un altro: /record @username (o rispondi a un suo messaggio)")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------- trophies
+
+MAX_LISTED = 6   # months and streaks listed in the personal trophies (the most recent ones)
+TROPHY_LEGEND = f"👑 💩 dell'anno · 🏅 💩 del mese · 🔥 {STREAK_STEP} giorni di fila"
+
+
+def _month_name(month):
+    year, number = month
+    return f"{MONTH_NAMES[number]} {year}"
+
+
+def _names(user_ids, names):
+    """'*@mario*', '*@mario* e *@luigi*', '*@anna*, *@mario* e *@luigi*'."""
+    parts = [f"*{names.get(user_id, str(user_id))}*" for user_id in user_ids]
+    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " e " + parts[-1]
+
+
+def format_streak_trophy(days):
+    """Line added to the reply to the 💩 that completes a multiple of STREAK_STEP consecutive days."""
+    return f"🔥 *Nuovo trofeo!* {days} giorni di fila con almeno una 💩!"
+
+
+def format_group_trophies(trophies, names):
+    """The /trofei message of the whole group: how many trophies of each kind every winner has.
+
+    trophies: {user key: UserTrophies}; names: {user key: name already escaped for Markdown}.
+    """
+    lines = ["🏆 *Bacheca dei trofei* 🏆\n"]
+    if not trophies:
+        lines.append(f"Ancora nessun trofeo: servono {STREAK_STEP} giorni di fila con almeno una 💩, "
+                     "oppure vincere un mese.")
+    else:
+        ranked = sorted(trophies.items(), key=lambda item: (-len(item[1].years), -len(item[1].months),
+                                                            -item[1].streak_trophies, names.get(item[0], "")))
+        for key, user in ranked:
+            counts = (("👑", len(user.years)), ("🏅", len(user.months)), ("🔥", user.streak_trophies))
+            lines.append(f"*{names.get(key, str(key))}*: " + " · ".join(f"{emoji} {n}" for emoji, n in counts if n))
+        lines.append(f"\n{TROPHY_LEGEND}")
+    lines.append(("" if trophies else "\n") + "I tuoi: /trofei io — di un altro: /trofei @username (o rispondi a un suo messaggio)")
+    return "\n".join(lines)
+
+
+def format_user_trophies(name, trophies, current_streak):
+    """The /trofei message of one user: every trophy, then how far the next streak trophy is.
+
+    name: already escaped for Markdown; trophies: UserTrophies or None; current_streak: days of the run in progress.
+    """
+    lines = [f"🏆 *Trofei di {name}* 🏆\n"]
+    if trophies is None:
+        lines.append("Ancora nessun trofeo.")
+    else:
+        if trophies.years:
+            lines.append(f"👑 💩 dell'anno: {', '.join(str(year) for year in reversed(trophies.years))}")
+        if trophies.months:
+            lines.append(f"🏅 💩 del mese ({len(trophies.months)}): {_recent(trophies.months, _month_name, MAX_LISTED)}")
+        if trophies.streaks:
+            n = trophies.streak_trophies
+            lines.append(f"🔥 Serie: {n} {'trofeo' if n == 1 else 'trofei'}")
+            for period, days in trophies.streaks[-MAX_LISTED:][::-1]:
+                lines.append(f"   ↳ {days} giorni: {_period(period)}")
+            extra = len(trophies.streaks) - MAX_LISTED
+            if extra > 0:
+                lines.append(f"   ↳ e altre {extra} serie")
+    if current_streak > 0:
+        missing = STREAK_STEP - current_streak % STREAK_STEP
+        lines.append(f"\n📍 Serie in corso: {current_streak} {_days(current_streak)} di fila, "
+                     f"{'ne manca 1' if missing == 1 else f'ne mancano {missing}'} al prossimo trofeo")
+    else:
+        lines.append("\n📍 Nessuna serie in corso: oggi è il giorno buono per iniziarne una!")
+    return "\n".join(lines)
+
+
+def format_new_period(today, month_winners, year_winners, names):
+    """Midnight message on the first day of a month: the 💩 of the month just ended and, on January 1st, of the year.
+
+    month_winners / year_winners: Winners or None; names: {user key: name already escaped for Markdown}.
+    Returns None when there is nobody to celebrate.
+    """
+    if month_winners is None and year_winners is None:
+        return None
+
+    def winner(label, winners):
+        each = " a testa" if len(winners.user_ids) > 1 else ""
+        return f"{label}: {_names(winners.user_ids, names)} con {winners.total} 💩{each}"
+
+    if today.month == 1:
+        lines = [f"🎆 *Buon anno! Benvenuto {today.year}!* 🥂\n"]
+        if month_winners is not None:
+            lines.append(winner("🏅 💩 di dicembre", month_winners))
+        if year_winners is not None:
+            lines.append(winner(f"👑 💩 dell'anno {today.year - 1}", year_winners))
+        lines.append(f"\nComplimenti! Che il {today.year} sia regolare come un orologio svizzero 🎉")
+    else:
+        ended = (today.year, today.month - 1)
+        lines = [f"🌙 *Mezzanotte: {_month_name(ended)} è finito!*\n",
+                 winner("🏅 💩 del mese", month_winners),
+                 f"\nComplimenti! Si riparte da zero: buon {MONTH_NAMES[today.month]} e buone 💩 🧻"]
     return "\n".join(lines)

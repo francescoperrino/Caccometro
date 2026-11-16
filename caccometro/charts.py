@@ -16,11 +16,8 @@ from matplotlib.patches import FancyBboxPatch
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 
-from caccometro.config import now_rome, STORING_FORMAT
+from caccometro.config import MONTH_NAMES, now_rome, STORING_FORMAT
 
-# Italian month names, written out: calendar.month_name depends on the process locale
-MONTH_NAMES = ['', 'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
-               'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
 MONTH_ABBRS = ['', 'gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 
 # Colours taken from the bot avatar. The user colours are in a fixed order checked for colour
