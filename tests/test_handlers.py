@@ -87,3 +87,15 @@ def test_record_happy_path(seed):
     upd = make_update()
     run(commands.record_command(upd, make_context("io")))
     assert "Record per @mario" in upd.message.reply_text.call_args[0][0]
+
+
+def test_classifica_mese_shows_the_forecast_only_for_the_current_month(seed):
+    seed({"mario": {today_rome(): 30}, "luigi": {"2024-03-11": 4}})
+    upd = make_update()
+    run(commands.classifica_mese_command(upd, make_context()))
+    assert "previsione a fine mese" in upd.message.reply_photo.call_args.kwargs["caption"]
+    assert "30 💩 → " in upd.message.reply_photo.call_args.kwargs["caption"]
+
+    upd = make_update()
+    run(commands.classifica_mese_command(upd, make_context("03-2024")))
+    assert "→" not in upd.message.reply_photo.call_args.kwargs["caption"]
