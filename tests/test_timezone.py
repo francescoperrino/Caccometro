@@ -1,8 +1,8 @@
 """Every "today" computation must use Europe/Rome, not the server timezone (UTC)."""
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 
-from caccometro import commands, database
+from caccometro import commands, database, messages
 from conftest import make_context, make_update, uid
 
 
@@ -47,3 +47,18 @@ def test_record_uses_rome_today_for_the_current_month_and_status(seed, monkeypat
     text = upd.message.reply_text.call_args[0][0]
     assert "↳ Oggi: 1" in text                      # April 1st is "today" in Rome
     assert "nel mese 03-2024" in text               # March is completed, April is the current month
+
+
+def test_late_processed_poop_counts_on_the_day_it_was_sent(chat_id, monkeypatch):
+    monkeypatch.setattr(messages, "now_rome", lambda: datetime(2026, 11, 17, 0, 5))
+    sent = datetime(2026, 11, 16, 22, 59, tzinfo=timezone.utc)   # 23:59 in Rome (CET)
+    upd = make_update(text="💩", date=sent)
+    asyncio.run(messages.handle_message(upd, make_context()))
+    assert database.get_count(uid("mario"), "2026-11-16", chat_id) == 1
+    assert database.get_count(uid("mario"), "2026-11-17", chat_id) == 0
+
+
+def test_poop_sent_after_midnight_in_summer_counts_on_the_new_day(chat_id):
+    sent = datetime(2026, 7, 15, 22, 30, tzinfo=timezone.utc)   # 00:30 of the 16th in Rome (CEST)
+    messages.record_poop(database.User(uid("mario"), "mario", "Mario"), chat_id, sent)
+    assert database.get_count(uid("mario"), "2026-07-16", chat_id) == 1
