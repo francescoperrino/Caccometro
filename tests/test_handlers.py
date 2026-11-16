@@ -37,6 +37,17 @@ def test_plain_message_is_ignored(chat_id):
     assert database.get_count(uid("mario"), today_rome(), chat_id) == 0
 
 
+def test_start_shows_the_version(chat_id):
+    upd = make_update()
+    run(commands.start_command(upd, make_context()))
+    assert f"Versione {commands.__version__}" in upd.message.reply_text.call_args[0][0]
+
+
+def test_home_page_shows_the_version():
+    from caccometro import webhook
+    assert f"versione {webhook.__version__}." in webhook.app.test_client().get("/").get_data(as_text=True)
+
+
 def test_aggiungi_and_togli(chat_id, seed):
     seed({"luigi": {}})
     admin = dict(member_status="administrator")   # changing the counts of somebody else

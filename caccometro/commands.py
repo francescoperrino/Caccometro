@@ -5,6 +5,7 @@ from datetime import datetime
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from caccometro import __version__
 from caccometro.analysis import analyze_group, analyze_user, period_statistics
 from caccometro.charts import generate_rank_chart, generate_statistics_chart
 from caccometro.chat import escape_md, is_chat_admin, register_sender, register_user, reply_chart, where
@@ -94,7 +95,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"Command received: /start from {sender.mention if sender else None} in {where(update)}")
     init_database(update.message.chat_id)
     await update.message.reply_text("Ciao, sono 🤖 *Caccometro* 🤖.\n"
-                                    "Manda 💩 quando hai fatto il tuo dovere.", parse_mode='Markdown')
+                                    "Manda 💩 quando hai fatto il tuo dovere.\n"
+                                    f"_Versione {__version__}_", parse_mode='Markdown')
     logger.info(f"Command /start completed in {where(update)}")
 
 # Wording of the two kinds of period, for the rank and statistics commands
