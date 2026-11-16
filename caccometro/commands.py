@@ -27,29 +27,34 @@ def parse_username_arg(arg):
     return arg[1:]
 
 
+MIN_YEAR, MAX_YEAR = 1970, 2100  # the years accepted in the arguments of the commands
+
+
 def parse_month_arg(arg):
-    """'3-2024' or '03-2024' -> '03-2024'; None if it is not a valid month."""
+    """'3-2024' or '03-2024' -> '03-2024'; None if it is not a valid month (years 1970-2100)."""
     try:
-        return datetime.strptime(arg, '%m-%Y').strftime('%m-%Y')
+        month = datetime.strptime(arg, '%m-%Y')
     except ValueError:
         return None
+    return month.strftime('%m-%Y') if MIN_YEAR <= month.year <= MAX_YEAR else None
 
 
 def parse_year_arg(arg):
     """'2024' -> '2024'; None if it is not a valid year (4 digits, 1970-2100)."""
-    if len(arg) == 4 and arg.isdigit() and 1970 <= int(arg) <= 2100:
+    if len(arg) == 4 and arg.isdigit() and MIN_YEAR <= int(arg) <= MAX_YEAR:
         return arg
     return None
 
 
 def parse_date_arg(arg):
-    """'DD-MM-YYYY' -> (display date, storing date); raises ValueError if invalid or in the future."""
-    parsed_date = datetime.strptime(arg, DISPLAY_FORMAT)
-    selected_date = parsed_date.strftime(STORING_FORMAT)
-    today = now_rome().strftime(STORING_FORMAT)
-    if selected_date > today:
+    """'DD-MM-YYYY' -> (display date, storing date); raises ValueError if invalid, before 1970 or in the future."""
+    selected_date = datetime.strptime(arg, DISPLAY_FORMAT).date()
+    if selected_date > now_rome().date():
         raise ValueError("La data selezionata è nel futuro.")
-    return arg, selected_date
+    if selected_date.year < MIN_YEAR:
+        raise ValueError(f"L'anno deve essere dal {MIN_YEAR} in poi.")
+    # isoformat, not strftime: on Linux '%Y' does not pad the year with zeros
+    return arg, selected_date.isoformat()
 
 
 def resolve_target(update: Update, args, sender, usage):
