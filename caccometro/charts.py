@@ -79,6 +79,7 @@ NAME_MAX = 16       # characters of a name that fit the name column of the rank 
 
 
 def short_name(name):
+    """The name cut to NAME_MAX characters, with an ellipsis when cut."""
     return name if len(name) <= NAME_MAX else name[:NAME_MAX - 1] + '…'
 
 def user_style(i):
@@ -108,6 +109,7 @@ FINE_GRID = '#f1e8dc'   # thin lines at every unit, behind the main grid
 
 
 def fine_vlines(ax, xs):
+    """Thin vertical grid lines at the x positions `xs`."""
     for x in xs:
         ax.axvline(x, color=FINE_GRID, linewidth=0.6, zorder=0)
 
@@ -141,6 +143,7 @@ def add_cards(fig, axes):
             facecolor=SURFACE, edgecolor='none', zorder=-1))
 
 def sorted_by_name(names):
+    """User IDs of `names` (user ID -> name) sorted by name, case-insensitive."""
     return sorted(names, key=lambda user_id: (names[user_id].lower(), user_id))
 
 def emoji(ax, image, xy, zoom, coords='axes fraction'):

@@ -42,6 +42,8 @@ class Status(NamedTuple):
 
 
 class UserRecords(NamedTuple):
+    """Personal records of one user, plus the current status they are compared with."""
+
     daily: Record                    # most 💩 in one day
     best_month: Optional[Record]     # most 💩 in a completed month; None before the first completed month
     worst_month: Optional[Record]    # fewest 💩 in a completed month (see _worst_month); None if not available
@@ -52,6 +54,8 @@ class UserRecords(NamedTuple):
 
 
 class _Run(NamedTuple):
+    """A run of consecutive days with 💩: first and last day, length and total 💩."""
+
     start: date
     end: date
     days: int
@@ -84,6 +88,7 @@ def _best(items, key):
 
 
 def _next_month(month: Month) -> Month:
+    """The (year, month) after `month`."""
     year, number = month
     return (year + 1, 1) if number == 12 else (year, number + 1)
 
@@ -170,6 +175,8 @@ class Leaders(NamedTuple):
 
 
 class GroupBoard(NamedTuple):
+    """Records of the whole group: who holds each record of all times and who leads right now."""
+
     # records of all times
     daily: Optional[Leaders]          # most 💩 in one day
     best_month: Optional[Leaders]     # most 💩 in a completed month
@@ -201,6 +208,7 @@ def analyze_group(users_rows, today: date) -> GroupBoard:
                if any(count > 0 for _, count in rows)}
 
     def from_records(pick, lowest=False):
+        """Leaders of the record that `pick` takes from each user's records."""
         return _leaders([(key, record.value, record.when) for key, record in
                          ((key, pick(r)) for key, r in records.items()) if record is not None], lowest)
 
