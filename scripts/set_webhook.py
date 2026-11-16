@@ -2,7 +2,7 @@
 
 import os
 import asyncio
-from telegram import Bot
+from telegram import Bot, Update
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,9 +12,9 @@ WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')
 WEBHOOK_URL = f"https://{HOSTING_USERNAME}.pythonanywhere.com/webhook"
 
 async def main():
-    """Tell Telegram to send the updates to WEBHOOK_URL with WEBHOOK_SECRET."""
+    """Tell Telegram to send only message updates to WEBHOOK_URL with WEBHOOK_SECRET (as in polling mode)."""
     bot = Bot(token=BOT_TOKEN)
-    await bot.set_webhook(url=WEBHOOK_URL, secret_token=WEBHOOK_SECRET)
+    await bot.set_webhook(url=WEBHOOK_URL, secret_token=WEBHOOK_SECRET, allowed_updates=[Update.MESSAGE])
     print(f"Webhook impostato con successo su: {WEBHOOK_URL}")
 
 if __name__ == '__main__':
