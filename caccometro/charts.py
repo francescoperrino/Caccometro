@@ -75,6 +75,12 @@ def chart_label(name):
     """Make a user name safe for matplotlib text ('$' would start a math expression)."""
     return name.replace('$', r'\$')
 
+NAME_MAX = 16       # characters of a name that fit the name column of the rank table; longer ones are cut
+
+
+def short_name(name):
+    return name if len(name) <= NAME_MAX else name[:NAME_MAX - 1] + '…'
+
 def user_style(i):
     """Colour and line style of the i-th user (users sorted by name, so a user keeps the colour across charts)."""
     return PALETTE[i % len(PALETTE)], '-' if i < len(PALETTE) else '--'
@@ -98,18 +104,26 @@ def last_day_shown(year, month, days):
         return today.timetuple().tm_yday if month is None else today.day
     return days
 
-def layered_grid(ax, top, round_to):
-    """Y axis from 0 to `top` rounded up to `round_to`, with three levels of dashed lines:
-    a dark one at every tick, lighter ones at its halves and at its fifths (or fifths and tenths)."""
+FINE_GRID = '#f1e8dc'   # thin lines at every unit, behind the main grid
+
+
+def fine_vlines(ax, xs):
+    for x in xs:
+        ax.axvline(x, color=FINE_GRID, linewidth=0.6, zorder=0)
+
+def layered_grid(ax, top, round_to, fine_step=None):
+    """Y axis from 0 to `top` rounded up to `round_to`: a solid line at every power of ten step
+    (10, 20, ... or 100, 200, ...), a dashed one halfway (5, 15, ...) and, with `fine_step`, thin lines in between."""
     max_y = max(round_to, ceil(top / round_to) * round_to)
     order = 10 ** floor(log10(max_y))
     tick = order / 2 if max_y / order <= 5 else order
-    levels = ((5, GRID, 0.6), (2, '#dccbb5', 0.8), (1, '#b8a48c', 1.0)) if tick == order / 2 \
-        else ((10, GRID, 0.6), (5, '#dccbb5', 0.8), (1, '#b8a48c', 1.0))
     ax.grid(False)
-    for parts, colour, width in levels:
-        for y in np.arange(0, max_y + tick / parts / 2, tick / parts):
-            ax.axhline(y, color=colour, linestyle='--', linewidth=width, zorder=0)
+    levels = ((order / 2, '--', '#dccbb5', 1.0), (order, '-', '#b8a48c', 1.0))
+    if fine_step is not None:
+        levels = ((fine_step, '-', FINE_GRID, 0.6),) + levels
+    for step, style, colour, width in levels:
+        for y in np.arange(0, max_y + step / 2, step):
+            ax.axhline(y, color=colour, linestyle=style, linewidth=width, zorder=0)
     ax.set_yticks(np.arange(0, max_y + tick / 2, tick))
     ax.set_ylim(0, max_y)
 
@@ -181,7 +195,7 @@ def generate_rank_chart(rank, daily_counts, time_period, date):
                 month_totals[int(day_str[5:7])] += day_count
             counts = [month_totals.get(m, 0) for m in range(1, 13)]
         cells = [str(c) if c else '·' for c in counts[:steps_shown]] + [''] * (len(header) - steps_shown)
-        table_data.append([names[user_id]] + cells + [str(totals[user_id])])
+        table_data.append([short_name(names[user_id])] + cells + [str(totals[user_id])])
 
     with plt.rc_context(STYLE):
         table_height = 0.5 * (len(rows) + 1)
@@ -190,14 +204,14 @@ def generate_rank_chart(rank, daily_counts, time_period, date):
             gridspec_kw={'height_ratios': [table_height, 8], 'hspace': 0.3})
 
         # Table: header row, name column and total column stand out; every row wears its user's colour
-        name_width = 0.14
-        total_width = 0.12
+        name_width = 0.16
+        total_width = 0.10
         step_width = (1 - name_width - total_width) / len(header)
         table = ax_table.table(cellText=table_data, colLabels=[''] + header + ['Totale'],
                                colWidths=[name_width] + [step_width] * len(header) + [total_width],
                                cellLoc='center', bbox=[0, 0, 1, 1])
         table.auto_set_font_size(False)
-        table.set_fontsize(12)
+        table.set_fontsize(11)  # one size for names, counts and totals
         last = len(header) + 1
         for (row, col), cell in table.get_celld().items():
             cell.set_edgecolor(SURFACE)
@@ -205,7 +219,7 @@ def generate_rank_chart(rank, daily_counts, time_period, date):
             if row == 0:
                 cell.set_facecolor(HEADER)
                 cell.set_edgecolor(HEADER)  # one solid header band, no dividers
-                cell.set_text_props(color=SURFACE, weight='bold')
+                cell.set_text_props(color=SURFACE, weight='bold', fontsize=9)  # 31 day numbers must not touch
                 continue
             colour, _ = user_style(colour_order.index(rows[row - 1]))
             if col == 0:
@@ -214,7 +228,7 @@ def generate_rank_chart(rank, daily_counts, time_period, date):
                 cell.PAD = 0.06
             elif col == last:
                 cell.set_facecolor(TOTAL)
-                cell.set_text_props(ha='right', weight='bold', fontsize=13)
+                cell.set_text_props(ha='right', weight='bold')
                 cell.PAD = 0.12
             elif col > steps_shown:
                 cell.set_facecolor(FUTURE)
@@ -246,12 +260,13 @@ def generate_rank_chart(rank, daily_counts, time_period, date):
             colour, line = user_style(colour_order.index(user_id))
             cumulative = np.cumsum(per_day)
             ax_lines.plot(x, cumulative, color=colour, linestyle=line,
-                          label=f'{names[user_id]} ({totals[user_id]})')
+                          label=f'{short_name(names[user_id])} ({totals[user_id]})')
             ax_lines.scatter([x[-1]], [cumulative[-1]], s=70, color=colour, edgecolors=SURFACE,
                              linewidths=2, zorder=4)
 
         if time_period == 'month':
             ax_lines.set_xticks(range(1, days + 1))
+            fine_vlines(ax_lines, range(1, days + 1))
             ax_lines.set_xlabel('Giorno')
         else:
             # Lines at the month starts, names in the middle of each month
@@ -260,10 +275,11 @@ def generate_rank_chart(rank, daily_counts, time_period, date):
             ax_lines.set_xticks([(a + b) / 2 for a, b in zip(month_starts, month_starts[1:])], labels=header,
                                 minor=True)
             ax_lines.tick_params(axis='x', which='minor', length=0)
-            ax_lines.grid(axis='x', which='major')
+            fine_vlines(ax_lines, month_starts[1:-1])
         ax_lines.set_xlim(1, days)
         # headroom: the leader's line is not cut at the top; a year rounds to hundreds
-        layered_grid(ax_lines, max_total * 1.05, 10 if time_period == 'month' else 100)
+        step = 10 if time_period == 'month' else 100
+        layered_grid(ax_lines, max_total * 1.05, step, fine_step=step // 10)  # thin lines every 💩 (every 10 a year)
         ax_lines.set_ylabel('Totale progressivo')
         ax_lines.set_title('Come è andata giorno per giorno', fontsize=15, weight='normal', color=TEXT_MUTED)
         ax_lines.legend(loc='upper left', ncol=2 if len(rows) > 4 else 1)
@@ -310,7 +326,7 @@ def generate_statistics_chart(statistics, daily_counts, time_period, date):
                 continue
             y = normal_pdf(x, mean, np.sqrt(variance)) * len(period_days)
             peak = normal_pdf(mean, mean, np.sqrt(variance)) * len(period_days)
-            ax_curves.plot(x, y, color=colour, linestyle=line, label=names[user])
+            ax_curves.plot(x, y, color=colour, linestyle=line, label=short_name(names[user]))
             ax_curves.fill_between(x, y, color=colour, alpha=0.05, linewidth=0)
             ax_curves.vlines(mean, 0, peak, colors=colour, linestyles=':', linewidth=1.5)
             peaks.append((mean, peak, colour))
@@ -329,6 +345,7 @@ def generate_statistics_chart(statistics, daily_counts, time_period, date):
                                arrowprops={'arrowstyle': '-', 'color': colour, 'lw': 1, 'shrinkA': 0, 'shrinkB': 0},
                                bbox={'boxstyle': 'round,pad=0.3', 'fc': SURFACE, 'ec': colour, 'lw': 1.5})
         ax_curves.set_xlim(0, max(max_count, 1))
+        fine_vlines(ax_curves, range(0, max(max_count, 1) + 1))
         layered_grid(ax_curves, max([top] + [y for _, y in placed]) + height, 5)  # headroom for the labels
         ax_curves.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax_curves.set_xlabel('Volte al giorno')
@@ -339,7 +356,7 @@ def generate_statistics_chart(statistics, daily_counts, time_period, date):
 
         # Box plot: box = middle half of the days, line = median, diamond = mean
         box_plot = ax_box.boxplot([user_daily_counts[user] for user in users],
-                                  labels=[names[user] for user in users], patch_artist=True, widths=0.55,
+                                  labels=[short_name(names[user]) for user in users], patch_artist=True, widths=0.55,
                                   showmeans=True,
                                   meanprops={'marker': 'D', 'markerfacecolor': SURFACE,
                                              'markeredgecolor': TEXT, 'markersize': 9},
