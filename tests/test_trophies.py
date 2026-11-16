@@ -212,6 +212,24 @@ def test_wait_for_midnight_only_when_it_is_close(monkeypatch):
     assert slept == [3600]
 
 
+def test_wait_for_midnight_returns_the_midnight_it_waited_for(monkeypatch):
+    monkeypatch.setattr(announce.time, "sleep", lambda seconds: None)
+    assert announce.wait_for_midnight(datetime(2026, 11, 30, 23, 0)) == datetime(2026, 12, 1)
+    assert announce.wait_for_midnight(datetime(2026, 7, 1, 0, 0, 5)) is None
+
+
+def test_announces_for_the_new_day_even_if_the_clock_is_still_before_midnight(monkeypatch):
+    """The sleep can end a moment early: the day must come from the midnight waited for, not from the clock."""
+    days = []
+    monkeypatch.setattr(announce.time, "sleep", lambda seconds: None)
+    clock = iter([datetime(2026, 11, 30, 23, 0), datetime(2026, 11, 30, 23, 59, 59)])
+    monkeypatch.setattr(announce, "now_rome", lambda: next(clock))
+    monkeypatch.setattr(announce, "announce", lambda today, dry_run=False: days.append(today))
+    monkeypatch.setattr(announce.asyncio, "run", lambda value: None)
+    announce.main([])
+    assert days == [date(2026, 12, 1)]
+
+
 def test_send_failures_do_not_stop_the_other_chats(seed, chat_id, monkeypatch, isolated_folders):
     seed({"mario": {"2026-10-03": 4}})
     (isolated_folders / "db" / "42_bot_data.db").write_bytes(b"")   # not a database: reading it fails
