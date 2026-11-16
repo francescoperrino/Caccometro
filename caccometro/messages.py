@@ -8,16 +8,26 @@ from telegram.ext import ContextTypes
 from caccometro import config
 from caccometro.chat import escape_md, register_sender, where
 from caccometro.config import STORING_FORMAT, now_rome
-from caccometro.database import add_count
+from caccometro.database import add_count, get_record
+from caccometro.formatting import format_streak_trophy
+from caccometro.trophies import new_streak_trophy
 
 logger = logging.getLogger(__name__)
 
 
 def record_poop(sender, chat_id):
-    """Add one 💩 to today's count of the sender and return the message to reply with."""
-    today = now_rome().strftime(STORING_FORMAT)
-    _, count = add_count(sender.user_id, today, 1, chat_id)
-    return f"Complimenti {escape_md(sender.mention)}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
+    """Add one 💩 to today's count of the sender and return the message to reply with.
+
+    The first 💩 of a day that completes a multiple of STREAK_STEP consecutive days also announces a trophy.
+    """
+    today = now_rome().date()
+    _, count = add_count(sender.user_id, today.strftime(STORING_FORMAT), 1, chat_id)
+    response = f"Complimenti {escape_md(sender.mention)}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
+    if count == 1:
+        streak = new_streak_trophy(get_record(sender.user_id, chat_id), today)
+        if streak is not None:
+            response += "\n\n" + format_streak_trophy(streak)
+    return response
 
 
 # Messages handler

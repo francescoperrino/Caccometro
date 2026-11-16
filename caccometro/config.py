@@ -15,6 +15,9 @@ RUN_MODE = os.environ.get('RUN_MODE', 'POLLING').upper()
 STORING_FORMAT = "%Y-%m-%d"  # Format used for storing dates in the database
 DISPLAY_FORMAT = "%d-%m-%Y"  # Format used for displaying dates in messages
 ROME_TZ = pytz.timezone('Europe/Rome')
+# Italian month names, written out: calendar.month_name depends on the process locale
+MONTH_NAMES = ['', 'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+               'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
 
 
 def now_rome():

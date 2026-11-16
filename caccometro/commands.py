@@ -13,7 +13,8 @@ from caccometro.config import DISPLAY_FORMAT, STORING_FORMAT, now_rome, period_b
 from caccometro.database import (init_database, find_user_by_username, add_count, get_count, get_daily_counts,
                                  get_rank, get_users, get_record, get_all_user_rows, get_constipation_days,
                                  list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username)
-from caccometro.formatting import format_group_record, format_user_record
+from caccometro.formatting import format_group_record, format_group_trophies, format_user_record, format_user_trophies
+from caccometro.trophies import trophies_by_user
 
 logger = logging.getLogger(__name__)
 
@@ -244,6 +245,43 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(message, parse_mode='Markdown')
     logger.info(f"Command /record completed in {where(update)}")
+
+async def trofei_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /trofei command: the trophies of the group, or of one person (io, @username or a reply)."""
+    sender = register_sender(update)
+    if sender is None:
+        return
+    logger.info(f"Command received: /trofei from {sender.mention} in {where(update)}")
+    usage = "/trofei [@username | io]"
+    chat_id = update.message.chat_id
+    replied = update.message.reply_to_message
+    replies_to_a_person = replied is not None and replied.from_user is not None and not replied.from_user.is_bot
+    keyword = context.args[0].lower() if len(context.args) == 1 else None
+
+    if keyword in ("io", "me"):
+        target, error = sender, None
+    elif context.args or replies_to_a_person:
+        target, args, error = resolve_target(update, context.args, sender, usage)
+        if error is None and args:
+            error = f"Formato non valido. Usa: {usage}"
+    else:
+        target, error = None, None
+    if error:
+        await update.message.reply_text(error)
+        return
+
+    rows_by_user, users = get_all_user_rows(chat_id)
+    today = now_rome().date()
+    trophies = trophies_by_user(rows_by_user, today)
+    if target is None:
+        names = {user_id: escape_md(user.mention) for user_id, user in users.items()}
+        message = format_group_trophies(trophies, names)
+    else:
+        rows = rows_by_user.get(target.user_id)
+        current_streak = analyze_user(rows, today).status.streak_days if rows and any(c > 0 for _, c in rows) else 0
+        message = format_user_trophies(escape_md(target.mention), trophies.get(target.user_id), current_streak)
+    await update.message.reply_text(message, parse_mode='Markdown')
+    logger.info(f"Command /trofei completed in {where(update)}")
 
 async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /aggiungi command."""
