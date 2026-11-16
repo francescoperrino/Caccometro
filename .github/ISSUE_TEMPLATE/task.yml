@@ -1,0 +1,28 @@
+name: Task
+description: Work on the code, the setup or the process, with no new behaviour for the users
+title: "<imperative verb first, e.g. Update the dependencies with known vulnerabilities>"
+type: Task
+assignees:
+  - francescoperrino
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is wrong in the code, the setup or the process.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: The result, as a bullet list.
+      placeholder: |
+        - ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Optional. Order, blockers, milestone.

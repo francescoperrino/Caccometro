@@ -1,0 +1,28 @@
+name: Feature
+description: Something new for the people who use the bot
+title: "<imperative verb first, e.g. Add the /costipazione command>"
+type: Feature
+assignees:
+  - francescoperrino
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: Why the users want it.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: The behaviour, as a bullet list.
+      placeholder: |
+        - ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Optional. Order, blockers, milestone.
