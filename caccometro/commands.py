@@ -1,16 +1,17 @@
 """Command handlers: parse the arguments, read or change the data, reply."""
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
 from caccometro import __version__
-from caccometro.analysis import analyze_group, analyze_user, period_statistics
+from caccometro.analysis import FORECAST_WINDOW_DAYS, analyze_group, analyze_user, forecast_totals, period_statistics
 from caccometro.charts import generate_rank_chart, generate_statistics_chart
 from caccometro.chat import escape_md, is_chat_admin, register_sender, register_user, reply_chart, where
 from caccometro.config import DISPLAY_FORMAT, STORING_FORMAT, now_rome, period_bounds
 from caccometro.database import (init_database, find_user_by_username, add_count, get_count, get_daily_counts,
+                                 get_daily_counts_between,
                                  get_rank, get_users, get_record, get_all_user_rows, get_constipation_days,
                                  list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username)
 from caccometro.formatting import format_group_record, format_group_trophies, format_user_record, format_user_trophies
@@ -150,12 +151,25 @@ async def rank_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_
         await update.message.reply_text(f"{period['in']} {date} non sono state contate 💩." + legacy_hint(update.message.chat_id))
         return
 
-    message = f"🏆 *Classifica {period['of']} {date}*\n\n"
-    message += "".join(ranked_line(i, escape_md(user.mention), f"{total_count} 💩")
-                       for i, (user, total_count) in enumerate(rank, start=1))
+    # Ongoing period: forecast of the total at its end, next to each count
+    today = now_rome().date()
+    start_period, end_period = period_bounds(time_period, date)
+    forecast = {}
+    if start_period <= today.isoformat() <= end_period:
+        recent = get_daily_counts_between(update.message.chat_id,
+                                          (today - timedelta(days=FORECAST_WINDOW_DAYS - 1)).isoformat(),
+                                          today.isoformat())
+        forecast = forecast_totals({user.user_id: total for user, total in rank}, recent, today, end_period)
+
+    message = f"🏆 *Classifica {period['of']} {date}*\n"
+    if forecast:
+        message += f"_💩 finora → previsione a fine {period['name']}_\n"
+    message += "\n" + "".join(ranked_line(i, escape_md(user.mention),
+                                         f"{total_count} 💩" + (f" → {forecast[user.user_id]}" if forecast else ""))
+                              for i, (user, total_count) in enumerate(rank, start=1))
 
     daily_counts = get_daily_counts(update.message.chat_id, time_period, date)
-    await reply_chart(update, generate_rank_chart(rank, daily_counts, time_period, date), message)
+    await reply_chart(update, generate_rank_chart(rank, daily_counts, time_period, date, forecast), message)
     logger.info(f"Command /{command} completed in {where(update)}")
 
 async def statistics_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):

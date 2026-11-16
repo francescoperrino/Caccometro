@@ -215,7 +215,10 @@ def get_daily_counts(chat_id, time_period, date):
 
     One query for the whole period. Returns {user_id: {'YYYY-MM-DD': count}}; days without 💩 are absent.
     """
-    start_period, end_period = period_bounds(time_period, date)
+    return get_daily_counts_between(chat_id, *period_bounds(time_period, date))
+
+def get_daily_counts_between(chat_id, start_period, end_period):
+    """Like get_daily_counts, for any range of days ('YYYY-MM-DD', both ends included)."""
     conn = _connect(chat_id)
     try:
         return _daily_counts(conn, start_period, end_period)

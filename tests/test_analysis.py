@@ -4,7 +4,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from caccometro.analysis import Period, analyze_user, period_statistics
+from caccometro.analysis import Period, analyze_user, forecast_totals, period_statistics
 from caccometro.database import User
 
 # Jan 2024: 1,2,1 on days 1-3, then day 7 | Feb: day 10 (x3) | Mar: day 1
@@ -223,3 +223,12 @@ def test_period_statistics_sorts_by_mean_then_variance_and_names_unknown_users()
     assert [(s["user"], s["mean"], s["variance"]) for s in stats] == [
         (User(2, None, "2"), 1.5, 2.25), (User(3, None, "3"), 1.0, 0.0), (MARIO, 1.0, 1.0)]
 
+
+def test_forecast_adds_the_mean_of_the_last_30_days_for_each_day_left():
+    # 15 💩 in the window = 0.5 a day; 10 days left after 2024-03-21
+    recent = {1: {"2024-02-25": 5, "2024-03-20": 10}}
+    assert forecast_totals({1: 12, 2: 3}, recent, date(2024, 3, 21), "2024-03-31") == {1: 17, 2: 3}
+
+
+def test_forecast_on_the_last_day_is_the_total():
+    assert forecast_totals({1: 40}, {1: {"2024-03-31": 30}}, date(2024, 3, 31), "2024-03-31") == {1: 40}

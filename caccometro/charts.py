@@ -155,7 +155,7 @@ def positions(rank):
         result.append(result[-1] if i and total == rank[i - 1][1] else i + 1)
     return result
 
-def generate_rank_chart(rank, daily_counts, time_period, date):
+def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
     """
     Ranking chart: a table of the counts per day (month) or per month (year) with the totals and the
     medals, and the cumulative counts of every user below it.
@@ -165,17 +165,20 @@ def generate_rank_chart(rank, daily_counts, time_period, date):
         daily_counts (dict): {user_id: {'YYYY-MM-DD': count}} for the period (see database.get_daily_counts).
         time_period (str): 'month' or 'year'.
         date (str): 'MM-YYYY' or 'YYYY'.
+        forecast (dict): {user_id: expected total at the end of the period}, drawn as a dotted line from
+            today to the last day (see analysis.forecast_totals); None for a past period.
 
     Returns:
         bytes: the PNG image.
     """
+    forecast = forecast or {}
     year, month, days, title = period_info(time_period, date)
     shown = last_day_shown(year, month, days)
     names = {user.user_id: chart_label(user.name) for user, _ in rank}
     colour_order = sorted_by_name(names)  # colours follow the user, not the position in the ranking
     totals = {user.user_id: total for user, total in rank}
     rows = [user.user_id for user, _ in rank]  # table rows in ranking order, leader first
-    max_total = max(totals.values(), default=0)
+    max_total = max(list(totals.values()) + list(forecast.values()), default=0)
 
     if time_period == 'month':
         header = [str(day) for day in range(1, days + 1)]
@@ -259,8 +262,14 @@ def generate_rank_chart(rank, daily_counts, time_period, date):
                 per_day.append(user_days.get(count_date, 0))
             colour, line = user_style(colour_order.index(user_id))
             cumulative = np.cumsum(per_day)
+            expected = f' → {forecast[user_id]}' if user_id in forecast else ''
             ax_lines.plot(x, cumulative, color=colour, linestyle=line,
-                          label=f'{short_name(names[user_id])} ({totals[user_id]})')
+                          label=f'{short_name(names[user_id])} ({totals[user_id]}{expected})')
+            if user_id in forecast and shown < days:
+                ax_lines.plot([x[-1], days], [cumulative[-1], forecast[user_id]], color=colour, linestyle=':',
+                              alpha=0.7)
+                ax_lines.scatter([days], [forecast[user_id]], s=50, color=SURFACE, edgecolors=colour,
+                                 linewidths=2, zorder=4, clip_on=False)
             ax_lines.scatter([x[-1]], [cumulative[-1]], s=70, color=colour, edgecolors=SURFACE,
                              linewidths=2, zorder=4)
 

@@ -227,6 +227,24 @@ def analyze_group(users_rows, today: date) -> GroupBoard:
     )
 
 
+FORECAST_WINDOW_DAYS = 30
+
+
+def forecast_totals(totals, recent_counts, today: date, end_period):
+    """Expected 💩 of every user at the end of the period: the total so far plus, for each day left,
+    the user's mean daily 💩 over the last FORECAST_WINDOW_DAYS days (today included).
+
+    The window crosses the start of the period, so the forecast is steady from the first day of a month or year.
+    totals: {user_id: 💩 so far}; recent_counts: {user_id: {'YYYY-MM-DD': count}} of the window;
+    end_period: 'YYYY-MM-DD'.
+    """
+    days_left = (date.fromisoformat(end_period) - today).days
+    # shortcut: a user who started counting less than FORECAST_WINDOW_DAYS days ago gets a too low rate;
+    # divide by the days since their first count if new users complain.
+    return {user_id: total + round(sum(recent_counts.get(user_id, {}).values()) / FORECAST_WINDOW_DAYS * days_left)
+            for user_id, total in totals.items()}
+
+
 def period_statistics(daily_counts, users, start_period, end_period, today: date):
     """Mean, median and variance of the daily 💩 of every user in a period, best mean first (ties: lower variance).
 

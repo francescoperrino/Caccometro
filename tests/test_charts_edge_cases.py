@@ -75,3 +75,10 @@ def test_charts_never_touch_the_disk(tmp_path, monkeypatch):
     rank = [(database.User(uid("mario"), "mario", "Mario"), 1)]
     charts.generate_rank_chart(rank, {uid("mario"): {"2024-03-10": 1}}, "month", "03-2024")
     assert list(tmp_path.rglob("*.png")) == []
+
+
+def test_rank_chart_with_a_forecast_draws_it_and_ignores_a_finished_period(chat_id):
+    rank = [(database.User(uid("mario"), "mario", "Mario"), 3)]
+    daily = {uid("mario"): {"2024-03-10": 3}}
+    for period, label in (("month", "03-2024"), ("year", "2024")):
+        assert charts.generate_rank_chart(rank, daily, period, label, {uid("mario"): 9}).startswith(b"\x89PNG")

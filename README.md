@@ -34,8 +34,8 @@ Il bot legge i messaggi del gruppo per trovare le 💩: per questo su @BotFather
 | Comando                                | Descrizione |
 | :------------------------------------- | :---------- |
 | `/start`                               | Prepara il database della chat e mostra la versione del bot. |
-| `/classifica_mese [MM-YYYY]`           | Classifica del mese (corrente se la data manca), con grafico dell'andamento giorno per giorno. |
-| `/classifica_anno [YYYY]`              | Classifica dell'anno (corrente se manca), con grafico. |
+| `/classifica_mese [MM-YYYY]`           | Classifica del mese (corrente se la data manca), con grafico dell'andamento giorno per giorno. Per il mese in corso, accanto a ogni conto, la previsione a fine mese. |
+| `/classifica_anno [YYYY]`              | Classifica dell'anno (corrente se manca), con grafico e, per l'anno in corso, la previsione a fine anno. |
 | `/statistiche_mese [MM-YYYY]`          | Media, mediana e varianza delle 💩 al giorno di ogni persona nel mese, con grafico delle distribuzioni. |
 | `/statistiche_anno [YYYY]`             | Le stesse statistiche sull'anno. |
 | `/record [io \| @username]`            | Senza argomenti i **record del gruppo** (chi detiene ciascun record e chi è in testa adesso). Con `io` i tuoi record, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, ciascuno con lo **stato attuale**. |
