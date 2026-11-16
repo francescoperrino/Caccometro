@@ -27,7 +27,7 @@ def test_username_argument_requires_at_sign(command):
 
 @pytest.mark.parametrize("command", [
     commands.classifica_mese_command, commands.statistiche_mese_command])
-@pytest.mark.parametrize("arg", ["13-2024", "00-2024", "abc", "2024", "03-24", "03-2024-01"])
+@pytest.mark.parametrize("arg", ["13-2024", "00-2024", "abc", "2024", "03-24", "03-2024-01", "1-0150", "1-1969", "1-2101", "1-9999"])
 def test_invalid_month_argument_replies_with_error(command, arg):
     assert "Formato data non valido" in reply_of(command, arg)
 
@@ -66,3 +66,20 @@ def test_costipazione_with_different_case(seed):
     today = datetime.now(pytz.timezone("Europe/Rome")).strftime("%Y-%m-%d")
     seed({"luigi": {today: 1}})
     assert "oggi hai fatto" in reply_of(commands.costipazione_command, "@LUIGI")
+
+
+@pytest.mark.parametrize("command", [
+    commands.aggiungi_command, commands.togli_command, commands.conto_giorno_command])
+@pytest.mark.parametrize("arg", ["01-01-0001", "01-01-0150", "01-01-0999", "31-12-1969"])
+def test_date_before_1970_is_refused_and_not_stored(command, arg, chat_id):
+    assert "Errore" in reply_of(command, arg)
+    assert database.get_all_user_rows(chat_id)[0] == {}
+
+
+def test_date_in_the_future_is_refused_by_comparing_dates():
+    with pytest.raises(ValueError, match="futuro"):
+        commands.parse_date_arg("01-01-2100")
+
+
+def test_date_is_stored_with_a_four_digit_year():
+    assert commands.parse_date_arg("01-01-1970") == ("01-01-1970", "1970-01-01")
