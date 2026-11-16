@@ -63,6 +63,7 @@ class CachedMeBot(ExtBot):
     """
 
     async def get_me(self, *args, **kwargs):
+        """The bot user, asked to Telegram only when it is not cached yet."""
         if self._bot_user is not None:
             return self._bot_user
         return await super().get_me(*args, **kwargs)
@@ -79,6 +80,7 @@ class RetryingRequest(HTTPXRequest):
     RETRY_DELAYS = (1, 2, 4, 8, 16)  # seconds between the 6 attempts: proxy 503 bursts can last more than 15 s
 
     async def do_request(self, *args, **kwargs):
+        """Send the request, retrying with RETRY_DELAYS when the connection or the proxy fails."""
         for delay in self.RETRY_DELAYS:
             try:
                 return await super().do_request(*args, **kwargs)

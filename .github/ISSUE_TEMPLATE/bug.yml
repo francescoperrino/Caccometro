@@ -1,0 +1,34 @@
+name: Bug
+description: Something does not work as it should
+title: "<what goes wrong, as a user or developer sees it>"
+type: Bug
+assignees:
+  - francescoperrino
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What happens. Quote errors and bot replies in backticks.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps, when known.
+      placeholder: |
+        1. Send `/classifica_mese 13-2026` in a group
+        2. ...
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: What should happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Optional. Logs, versions (the bot shows its version in /start), related issues.

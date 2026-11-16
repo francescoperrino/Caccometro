@@ -1,3 +1,5 @@
+"""SQLite storage, one database file per chat: schema, migration from the legacy schema, counts and users."""
+
 import os
 import sqlite3
 from datetime import datetime
@@ -34,6 +36,7 @@ class User(NamedTuple):
 _schema_ready = set()
 
 def _db_path(chat_id):
+    """Path of the database file of a chat."""
     return os.path.join(DB_FOLDER, f'{chat_id}_bot_data.db')
 
 def _connect(chat_id):
@@ -50,6 +53,7 @@ def _has_legacy_table(conn):
     return 'username' in columns
 
 def _has_table(conn, name):
+    """Whether the database has a table called `name`."""
     row = conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)).fetchone()
     return row is not None
 
@@ -111,9 +115,11 @@ def init_database(chat_id):
 # Users
 
 def _to_user(user_id, username, display_name):
+    """A User from a users row; the user ID stands in for a missing display name."""
     return User(user_id, username, display_name or str(user_id))
 
 def _users(conn):
+    """All known users of the chat, by user ID."""
     return {user_id: _to_user(user_id, username, display_name)
             for user_id, username, display_name in conn.execute('SELECT user_id, username, display_name FROM users')}
 
