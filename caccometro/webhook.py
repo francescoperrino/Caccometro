@@ -6,6 +6,7 @@ from collections import deque
 from flask import Flask, request, Response
 from telegram import Update
 
+from caccometro import __version__
 from caccometro.bot import application
 from caccometro.config import WEBHOOK_SECRET
 
@@ -53,5 +54,5 @@ async def webhook():
 
 @app.route('/')
 def index():
-    """Welcome page, useful for testing if the web app works."""
-    return 'Ciao! Sono il Caccometro Bot. Il mio webhook è pronto.'
+    """Welcome page, useful for testing if the web app works; the deploy reads the version here."""
+    return f'Ciao! Sono il Caccometro Bot, versione {__version__}. Il mio webhook è pronto.'
