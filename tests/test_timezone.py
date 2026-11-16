@@ -28,13 +28,13 @@ def test_statistics_current_month_uses_rome_today(seed, monkeypatch):
     # "Today" in Rome is March 10, 2024: the current month has 10 valid days, not 31
     seed({"mario": {"2024-03-02": 5}})
     caption = statistics_caption(commands.statistiche_mese_command, monkeypatch, datetime(2024, 3, 10, 0, 30))
-    assert "Media: 0.5," in caption  # 5 / 10
+    assert ": 0.50 ·" in caption  # mean 5 / 10
 
 
 def test_statistics_current_year_uses_rome_today(seed, monkeypatch):
     seed({"mario": {"2024-01-02": 4}})
     caption = statistics_caption(commands.statistiche_anno_command, monkeypatch, datetime(2024, 1, 10, 0, 30))
-    assert "Media: 0.4," in caption  # 4 / 10
+    assert ": 0.40 ·" in caption  # mean 4 / 10
 
 
 def test_record_uses_rome_today_for_the_current_month_and_status(seed, monkeypatch):

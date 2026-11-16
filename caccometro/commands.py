@@ -147,8 +147,8 @@ async def rank_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_
         await update.message.reply_text(f"{period['in']} {date} non sono state contate 💩." + legacy_hint(update.message.chat_id))
         return
 
-    message = f"Ecco la *classifica {period['of']} {date}*:\n"
-    message += "".join(ranked_line(i, escape_md(user.mention), total_count)
+    message = f"🏆 *Classifica {period['of']} {date}*\n\n"
+    message += "".join(ranked_line(i, escape_md(user.mention), f"{total_count} 💩")
                        for i, (user, total_count) in enumerate(rank, start=1))
 
     daily_counts = get_daily_counts(update.message.chat_id, time_period, date)
@@ -175,9 +175,10 @@ async def statistics_command(update: Update, context: ContextTypes.DEFAULT_TYPE,
         await update.message.reply_text(f"Nessuna statistica disponibile {period['for']} {date}." + legacy_hint(update.message.chat_id))
         return
 
-    message = f"*Statistiche {period['for']} {date}*:\n"
+    message = f"📊 *Statistiche {period['of']} {date}*\n"
+    message += "💩 al giorno: media · mediana · varianza\n\n"
     message += "".join(ranked_line(i, escape_md(s['user'].mention),
-                                   f"Media: {s['mean']}, Mediana: {s['median']}, Var.: {s['variance']}")
+                                   f"{s['mean']:.2f} · {s['median']:.1f} · {s['variance']:.2f}")
                        for i, s in enumerate(statistics, start=1))
 
     await reply_chart(update, generate_statistics_chart(statistics, daily_counts, time_period, date), message)
