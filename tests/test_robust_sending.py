@@ -47,18 +47,18 @@ def send(request):
     return asyncio.run(request.do_request("https://api.telegram.org/x", "POST"))
 
 
-def test_a_proxy_error_burst_longer_than_3_seconds_is_retried_and_the_request_succeeds(attempts):
-    attempts.errors = [network_error(httpx.ProxyError("503 Service Unavailable"))] * 4
+def test_a_proxy_error_burst_longer_than_15_seconds_is_retried_and_the_request_succeeds(attempts):
+    attempts.errors = [network_error(httpx.ProxyError("503 Service Unavailable"))] * 5
     assert send(bot.RetryingRequest())[0] == 200
-    assert len(attempts) == 5
-    assert attempts.sleeps == [1, 2, 4, 8]
+    assert len(attempts) == 6
+    assert attempts.sleeps == [1, 2, 4, 8, 16]
 
 
-def test_after_five_failures_the_error_is_raised(attempts):
-    attempts.errors = [network_error(httpx.ConnectError("refused"))] * 5
+def test_after_six_failures_the_error_is_raised(attempts):
+    attempts.errors = [network_error(httpx.ConnectError("refused"))] * 6
     with pytest.raises(NetworkError):
         send(bot.RetryingRequest())
-    assert len(attempts) == 5
+    assert len(attempts) == 6
 
 
 @pytest.mark.parametrize("cause", [httpx.ReadTimeout("slow"), httpx.ReadError("connection dropped")])
