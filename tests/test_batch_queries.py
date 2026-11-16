@@ -105,9 +105,9 @@ def test_year_table_shows_monthly_and_total_counts(seed, chat_id, monkeypatch):
     daily = database.get_daily_counts(chat_id, "year", "2024")
     table = table_of_rank_chart(monkeypatch, rank, daily, "year", "2024", chat_id)
     header, row = table[0], table[1]
-    assert header[0] == "" and header[-1] == "Total"
+    assert header[0] == "" and header[-1] == "Totale"
     assert row[0] == "mario"
-    assert row[1:-1] == ["0", "0", "3", "5", "0", "0", "0", "0", "0", "0", "0", "0"]   # Jan..Dec
+    assert row[1:-1] == ["·", "·", "3", "5", "·", "·", "·", "·", "·", "·", "·", "·"]   # Jan..Dec, no 💩 = "·"
     assert row[-1] == "8"
 
 

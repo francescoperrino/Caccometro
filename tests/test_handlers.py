@@ -68,7 +68,7 @@ def test_statistiche_mese_sends_chart_and_text(seed):
     upd = make_update()
     run(commands.statistiche_mese_command(upd, make_context("03-2024")))
     upd.message.reply_photo.assert_called_once()
-    assert "Media" in upd.message.reply_photo.call_args.kwargs["caption"]
+    assert "media · mediana" in upd.message.reply_photo.call_args.kwargs["caption"]
 
 
 def test_record_happy_path(seed):
