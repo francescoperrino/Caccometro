@@ -1,6 +1,7 @@
 """The webhook must not ask Telegram 'who am I?' (getMe) for every update."""
 import asyncio
 import time
+from pathlib import Path
 
 import pytest
 from telegram import Update
@@ -120,3 +121,21 @@ def test_the_old_path_with_the_token_is_gone(telegram_calls):
     client = webhook.app.test_client()
     response = client.post(f"/{config.BOT_TOKEN}", headers=SECRET, json=telegram_update(update_id=10))
     assert response.status_code == 404
+
+
+def test_webhook_errors_are_logged_with_the_traceback(telegram_calls, monkeypatch, caplog):
+    pytest.importorskip("asgiref")   # Flask async views need it
+    monkeypatch.setattr(bot.application, "process_update", AsyncMock(side_effect=RuntimeError("boom")))
+    response = webhook.app.test_client().post("/webhook", headers=SECRET, json=telegram_update(update_id=11))
+    assert response.status_code == 500
+    assert any(r.exc_info and "boom" in str(r.exc_info[1]) for r in caplog.records)
+
+
+def test_set_webhook_asks_only_for_message_updates(monkeypatch):
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    import set_webhook
+    fake_bot = AsyncMock()
+    monkeypatch.setattr(set_webhook, "Bot", lambda token: fake_bot)
+    asyncio.run(set_webhook.main())
+    assert fake_bot.set_webhook.call_args.kwargs["allowed_updates"] == ["message"]

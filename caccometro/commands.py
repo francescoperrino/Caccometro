@@ -99,7 +99,9 @@ async def may_change_counts_of(update: Update, context: ContextTypes.DEFAULT_TYP
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /start command."""
     sender = register_sender(update)
-    logger.info(f"Command received: /start from {sender.mention if sender else None} in {where(update)}")
+    if sender is None:
+        return
+    logger.info(f"Command received: /start from {sender.mention} in {where(update)}")
     init_database(update.message.chat_id)
     await update.message.reply_text("Ciao, sono 🤖 *Caccometro* 🤖.\n"
                                     "Manda 💩 quando hai fatto il tuo dovere.\n"

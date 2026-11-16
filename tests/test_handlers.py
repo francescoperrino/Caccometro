@@ -99,3 +99,10 @@ def test_classifica_mese_shows_the_forecast_only_for_the_current_month(seed):
     upd = make_update()
     run(commands.classifica_mese_command(upd, make_context("03-2024")))
     assert "→" not in upd.message.reply_photo.call_args.kwargs["caption"]
+
+
+def test_start_without_a_message_does_nothing():
+    """An edited /start has no update.message: it must not raise."""
+    upd = make_update()
+    upd.message = None
+    run(commands.start_command(upd, make_context()))

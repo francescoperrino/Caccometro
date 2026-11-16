@@ -43,7 +43,7 @@ async def webhook():
         return Response('ok', status=200)
     
     except Exception as e:
-        logger.error(f"Error in webhook: {e}")
+        logger.exception(f"Error in webhook: {e}")
         return Response('error', status=500)
     
     finally:
