@@ -39,6 +39,7 @@ Il bot legge i messaggi del gruppo per trovare le 💩: per questo su @BotFather
 | `/statistiche_mese [MM-YYYY]`          | Media, mediana e varianza delle 💩 al giorno di ogni persona nel mese, con grafico delle distribuzioni. |
 | `/statistiche_anno [YYYY]`             | Le stesse statistiche sull'anno. |
 | `/record [io \| @username]`            | Senza argomenti i **record del gruppo** (chi detiene ciascun record e chi è in testa adesso). Con `io` i tuoi record, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, ciascuno con lo **stato attuale**. |
+| `/trofei [io \| @username]`            | Senza argomenti la **bacheca dei trofei** del gruppo; con `io` i tuoi trofei, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, con quanti giorni mancano al prossimo trofeo di serie. |
 | `/conto_giorno [@username] [DD-MM-YYYY]` | 💩 di una persona in un giorno (oggi se la data manca). |
 | `/costipazione [@username]`            | Giorni passati dall'ultima 💩. |
 | `/aggiungi [@username] DD-MM-YYYY`     | Aggiunge 1 💩 in un giorno passato o di oggi. Sul conto di un altro: solo admin. |
@@ -56,6 +57,9 @@ Nei comandi con `[@username]` la persona si può indicare anche **rispondendo a 
 - **Mese peggiore:** solo mesi completi, escluso il primo mese con dati (potresti aver iniziato a metà) e quelli dopo l'ultimo mese con dati (potresti essere uscito dal gruppo); i mesi in mezzo senza nessuna 💩 contano come 0. Serve quindi almeno un secondo mese di dati.
 - **Record del gruppo:** per ogni metrica il valore migliore tra tutte le persone (anche chi è uscito dal gruppo) e chi lo detiene; a parità sono elencate tutte. Il blocco "Adesso" considera solo chi ha fatto 💩 negli ultimi 90 giorni.
 - **Stato attuale:** una serie è "in corso" se l'ultima 💩 è di oggi o di ieri; la pausa in corso sono i giorni dall'ultima 💩. Il 🔥 compare quando raggiungi un record (da 2 in su) o superi la pausa record.
+
+- **Trofei:** 🔥 uno ogni 15 giorni consecutivi con almeno una 💩 (15, 30, 45, ...; una serie di 47 giorni vale 3 trofei), annunciato nella risposta alla prima 💩 del giorno che li completa; 🏅 **💩 del mese** e 👑 **💩 dell'anno** a chi ne ha fatte di più in un mese o in un anno completo (a parità, a tutti). I trofei si calcolano dai conteggi, quindi `/aggiungi` e `/togli` li aggiornano.
+- **Annuncio di mezzanotte:** il primo giorno di ogni mese, a mezzanotte, il bot scrive in ogni chat il 💩 del mese appena finito; il 1° gennaio anche il 💩 dell'anno, con gli auguri di buon anno.
 
 Le date seguono l'ora italiana (`Europe/Rome`), anche se il server è in UTC.
 
@@ -103,6 +107,7 @@ classifica_anno - Classifica dell'anno, corrente o [YYYY].
 statistiche_mese - Media, mediana e varianza del mese, corrente o [MM-YYYY].
 statistiche_anno - Media, mediana e varianza dell'anno, corrente o [YYYY].
 record - Record del gruppo; con io o @username quelli di una persona.
+trofei - Trofei del gruppo; con io o @username quelli di una persona.
 conto_giorno - 💩 di un giorno: [@username] [DD-MM-YYYY].
 costipazione - Giorni senza 💩: [@username].
 aggiungi - Aggiunge 1 💩 in un giorno: [@username] DD-MM-YYYY (altri: solo admin).
@@ -163,7 +168,9 @@ caccometro/          il bot, come pacchetto Python
   chat.py            funzioni comuni su utenti e messaggi Telegram
   database.py        database SQLite: schema, migrazione, query
   analysis.py        record, serie e statistiche (funzioni pure, senza database)
-  formatting.py      testi dei messaggi di /record
+  trophies.py        trofei: serie di 15 giorni, 💩 del mese e dell'anno (funzioni pure)
+  formatting.py      testi dei messaggi di /record, /trofei e dell'annuncio di mezzanotte
+  announce.py        annuncio di mezzanotte del 💩 del mese (attività pianificata)
   charts.py          grafici di classifiche e statistiche (PNG in memoria)
 scripts/set_webhook.py   registra il webhook su Telegram (una volta)
 tests/               test pytest
@@ -281,6 +288,16 @@ python scripts/set_webhook.py
 ```
 
 Lo script registra su Telegram l'URL `/webhook` con il `WEBHOOK_SECRET`: le chiamate senza il secret ricevono 403.
+
+### 4. Annuncio di mezzanotte
+
+Crea un'attività pianificata giornaliera alle **22:00 UTC** che parte dalla cartella con `db/`:
+
+```bash
+cd /home/<your-username> && python3.10 -m caccometro.announce
+```
+
+Alle 22:00 UTC in Italia sono le 23:00 (ora solare) o la mezzanotte (ora legale): lo script aspetta la mezzanotte se manca poco e scrive solo il primo giorno del mese. Per provarlo senza mandare niente: `python3.10 -m caccometro.announce --date 2027-01-01 --dry-run`.
 
 ### Versioni
 
