@@ -7,7 +7,7 @@ from telegram.ext import ContextTypes
 
 from caccometro import config
 from caccometro.chat import escape_md, register_sender, where
-from caccometro.config import STORING_FORMAT, now_rome
+from caccometro.config import ROME_TZ, STORING_FORMAT, now_rome
 from caccometro.database import add_count, get_record
 from caccometro.formatting import format_streak_trophy
 from caccometro.trophies import new_streak_trophy
@@ -15,12 +15,13 @@ from caccometro.trophies import new_streak_trophy
 logger = logging.getLogger(__name__)
 
 
-def record_poop(sender, chat_id):
-    """Add one 💩 to today's count of the sender and return the message to reply with.
+def record_poop(sender, chat_id, sent_at=None):
+    """Add one 💩 to the day the message was sent (Italian time) and return the message to reply with.
 
+    sent_at is the aware datetime of the Telegram message, so a late-processed update still counts on its own day.
     The first 💩 of a day that completes a multiple of STREAK_STEP consecutive days also announces a trophy.
     """
-    today = now_rome().date()
+    today = now_rome().date() if sent_at is None else sent_at.astimezone(ROME_TZ).date()
     _, count = add_count(sender.user_id, today.strftime(STORING_FORMAT), 1, chat_id)
     response = f"Complimenti {escape_md(sender.mention)}, oggi hai fatto 💩 {count} " + ("volte!" if count > 1 else "volta!")
     if count == 1:
@@ -47,7 +48,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if config.BOT_USERNAME and config.BOT_USERNAME.lower() in text:
             response = "Cosa vuoi dirmi?"
         elif "💩" in text or "🚽" in text:
-            response = record_poop(sender, chat_id)
+            response = record_poop(sender, chat_id, update.message.date)
         elif re.search(r'\brun\b', text):
             response = f"{escape_md(sender.mention)} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu."
         if response:
@@ -57,7 +58,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.message.sticker:
         emoji = update.message.sticker.emoji # Get the emoji from sticker
         if emoji == "💩" or emoji == "🚽":
-            response = record_poop(sender, chat_id)
+            response = record_poop(sender, chat_id, update.message.date)
             await update.message.reply_text(response, parse_mode='Markdown')
             logger.info(f"{sender.mention} in {where(update)}: Sticker | Risposta: {response}")
     else:

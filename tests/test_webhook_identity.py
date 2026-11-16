@@ -1,5 +1,6 @@
 """The webhook must not ask Telegram 'who am I?' (getMe) for every update."""
 import asyncio
+import time
 
 import pytest
 from telegram import Update
@@ -23,7 +24,7 @@ def message_dict(text="ok"):
 
 def telegram_update(text="💩", update_id=1, user_id=42, username="mario"):
     return {"update_id": update_id,
-            "message": {"message_id": update_id, "date": 1700000000, "text": text,
+            "message": {"message_id": update_id, "date": int(time.time()), "text": text,
                         "chat": {"id": CHAT_ID, "type": "group", "title": "g"},
                         "from": {"id": user_id, "is_bot": False, "first_name": "Mario", "username": username}}}
 

@@ -83,7 +83,7 @@ def make_tg_user(username="mario", user_id=None, full_name=None, is_bot=False):
 
 def make_update(text=None, username="mario", user_id=None, chat_id=CHAT_ID,
                 sticker_emoji=None, has_from_user=True, full_name=None,
-                reply_to=None, is_bot=False, chat_type="group"):
+                reply_to=None, is_bot=False, chat_type="group", date=None):
     """Fake Telegram Update, enough for the bot handlers.
 
     reply_to: a make_tg_user(...) of the author of the message being replied to.
@@ -92,6 +92,7 @@ def make_update(text=None, username="mario", user_id=None, chat_id=CHAT_ID,
     from_user = (make_tg_user(username, user_id, full_name, is_bot) if has_from_user else None)
     message = SimpleNamespace(
         text=text,
+        date=date,
         from_user=from_user,
         chat_id=chat_id,
         chat=chat,
