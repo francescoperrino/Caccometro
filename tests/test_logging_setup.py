@@ -48,6 +48,34 @@ def test_webhook_mode_writes_the_log_only_to_the_file():
     assert handlers == [bot.file_handler]
 
 
+def test_webhook_mode_stops_the_bot_records_before_the_root_logger(tmp_path, monkeypatch):
+    """A handler added to the root logger later (the hosting does it) must not get the records of the bot."""
+    app_logger = logging.getLogger("caccometro")
+    monkeypatch.setattr(app_logger, "handlers", [])
+    monkeypatch.setattr(app_logger, "propagate", True)
+    bot.keep_app_log_out_of_the_root_logger("WEBHOOK")
+    seen = []
+    hosting = logging.Handler()
+    hosting.emit = seen.append
+    root = logging.getLogger()
+    root.addHandler(hosting)
+    try:
+        logging.getLogger("caccometro.webhook").info("bot record")
+        logging.getLogger("telegram.ext").warning("library record")
+    finally:
+        root.removeHandler(hosting)
+    assert [r.getMessage() for r in seen] == ["library record"]
+    assert app_logger.handlers == [bot.file_handler]
+
+
+def test_polling_mode_keeps_the_logger_as_it_is(monkeypatch):
+    app_logger = logging.getLogger("caccometro")
+    monkeypatch.setattr(app_logger, "handlers", [])
+    monkeypatch.setattr(app_logger, "propagate", True)
+    bot.keep_app_log_out_of_the_root_logger("POLLING")
+    assert app_logger.handlers == [] and app_logger.propagate
+
+
 def test_polling_mode_also_prints_to_the_console():
     handlers = bot.log_handlers("POLLING")
     assert handlers[0] is bot.file_handler
