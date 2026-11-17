@@ -106,6 +106,27 @@ def _ensure_schema(path):
     finally:
         conn.close()
 
+def migrate_chat(old_chat_id, new_chat_id):
+    """Move the database of a group that became a supergroup to its new chat ID.
+
+    Returns 'moved', 'no_old' (nothing to move) or 'both_have_data' (nothing changed). A database of the
+    new ID that holds no counts yet (created by a message that arrived first) is replaced.
+    """
+    old_path, new_path = _db_path(old_chat_id), _db_path(new_chat_id)
+    if not os.path.exists(old_path):
+        return 'no_old'
+    if os.path.exists(new_path):
+        conn = _connect(new_chat_id)
+        try:
+            if conn.execute('SELECT EXISTS (SELECT 1 FROM user_count)').fetchone()[0]:
+                return 'both_have_data'
+        finally:
+            conn.close()
+    os.replace(old_path, new_path)
+    _schema_ready.discard(old_path)
+    _schema_ready.discard(new_path)
+    return 'moved'
+
 # Function to initialize the database
 def init_database(chat_id):
     """Initialize (or migrate) the SQLite database of a chat if needed."""
