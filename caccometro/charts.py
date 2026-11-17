@@ -16,6 +16,7 @@ from matplotlib.patches import FancyBboxPatch
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 
+from caccometro import __version__
 from caccometro.config import MONTH_NAMES, now_rome, STORING_FORMAT
 
 MONTH_ABBRS = ['', 'gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
@@ -31,6 +32,7 @@ GRID = '#eadccb'
 HEADER = '#2f4f8f'      # table header, the denim of the avatar
 TOTAL = '#f7ecdc'
 FUTURE = '#efe6da'      # days still to come
+WATERMARK = '#a99b8a'   # the version under the last card: light, but readable on BACKGROUND
 
 # Emoji drawn as images (matplotlib cannot draw colour emoji as text): Noto Emoji, assets/emoji/LICENSE.txt
 EMOJI_DIR = Path(__file__).resolve().parent.parent / 'assets' / 'emoji'
@@ -56,8 +58,24 @@ STYLE = {
 }
 
 
+def add_watermark(fig):
+    """'Caccometro vX.Y.Z' in small light text centred in the strip between the last card and the bottom of the image.
+
+    png_bytes crops 0.35 inch under the cards (pad_inches); the text is left out of the crop calculation
+    (set_in_layout) so that it uses that strip instead of making the image taller.
+    """
+    renderer = fig.canvas.get_renderer()
+    boxes = [ax.get_tightbbox(renderer).transformed(fig.transFigure.inverted()) for ax in fig.axes]
+    pad = 0.015  # the padding add_cards gives the cards
+    strip = 0.35 / fig.get_size_inches()[1]  # pad_inches of png_bytes, as a fraction of the height
+    text = fig.text(max(b.x1 for b in boxes) + pad, min(b.y0 for b in boxes) - pad - strip / 2,
+                    f'Caccometro v{__version__}', ha='right', va='center', fontsize=8, color=WATERMARK)
+    text.set_in_layout(False)
+
+
 def png_bytes(fig):
     """Render a figure to PNG in memory and close it."""
+    add_watermark(fig)
     buffer = io.BytesIO()
     fig.savefig(buffer, format='png', dpi=110, bbox_inches='tight', pad_inches=0.35)
     plt.close(fig)

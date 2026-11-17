@@ -5,7 +5,7 @@ import pytest
 
 from caccometro import database
 from caccometro.analysis import period_statistics
-from caccometro import charts
+from caccometro import __version__, charts
 from conftest import uid
 
 
@@ -82,3 +82,11 @@ def test_rank_chart_with_a_forecast_draws_it_and_ignores_a_finished_period(chat_
     daily = {uid("mario"): {"2024-03-10": 3}}
     for period, label in (("month", "03-2024"), ("year", "2024")):
         assert charts.generate_rank_chart(rank, daily, period, label, {uid("mario"): 9}).startswith(b"\x89PNG")
+
+
+def test_every_chart_has_the_version_under_the_last_card():
+    fig = charts.plt.figure()
+    fig.add_subplot()
+    charts.add_watermark(fig)
+    assert f"Caccometro v{__version__}" in [t.get_text() for t in fig.texts]
+    charts.plt.close(fig)
