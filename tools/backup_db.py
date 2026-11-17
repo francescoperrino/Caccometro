@@ -6,7 +6,10 @@ Fails (like any other error) when the total count of a chat dropped by more than
 kept but not promoted to a monthly one.
 Meant for a daily cron job on the development machine (settings: see deploy.py). Exit code 1 (and a line on stderr) when
 anything fails, so a failed backup is visible. Reuses the download code of deploy.py.
+A failure is also sent as a private Telegram message through the bot of BOT_TOKEN (the development bot in the local .env) to
+ALERT_CHAT_ID (the maintainer's chat with it); nothing is sent when the backup works or when ALERT_CHAT_ID is not set.
 """
+import os
 import shutil
 import sqlite3
 import sys
@@ -20,6 +23,17 @@ from deploy import FILES, REPO, download, token
 KEEP = 14
 MAX_DROP = 0.2  # a legitimate /togli removes a few; losing a fifth of a chat's total is not normal
 MIN_TOTAL = 10  # below this a single /togli is already a big relative drop
+
+
+def alert(text):
+    """Tell the maintainer on Telegram; never raises and never prints the token (httpx errors carry the URL)."""
+    chat, bot = os.environ.get("ALERT_CHAT_ID"), os.environ.get("BOT_TOKEN")
+    if not (chat and bot):
+        return
+    try:
+        httpx.post(f"https://api.telegram.org/bot{bot}/sendMessage", data={"chat_id": chat, "text": text}, timeout=20)
+    except httpx.HTTPError:
+        pass  # the FAILED line on stderr and in the log is still there
 
 
 def total(path):
@@ -69,7 +83,14 @@ def main(keep):
 
 if __name__ == "__main__":
     keep = int(sys.argv[sys.argv.index("--keep") + 1]) if "--keep" in sys.argv else KEEP
+    message = None
     try:
         main(keep)
     except (httpx.HTTPError, OSError, sqlite3.Error) as e:
-        sys.exit(f"{datetime.now():%Y-%m-%d %H:%M} backup FAILED: {e!r}")
+        message = f"{datetime.now():%Y-%m-%d %H:%M} backup FAILED: {e!r}"
+    except SystemExit as e:  # main() exits with a message for its own failures
+        if isinstance(e.code, str):
+            message = e.code if "FAILED" in e.code else f"{datetime.now():%Y-%m-%d %H:%M} backup FAILED: {e.code}"
+    if message:
+        alert(f"Caccometro: {message}")
+        sys.exit(message)
