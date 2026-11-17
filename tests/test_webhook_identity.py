@@ -105,7 +105,7 @@ def test_webhook_command_with_bot_suffix_is_recognized(telegram_calls):
     assert telegram_calls.count("sendMessage") == 2      # the 💩 reply and the /costipazione reply
 
 
-@pytest.mark.parametrize("headers", [{}, {"X-Telegram-Bot-Api-Secret-Token": "wrong"}])
+@pytest.mark.parametrize("headers", [{}, {"X-Telegram-Bot-Api-Secret-Token": "wrong"}, {"X-Telegram-Bot-Api-Secret-Token": "caffé"}])
 def test_a_call_without_the_right_secret_is_refused(telegram_calls, headers):
     pytest.importorskip("asgiref")   # Flask async views need it
     client = webhook.app.test_client()
