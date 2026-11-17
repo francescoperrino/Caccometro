@@ -34,12 +34,15 @@ def record_poop(sender, chat_id, sent_at=None):
 async def handle_migration(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """A basic group became a supergroup: Telegram gave it a new chat ID, so the database follows it."""
     old_chat_id = update.message.migrate_from_chat_id
-    if old_chat_id is None:  # the twin message sent in the old chat
-        return
     new_chat_id = update.message.chat_id
+    if old_chat_id is None:  # the twin message sent in the old chat: a second chance if the first one failed
+        old_chat_id, new_chat_id = new_chat_id, update.message.migrate_to_chat_id
+        if new_chat_id is None:
+            return
     result = migrate_chat(old_chat_id, new_chat_id)
     if result == 'both_have_data':
-        logger.warning(f"Chat {old_chat_id} became {new_chat_id}, but both databases hold counts: left untouched.")
+        logger.warning(f"Chat {old_chat_id} became {new_chat_id}, but the legacy history of both databases "
+                       "would collide: left untouched.")
     else:
         logger.info(f"Chat {old_chat_id} became {new_chat_id}: {result}.")
 

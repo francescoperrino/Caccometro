@@ -106,11 +106,49 @@ def _ensure_schema(path):
     finally:
         conn.close()
 
+def _merge_into(old_chat_id, new_chat_id):
+    """Add the users and counts of the old database to the new one, in one transaction (same user and day: summed).
+
+    A marker row in the new database makes it happen once even if the old file could not be set aside afterwards.
+    Returns the number of count rows added, or None if the legacy history of both databases would collide.
+    """
+    old_path = _db_path(old_chat_id)
+    _connect(old_chat_id).close()  # a legacy layout is migrated first
+    conn = _connect(new_chat_id)
+    conn.isolation_level = None  # ATTACH cannot run inside a transaction
+    try:
+        conn.execute('ATTACH DATABASE ? AS old', (old_path,))
+        legacy_sql = conn.execute("SELECT sql FROM old.sqlite_master WHERE type = 'table' AND name = 'user_count_legacy'").fetchone()
+        if legacy_sql and _has_table(conn, 'user_count_legacy'):
+            return None
+        conn.execute('BEGIN IMMEDIATE')
+        try:
+            conn.execute('CREATE TABLE IF NOT EXISTS merged_chats (chat_id INTEGER PRIMARY KEY)')
+            if conn.execute('SELECT 1 FROM merged_chats WHERE chat_id = ?', (old_chat_id,)).fetchone():
+                added = 0  # merged before
+            else:
+                conn.execute('INSERT OR IGNORE INTO users SELECT user_id, username, display_name FROM old.users')  # the new row wins
+                added = conn.execute('''INSERT INTO user_count (user_id, date, count)
+                                        SELECT user_id, date, count FROM old.user_count WHERE true
+                                        ON CONFLICT(user_id, date) DO UPDATE SET count = count + excluded.count''').rowcount
+                if legacy_sql:
+                    conn.execute(legacy_sql[0])
+                    conn.execute('INSERT INTO user_count_legacy SELECT * FROM old.user_count_legacy')
+                conn.execute('INSERT INTO merged_chats VALUES (?)', (old_chat_id,))
+            conn.execute('COMMIT')
+        except Exception:
+            conn.execute('ROLLBACK')
+            raise
+        return added
+    finally:
+        conn.close()
+
 def migrate_chat(old_chat_id, new_chat_id):
     """Move the database of a group that became a supergroup to its new chat ID.
 
-    Returns 'moved', 'no_old' (nothing to move) or 'both_have_data' (nothing changed). A database of the
-    new ID that holds no counts yet (created by a message that arrived first) is replaced.
+    Returns 'moved', 'merged', 'no_old' (nothing to move) or 'both_have_data' (nothing changed). A database of
+    the new ID that holds no counts yet (created by a message that arrived first) is replaced. When it already
+    holds counts (the migration was handled late) the old database is added to it, and kept as <old>.merged.
     """
     old_path, new_path = _db_path(old_chat_id), _db_path(new_chat_id)
     if not os.path.exists(old_path):
@@ -118,10 +156,15 @@ def migrate_chat(old_chat_id, new_chat_id):
     if os.path.exists(new_path):
         conn = _connect(new_chat_id)
         try:
-            if conn.execute('SELECT EXISTS (SELECT 1 FROM user_count)').fetchone()[0]:
-                return 'both_have_data'
+            has_counts = conn.execute('SELECT EXISTS (SELECT 1 FROM user_count)').fetchone()[0]
         finally:
             conn.close()
+        if has_counts:
+            if _merge_into(old_chat_id, new_chat_id) is None:
+                return 'both_have_data'
+            os.replace(old_path, old_path + '.merged')
+            _schema_ready.discard(old_path)
+            return 'merged'
     os.replace(old_path, new_path)
     _schema_ready.discard(old_path)
     _schema_ready.discard(new_path)
