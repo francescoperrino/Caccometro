@@ -107,3 +107,11 @@ def test_reply_to_a_bot_message_falls_back_to_the_sender(chat_id):
     run(commands.aggiungi_command(upd, make_context("10-03-2024")))
     assert database.get_count(uid("mario"), "2024-03-10", chat_id) == 1
     assert get_user(chat_id, 999) is None
+
+
+def test_reply_to_the_topic_creation_message_is_not_a_reply_to_a_person(chat_id):
+    creator = make_tg_user(username="creatore", user_id=777)
+    upd = make_update(reply_to=creator, reply_in_topic=True)
+    run(commands.aggiungi_command(upd, make_context("10-03-2024")))
+    assert database.get_count(uid("mario"), "2024-03-10", chat_id) == 1
+    assert get_user(chat_id, 777) is None

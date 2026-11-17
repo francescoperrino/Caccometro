@@ -74,10 +74,34 @@ def resolve_target(update: Update, args, sender, usage):
             return None, args, (f"Non conosco @{username}: deve scrivere almeno un messaggio nel gruppo "
                                 "(oppure rispondi a un suo messaggio).")
         return target, args[1:], None
-    replied = update.message.reply_to_message
-    if replied is not None and replied.from_user is not None and not replied.from_user.is_bot:
-        return register_user(chat_id, replied.from_user), args, None
+    replied = replied_person(update)
+    if replied is not None:
+        return register_user(chat_id, replied), args, None
     return sender, args, None
+
+
+def replied_person(update: Update):
+    """The Telegram user of the message being replied to, or None when the reply is not to a person.
+
+    A bot is not a person. Inside a forum topic every message is a reply to the message that created
+    the topic: that is not a reply to its author either.
+    """
+    replied = update.message.reply_to_message
+    if replied is None or replied.forum_topic_created is not None or replied.from_user is None or replied.from_user.is_bot:
+        return None
+    return replied.from_user
+
+
+def resolve_optional_target(update: Update, context: ContextTypes.DEFAULT_TYPE, sender, usage):
+    """Target of /record and /trofei: io, @username or a reply. Returns (target, error); no target and no error means the group."""
+    if len(context.args) == 1 and context.args[0].lower() in ("io", "me"):
+        return sender, None
+    if not context.args and replied_person(update) is None:
+        return None, None
+    target, args, error = resolve_target(update, context.args, sender, usage)
+    if error is None and args:
+        error = f"Formato non valido. Usa: {usage}"
+    return target, error
 
 
 def legacy_hint(chat_id):
@@ -232,11 +256,12 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"Command received: /record from {sender.mention} in {where(update)}")
     usage = "/record [@username | io]"
     chat_id = update.message.chat_id
-    replied = update.message.reply_to_message
-    replies_to_a_person = replied is not None and replied.from_user is not None and not replied.from_user.is_bot
-    keyword = context.args[0].lower() if len(context.args) == 1 else None
+    target, error = resolve_optional_target(update, context, sender, usage)
+    if error:
+        await update.message.reply_text(error)
+        return
 
-    if not context.args and not replies_to_a_person:
+    if target is None:
         # no target at all: the records of the whole group
         rows_by_user, users = get_all_user_rows(chat_id)
         if not rows_by_user:
@@ -248,15 +273,6 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"Command /record (group) completed in {where(update)}")
         return
 
-    if keyword in ("io", "me"):
-        target, args, error = sender, [], None
-    else:
-        target, args, error = resolve_target(update, context.args, sender, usage)
-        if error is None and args:
-            error = f"Formato non valido. Usa: {usage}"
-    if error:
-        await update.message.reply_text(error)
-        return
     rows = get_record(target.user_id, chat_id)
     if not rows:
         await update.message.reply_text(f"Nessun dato disponibile per {target.mention}." + legacy_hint(update.message.chat_id))
@@ -275,18 +291,7 @@ async def trofei_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"Command received: /trofei from {sender.mention} in {where(update)}")
     usage = "/trofei [@username | io]"
     chat_id = update.message.chat_id
-    replied = update.message.reply_to_message
-    replies_to_a_person = replied is not None and replied.from_user is not None and not replied.from_user.is_bot
-    keyword = context.args[0].lower() if len(context.args) == 1 else None
-
-    if keyword in ("io", "me"):
-        target, error = sender, None
-    elif context.args or replies_to_a_person:
-        target, args, error = resolve_target(update, context.args, sender, usage)
-        if error is None and args:
-            error = f"Formato non valido. Usa: {usage}"
-    else:
-        target, error = None, None
+    target, error = resolve_optional_target(update, context, sender, usage)
     if error:
         await update.message.reply_text(error)
         return
@@ -304,13 +309,13 @@ async def trofei_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(message, parse_mode='Markdown')
     logger.info(f"Command /trofei completed in {where(update)}")
 
-async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /aggiungi command."""
+async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE, command, delta):
+    """Shared body of /aggiungi (delta +1) and /togli (delta -1)."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /aggiungi from {sender.mention} in {where(update)}")
-    usage = "/aggiungi @username DD-MM-YYYY"
+    logger.info(f"Command received: /{command} from {sender.mention} in {where(update)}")
+    usage = f"/{command} @username DD-MM-YYYY"
     target, args, error = resolve_target(update, context.args, sender, usage)
     if error is None and len(args) != 1:
         error = f"Formato non valido. Usa: {usage}"
@@ -325,40 +330,22 @@ async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Errore: {str(e)}")
         return
 
-    _, new_count = add_count(target.user_id, selected_date, 1, update.message.chat_id)
-    await update.message.reply_text(
-        f"Il conteggio di {target.mention} nel giorno {date} è stato aggiornato a {new_count} 💩.")
-    logger.info(f"Command /aggiungi completed in {where(update)}")
+    old_count, new_count = add_count(target.user_id, selected_date, delta, update.message.chat_id)
+    if delta < 0 and old_count == 0:
+        await update.message.reply_text(
+            f"Il conteggio di {target.mention} nel giorno {date} non può essere aggiornato poiché era già 0 💩.")
+    else:
+        await update.message.reply_text(
+            f"Il conteggio di {target.mention} nel giorno {date} è stato aggiornato a {new_count} 💩.")
+    logger.info(f"Command /{command} completed in {where(update)}")
+
+async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /aggiungi command."""
+    await change_count_command(update, context, 'aggiungi', 1)
 
 async def togli_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /togli command."""
-    sender = register_sender(update)
-    if sender is None:
-        return
-    logger.info(f"Command received: /togli from {sender.mention} in {where(update)}")
-    usage = "/togli @username DD-MM-YYYY"
-    target, args, error = resolve_target(update, context.args, sender, usage)
-    if error is None and len(args) != 1:
-        error = f"Formato non valido. Usa: {usage}"
-    if error:
-        await update.message.reply_text(error)
-        return
-    if not await may_change_counts_of(update, context, sender, target):
-        return
-    try:
-        date, selected_date = parse_date_arg(args[0])
-    except ValueError as e:
-        await update.message.reply_text(f"Errore: {str(e)}")
-        return
-
-    old_count, new_count = add_count(target.user_id, selected_date, -1, update.message.chat_id)
-    if old_count > 0:
-        await update.message.reply_text(
-            f"Il conteggio di {target.mention} nel giorno {date} è stato aggiornato a {new_count} 💩.")
-    else:
-        await update.message.reply_text(
-            f"Il conteggio di {target.mention} nel giorno {date} non può essere aggiornato poiché era già 0 💩.")
-    logger.info(f"Command /togli completed in {where(update)}")
+    await change_count_command(update, context, 'togli', -1)
 
 async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /conto_giorno command."""
@@ -467,12 +454,12 @@ async def collega_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(args) != 1:
         await update.message.reply_text(f"Formato non valido. Usa: {usage}")
         return
-    replied = update.message.reply_to_message
-    if replied is None or replied.from_user is None or replied.from_user.is_bot:
+    replied = replied_person(update)
+    if replied is None:
         await update.message.reply_text(f"Rispondi a un messaggio della persona da collegare. Usa: {usage}")
         return
     legacy_username = args[0].lstrip('@')
-    target = register_user(chat_id, replied.from_user)
+    target = register_user(chat_id, replied)
     days = link_legacy_username(chat_id, legacy_username, target.user_id)
     if days == 0:
         await update.message.reply_text(f"Nessun dato storico trovato per «{legacy_username}» (già collegato o inesistente).")

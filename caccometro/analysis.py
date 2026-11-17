@@ -8,9 +8,8 @@ from typing import NamedTuple, Optional, Tuple
 
 import numpy as np
 
+from caccometro.config import STORING_FORMAT
 from caccometro.database import User
-
-STORING_FORMAT = "%Y-%m-%d"
 
 Month = Tuple[int, int]  # (year, month)
 

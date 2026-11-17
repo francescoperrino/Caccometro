@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import pytz
 
 from caccometro import commands
-from conftest import make_context, make_update
+from conftest import make_context, make_tg_user, make_update
 
 
 def run(coro):
@@ -62,3 +62,11 @@ def test_record_shows_the_current_status_of_every_metric(seed):
     assert "↳ In corso: 3 giorni di fila" in text
     assert "↳ In corso: 3 💩 nella serie" in text
     assert "↳ In corso: oggi hai fatto 💩, nessuna pausa" in text
+
+
+def test_record_in_a_forum_topic_shows_the_group_not_the_topic_creator(seed):
+    today = datetime.now(pytz.timezone("Europe/Rome")).strftime("%Y-%m-%d")
+    seed({"mario": {today: 1}, "creatore": {today: 1}})
+    upd = make_update(reply_to=make_tg_user("creatore"), reply_in_topic=True)
+    run(commands.record_command(upd, make_context()))
+    assert "Record per @creatore" not in upd.message.reply_text.call_args[0][0]
