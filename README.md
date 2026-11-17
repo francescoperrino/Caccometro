@@ -142,7 +142,7 @@ RUN_MODE = 'POLLING' # 'POLLING' in locale, 'WEBHOOK' in produzione
 python -m caccometro
 ```
 
-In modalità polling il bot chiede lui gli aggiornamenti a Telegram: non serve un server pubblico. Si ferma con `CTRL+C`. I database vengono creati in `db/` (uno per chat), il log in `caccometro.log`.
+In modalità polling il bot chiede lui gli aggiornamenti a Telegram: non serve un server pubblico. Si ferma con `CTRL+C`. I database vengono creati in `db/` (uno per chat), il log in `caccometro.log`, sempre nella cartella del progetto, da qualunque cartella parta il bot.
 
 ---
 
@@ -298,7 +298,7 @@ Lo script registra su Telegram l'URL `/webhook` con il `WEBHOOK_SECRET`: le chia
 
 ### 4. Annuncio di mezzanotte
 
-Crea un'attività pianificata giornaliera alle **22:00 UTC** che parte dalla cartella con `db/`:
+Crea un'attività pianificata giornaliera alle **22:00 UTC** che parte dalla cartella del progetto (i database e il log si trovano comunque lì, qualunque sia la cartella di partenza):
 
 ```bash
 cd /home/<your-username> && python3.10 -m caccometro.announce

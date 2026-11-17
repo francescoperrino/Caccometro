@@ -15,11 +15,11 @@ from caccometro.commands import (start_command, classifica_mese_command, classif
                                  statistiche_mese_command, statistiche_anno_command, record_command, aggiungi_command,
                                  togli_command, conto_giorno_command, costipazione_command, collega_command,
                                  trofei_command)
-from caccometro.config import BOT_TOKEN, ROME_TZ, RUN_MODE
+from caccometro.config import BOT_TOKEN, PROJECT_DIR, ROME_TZ, RUN_MODE
 from caccometro.messages import handle_message, handle_migration
 
 # Enable logging
-log_filename = os.environ.get('LOG_FILE', 'caccometro.log')  # the tests point it elsewhere
+log_filename = os.environ.get('LOG_FILE', str(PROJECT_DIR / 'caccometro.log'))  # the tests point it elsewhere
 LOG_MAX_BYTES = 1_000_000  # 1 MB per file...
 LOG_BACKUPS = 3            # ...and 3 older files: the logs never take more than about 4 MB
 file_handler = RotatingFileHandler(log_filename, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUPS, encoding='utf-8')

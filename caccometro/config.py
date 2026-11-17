@@ -2,11 +2,13 @@
 import calendar
 import os
 from datetime import datetime
+from pathlib import Path
 
 import pytz
 from dotenv import load_dotenv
 
 load_dotenv()
+PROJECT_DIR = Path(__file__).resolve().parent.parent  # database and log live here, whatever the working directory
 BOT_USERNAME = os.environ.get('BOT_USERNAME')
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')  # also given to set_webhook: Telegram sends it back
