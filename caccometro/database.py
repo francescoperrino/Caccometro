@@ -5,10 +5,10 @@ import sqlite3
 from datetime import datetime
 from typing import NamedTuple, Optional
 
-from caccometro.config import now_rome, period_bounds
+from caccometro.config import PROJECT_DIR, now_rome, period_bounds
 
 # Configurations
-DB_FOLDER = 'db'
+DB_FOLDER = str(PROJECT_DIR / 'db')
 
 # Schema versions (stored in PRAGMA user_version):
 #   0/1 = legacy: counts keyed by Telegram username
