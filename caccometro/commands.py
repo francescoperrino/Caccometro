@@ -1,5 +1,6 @@
 """Command handlers: parse the arguments, read or change the data, reply."""
 import logging
+import re
 from datetime import datetime, timedelta
 
 from telegram import Update
@@ -9,7 +10,7 @@ from caccometro import __version__
 from caccometro.analysis import FORECAST_WINDOW_DAYS, analyze_group, analyze_user, forecast_totals, period_statistics
 from caccometro.charts import generate_rank_chart, generate_statistics_chart
 from caccometro.chat import escape_md, is_chat_admin, register_sender, register_user, reply_chart, where
-from caccometro.config import DISPLAY_FORMAT, STORING_FORMAT, now_rome, period_bounds
+from caccometro.config import DISPLAY_FORMAT, MONTH_NAMES, STORING_FORMAT, now_rome, period_bounds
 from caccometro.database import (init_database, find_user_by_username, add_count, get_count, get_daily_counts,
                                  get_daily_counts_between,
                                  get_rank, get_users, get_record, get_all_user_rows, get_constipation_days,
@@ -30,31 +31,58 @@ def parse_username_arg(arg):
 MIN_YEAR, MAX_YEAR = 1970, 2100  # the years accepted in the arguments of the commands
 
 
+# '-', '/' and '.' are the same separator; the year has 2 digits (20YY) or 4; leading zeros are optional
+MONTH_ARG = re.compile(r'([0-9]{1,2})[-/.]([0-9]{2}|[0-9]{4})')
+MONTH_NAME_ARG = re.compile(r'([a-z]+)(?: ([0-9]{2}|[0-9]{4}))?')  # 'marzo 2026', 'marzo 26' or 'marzo' (this year)
+DATE_ARG = re.compile(r'([0-9]{1,2})[-/.]([0-9]{1,2})(?:[-/.]([0-9]{2}|[0-9]{4}))?')  # without the year: this year
+DATE_EXAMPLES = "Esempi: 05-03-2026, 5/3/26, 5.3 (anno corrente), oggi, ieri."
+
+
+def _year_of(text):
+    """'26' -> 2026, '2026' -> 2026."""
+    return 2000 + int(text) if len(text) == 2 else int(text)
+
+
 def parse_month_arg(arg):
-    """'3-2024' or '03-2024' -> '03-2024'; None if it is not a valid month (years 1970-2100)."""
-    try:
-        month = datetime.strptime(arg, '%m-%Y')
-    except ValueError:
-        return None
-    return month.strftime('%m-%Y') if MIN_YEAR <= month.year <= MAX_YEAR else None
+    """'3-2024', '03/24', '03.2024' or 'marzo 2024' -> '03-2024'; None if it is not a valid month (years 1970-2100)."""
+    arg = arg.strip().lower()
+    match = MONTH_ARG.fullmatch(arg)
+    if match is not None:
+        month, year = int(match.group(1)), _year_of(match.group(2))
+    else:
+        match = MONTH_NAME_ARG.fullmatch(arg)
+        if match is None or match.group(1) not in MONTH_NAMES:
+            return None
+        month = MONTH_NAMES.index(match.group(1))
+        year = _year_of(match.group(2)) if match.group(2) else now_rome().year
+    return f'{month:02d}-{year}' if 1 <= month <= 12 and MIN_YEAR <= year <= MAX_YEAR else None
 
 
 def parse_year_arg(arg):
-    """'2024' -> '2024'; None if it is not a valid year (4 digits, 1970-2100)."""
-    if len(arg) == 4 and arg.isdigit() and MIN_YEAR <= int(arg) <= MAX_YEAR:
-        return arg
+    """'2024' or '24' -> '2024'; None if it is not a valid year (2 or 4 digits, 1970-2100)."""
+    if re.fullmatch(r'([0-9]{2}|[0-9]{4})', arg) and MIN_YEAR <= _year_of(arg) <= MAX_YEAR:
+        return str(_year_of(arg))
     return None
 
 
 def parse_date_arg(arg):
-    """'DD-MM-YYYY' -> (display date, storing date); raises ValueError if invalid, before 1970 or in the future."""
-    selected_date = datetime.strptime(arg, DISPLAY_FORMAT).date()
-    if selected_date > now_rome().date():
+    """'5/3/26', '05.03.2026', '5.3', 'oggi', 'ieri'... -> ('05-03-2026', '2026-03-05'); raises ValueError if invalid, before 1970 or in the future."""
+    today = now_rome().date()
+    word, match = arg.lower(), DATE_ARG.fullmatch(arg)
+    try:
+        if word in ('oggi', 'ieri'):
+            selected_date = today - timedelta(days=(word == 'ieri'))
+        else:
+            year = _year_of(match.group(3)) if match.group(3) else today.year
+            selected_date = datetime(year, int(match.group(2)), int(match.group(1))).date()
+    except (AttributeError, ValueError):  # no match, or a day that does not exist
+        raise ValueError(f"Data non valida. {DATE_EXAMPLES}") from None
+    if selected_date > today:
         raise ValueError("La data selezionata è nel futuro.")
     if selected_date.year < MIN_YEAR:
         raise ValueError(f"L'anno deve essere dal {MIN_YEAR} in poi.")
     # isoformat, not strftime: on Linux '%Y' does not pad the year with zeros
-    return arg, selected_date.isoformat()
+    return selected_date.strftime(DISPLAY_FORMAT), selected_date.isoformat()
 
 
 def resolve_target(update: Update, args, sender, usage):
@@ -135,10 +163,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Wording of the two kinds of period, for the rank and statistics commands
 PERIODS = {
     'month': {'name': 'mese', 'parse': parse_month_arg, 'current': '%m-%Y',
-              'format_error': "Formato data non valido. Usa MM-YYYY.",
+              'format_error': "Formato data non valido. Usa MM-YYYY (anche 3/2026, 03.26 o marzo 2026).",
               'of': "del mese", 'in': "Nel mese", 'for': "per il mese"},
     'year': {'name': 'anno', 'parse': parse_year_arg, 'current': '%Y',
-             'format_error': "Formato anno non valido. Usa YYYY.",
+             'format_error': "Formato anno non valido. Usa YYYY (anche 26).",
              'of': "dell'anno", 'in': "Nell'anno", 'for': "per l'anno"},
 }
 MEDALS = {1: '🥇', 2: '🥈', 3: '🥉'}
@@ -159,7 +187,7 @@ async def period_from_args(update: Update, args, time_period):
     period = PERIODS[time_period]
     if not args:
         return now_rome().strftime(period['current'])
-    date = period['parse'](args[0])
+    date = period['parse'](' '.join(args))  # joined: 'marzo 2026' arrives as two arguments
     if date is None:
         await update.message.reply_text(period['format_error'])
     return date
