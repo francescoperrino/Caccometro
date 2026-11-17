@@ -26,7 +26,7 @@ Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in u
 2. Quando hai fatto il tuo dovere manda un messaggio con 💩 o 🚽 (anche come sticker): il bot risponde con il conto di oggi.
 3. Usa i comandi qui sotto per classifiche, statistiche e record.
 
-Il bot legge i messaggi del gruppo per trovare le 💩: per questo su @BotFather la **Group Privacy** deve essere disattivata. Il testo dei messaggi non viene mai salvato né scritto nel log.
+Il bot legge i messaggi del gruppo per trovare le 💩: per questo su @BotFather la **Group Privacy** deve essere disattivata. Il testo dei messaggi non viene mai salvato né scritto nel log. Nel log finiscono invece le modifiche fatte a mano: per ogni `/aggiungi` e `/togli` chi l'ha mandato, la persona, il giorno e il conteggio prima e dopo; per `/collega` il vecchio username, la persona e i giorni spostati.
 
 ---
 

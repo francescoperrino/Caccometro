@@ -1,5 +1,6 @@
 """The /collega command: link the old username-based history to Telegram users."""
 import asyncio
+import logging
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -179,3 +180,16 @@ def test_collega_is_registered_as_a_command():
     handlers = bot.application.handlers[0]
     commands = {c for h in handlers if hasattr(h, "commands") for c in h.commands}
     assert "collega" in commands
+
+
+def test_links_are_logged_with_old_username_target_and_days(tmp_path, caplog):
+    legacy(tmp_path)
+    database.upsert_user(CHAT, 42, "mario", "Mario Rossi")
+    person = make_tg_user(username="gigi", user_id=555)
+    with caplog.at_level(logging.INFO, logger="caccometro"):
+        run(commands.collega_command(make_update(chat_id=CHAT, username="anna"), make_context("auto", member_status="administrator")))
+        run(commands.collega_command(make_update(chat_id=CHAT, username="anna", reply_to=person),
+                                     make_context("luigi", member_status="administrator")))
+    lines = [r.getMessage() for r in caplog.records if r.getMessage().startswith("History linked")]
+    assert "@anna" in lines[0] and "Mario -> @mario, 2 days" in lines[0]
+    assert "luigi -> @gigi, 1 days" in lines[1]

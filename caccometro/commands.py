@@ -359,6 +359,8 @@ async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
     old_count, new_count = add_count(target.user_id, selected_date, delta, update.message.chat_id)
+    logger.info(f"Count changed by {sender.mention} in {where(update)}: /{command} {target.mention} "
+                f"{selected_date} {old_count} -> {new_count}")
     if delta < 0 and old_count == 0:
         await update.message.reply_text(
             f"Il conteggio di {target.mention} nel giorno {date} non può essere aggiornato poiché era già 0 💩.")
@@ -465,6 +467,9 @@ async def collega_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 'auto' is the keyword; an old username that is literally 'auto' can be written as '@auto'
     if len(args) == 1 and args[0] == 'auto':
         linked = link_legacy_by_username(chat_id)
+        for legacy_username, user, days in linked:
+            logger.info(f"History linked by {sender.mention} in {where(update)}: "
+                        f"{legacy_username} -> {user.mention}, {days} days")
         remaining = list_legacy_users(chat_id)
         lines = []
         if linked:
@@ -489,6 +494,7 @@ async def collega_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     legacy_username = args[0].lstrip('@')
     target = register_user(chat_id, replied)
     days = link_legacy_username(chat_id, legacy_username, target.user_id)
+    logger.info(f"History linked by {sender.mention} in {where(update)}: {legacy_username} -> {target.mention}, {days} days")
     if days == 0:
         await update.message.reply_text(f"Nessun dato storico trovato per «{legacy_username}» (già collegato o inesistente).")
     else:
