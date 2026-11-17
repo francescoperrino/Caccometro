@@ -15,7 +15,7 @@ from caccometro.database import (init_database, find_user_by_username, add_count
                                  get_daily_counts_between,
                                  get_rank, get_users, get_record, get_all_user_rows, get_constipation_days,
                                  list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username)
-from caccometro.formatting import format_group_record, format_group_trophies, format_user_record, format_user_trophies
+from caccometro.formatting import bold, format_group_record, format_group_trophies, format_user_record, format_user_trophies
 from caccometro.trophies import trophies_by_user
 
 logger = logging.getLogger(__name__)
@@ -175,7 +175,7 @@ MEDALS = {1: '🥇', 2: '🥈', 3: '🥉'}
 def ranked_line(position, name, value):
     """One line of a ranking: a medal and the name in bold for the first three."""
     if position in MEDALS:
-        return f"{MEDALS[position]} *{name}*: {value}\n"
+        return f"{MEDALS[position]} {bold(name)}: {value}\n"
     return f"{position}. {name}: {value}\n"
 
 
