@@ -323,7 +323,7 @@ La versione è in `caccometro/__init__.py` (`__version__`, [Semantic Versioning]
 
 ## ⚙️ Operazioni
 
-Oltre al bot, il progetto ha alcuni script di servizio nella cartella `tools/`: girano sulla macchina di sviluppo e parlano con l'hosting tramite la sua API HTTP. Leggono `HOSTING_USERNAME` dal `.env` e il token dell'API dalla variabile d'ambiente `HOSTING_API_TOKEN` (mai nel `.env`, mai stampato). Si lanciano dalla radice del repository, con il virtual environment attivo; backup e log finiscono sempre nelle cartelle `backups/` e `logs/` del progetto, da qualunque cartella partano.
+Oltre al bot, il progetto ha alcuni script di servizio nella cartella `tools/`: girano sulla macchina di sviluppo e parlano con l'hosting tramite la sua API HTTP. Leggono `HOSTING_USERNAME` dal `.env` e il token dell'API dalla variabile d'ambiente `HOSTING_API_TOKEN` (mai nel `.env`, mai stampato). Si lanciano dalla radice del repository, con il virtual environment attivo; backup e log finiscono sempre nelle cartelle `backups/` e `logs/` del progetto, da qualunque cartella partano e sono leggibili solo dal proprietario (contengono copie dei database e username).
 
 ```mermaid
 flowchart LR
