@@ -28,6 +28,7 @@ from dotenv import load_dotenv
 
 REPO = Path(__file__).resolve().parent.parent  # backups/, logs/ and the code are found from here, not from the working directory
 load_dotenv(REPO / ".env")
+os.umask(0o077)  # backups/ and logs/ hold copies of the databases: owner only (also for backup_db.py and fetch_logs.py, which import this)
 USER = os.environ.get("HOSTING_USERNAME") or sys.exit("HOSTING_USERNAME is not set (.env).")
 HOST = "https://www.pythonanywhere.com"
 DOMAIN = f"{USER}.pythonanywhere.com"
