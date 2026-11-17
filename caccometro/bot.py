@@ -36,11 +36,25 @@ def log_handlers(run_mode):
     return [file_handler]
 
 
+def keep_app_log_out_of_the_root_logger(run_mode):
+    """In webhook mode the bot's own records go straight to the file and stop at the 'caccometro' logger.
+
+    The hosting puts a handler of its own on the root logger, after this module is imported (it shows every record,
+    message only, in the web server error log). Records of the libraries still reach it: that is where their
+    crashes belong. Polling mode (local development) keeps the console handler of log_handlers().
+    """
+    if run_mode != 'POLLING':
+        app_logger = logging.getLogger('caccometro')
+        app_logger.addHandler(file_handler)
+        app_logger.propagate = False
+
+
 # Log times in Italian time, like every date the bot shows (the server clock runs in UTC)
 logging.Formatter.converter = staticmethod(lambda seconds: datetime.fromtimestamp(seconds, ROME_TZ).timetuple())
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                     level=logging.INFO,
                     handlers=log_handlers(RUN_MODE))
+keep_app_log_out_of_the_root_logger(RUN_MODE)
 # Set higher logging level for httpx to avoid all GET and POST requests being logged
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
