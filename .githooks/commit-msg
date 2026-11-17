@@ -1,0 +1,8 @@
+#!/bin/sh
+# Commits carry no co-author or generator trailer. Extra personal rules can go in .git/hooks/local-commit-msg.
+if grep -qiE '^co-authored-by:|generated with' "$1"; then
+    echo "commit-msg: the message has a co-author or a generator line. Remove it." >&2
+    exit 1
+fi
+local_hook="$(git rev-parse --git-dir)/hooks/local-commit-msg"
+if [ -x "$local_hook" ]; then "$local_hook" "$@" || exit 1; fi
