@@ -8,7 +8,7 @@ from telegram.ext import ContextTypes
 from caccometro import config
 from caccometro.chat import escape_md, register_sender, where
 from caccometro.config import ROME_TZ, STORING_FORMAT, now_rome
-from caccometro.database import add_count, get_record
+from caccometro.database import add_count, get_record, migrate_chat
 from caccometro.formatting import format_streak_trophy
 from caccometro.trophies import new_streak_trophy
 
@@ -29,6 +29,19 @@ def record_poop(sender, chat_id, sent_at=None):
         if streak is not None:
             response += "\n\n" + format_streak_trophy(streak)
     return response
+
+
+async def handle_migration(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """A basic group became a supergroup: Telegram gave it a new chat ID, so the database follows it."""
+    old_chat_id = update.message.migrate_from_chat_id
+    if old_chat_id is None:  # the twin message sent in the old chat
+        return
+    new_chat_id = update.message.chat_id
+    result = migrate_chat(old_chat_id, new_chat_id)
+    if result == 'both_have_data':
+        logger.warning(f"Chat {old_chat_id} became {new_chat_id}, but both databases hold counts: left untouched.")
+    else:
+        logger.info(f"Chat {old_chat_id} became {new_chat_id}: {result}.")
 
 
 # Messages handler

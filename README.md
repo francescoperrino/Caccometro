@@ -77,6 +77,7 @@ I conteggi sono associati allo **user ID di Telegram**, non allo username: chi c
   2. quando tutti hanno scritto almeno un messaggio, `/collega auto` collega gli username identici;
   3. per gli altri si risponde a un messaggio della persona con `/collega <username storico>`.
 - Le registrazioni vecchie senza username non possono essere collegate.
+- Quando un gruppo diventa **supergruppo** Telegram gli dà un nuovo chat ID: il bot rinomina il database (`db/<vecchio>_bot_data.db` → `db/<nuovo>_bot_data.db`) e la storia resta. Se entrambi i database hanno già dei conteggi non tocca niente e lo scrive nel log.
 
 ---
 

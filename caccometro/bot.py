@@ -16,7 +16,7 @@ from caccometro.commands import (start_command, classifica_mese_command, classif
                                  togli_command, conto_giorno_command, costipazione_command, collega_command,
                                  trofei_command)
 from caccometro.config import BOT_TOKEN, ROME_TZ, RUN_MODE
-from caccometro.messages import handle_message
+from caccometro.messages import handle_message, handle_migration
 
 # Enable logging
 log_filename = os.environ.get('LOG_FILE', 'caccometro.log')  # the tests point it elsewhere
@@ -114,7 +114,8 @@ application.add_handler(CommandHandler('conto_giorno', conto_giorno_command))
 application.add_handler(CommandHandler('costipazione', costipazione_command))
 application.add_handler(CommandHandler('collega', collega_command))
 
-# Messages
+# Messages (the migration handler comes first: only the first matching handler of a group runs)
+application.add_handler(MessageHandler(filters.StatusUpdate.MIGRATE, handle_migration))
 application.add_handler(MessageHandler(filters.ALL, handle_message))
 
 # Errors
