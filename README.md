@@ -15,6 +15,7 @@ Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in u
 - [Test](#-test)
 - [Architettura](#️-architettura)
 - [Produzione (webhook)](#-produzione-webhook)
+- [Operazioni](#️-operazioni)
 - [Contribuire](#-contribuire)
 
 ---
@@ -61,7 +62,7 @@ Nei comandi con `[@username]` la persona si può indicare anche **rispondendo a 
 - **Trofei:** 🔥 uno ogni 15 giorni consecutivi con almeno una 💩 (15, 30, 45, ...; una serie di 47 giorni vale 3 trofei), annunciato nella risposta alla prima 💩 del giorno che li completa; 🏅 **💩 del mese** e 👑 **💩 dell'anno** a chi ne ha fatte di più in un mese o in un anno completo (a parità, a tutti). I trofei si calcolano dai conteggi, quindi `/aggiungi` e `/togli` li aggiornano.
 - **Annuncio di mezzanotte:** il primo giorno di ogni mese, a mezzanotte, il bot scrive in ogni chat il 💩 del mese appena finito; il 1° gennaio anche il 💩 dell'anno, con gli auguri di buon anno.
 
-Le date seguono l'ora italiana (`Europe/Rome`), anche se il server è in UTC.
+Le date seguono l'ora italiana (`Europe/Rome`), anche se il server è in UTC. Una 💩 conta nel giorno in cui il messaggio è stato **inviato** (`message.date`), anche se il bot lo elabora più tardi, per esempio dopo un ritardo del server a cavallo della mezzanotte. I comandi accettano mesi e anni tra il 1970 e il 2100, e giorni dal 1970 a oggi. Il bot chiede a Telegram soltanto i messaggi (`allowed_updates`).
 
 ---
 
@@ -150,7 +151,7 @@ In modalità polling il bot chiede lui gli aggiornamenti a Telegram: non serve u
 python -m pytest -q
 ```
 
-I test (in `tests/`) non chiamano Telegram: usano database temporanei e oggetti finti, e scrivono il log in una cartella temporanea. Coprono comandi, conteggio dei messaggi, migrazione dello schema, record, statistiche, grafici, webhook e nuovi tentativi di invio.
+I test (in `tests/`) non chiamano Telegram: usano database temporanei e oggetti finti, e scrivono il log in una cartella temporanea. Su GitHub gli stessi test partono da soli a ogni pull request e a ogni push su `main` (Python 3.10, la versione dell'hosting): il controllo `pytest` deve passare per poter fare il merge. Coprono comandi, conteggio dei messaggi, migrazione dello schema, record, statistiche, grafici, webhook e nuovi tentativi di invio.
 
 ---
 
@@ -174,6 +175,8 @@ caccometro/          il bot, come pacchetto Python
   charts.py          grafici di classifiche e statistiche (PNG in memoria)
 scripts/set_webhook.py   registra il webhook su Telegram (una volta)
 tests/               test pytest
+.github/workflows/tests.yml   CI: pytest su Python 3.10 a ogni pull request e a ogni push su main
+requirements.txt     dipendenze del bot (requirements-dev.txt: anche quelle dei test)
 wsgi.py              modello del file WSGI per l'hosting
 assets/              avatar, animazione, font e immagini delle medaglie dei grafici
 ```
@@ -193,7 +196,7 @@ flowchart TD
     command -->|"sì"| commands["commands.py: legge il database,<br/>calcola con analysis.py"]
     command -->|"no"| poop{"Contiene 💩 o 🚽?"}
     poop -->|"no"| silent["Nessuna risposta"]
-    poop -->|"sì"| count["messages.py: +1 💩 oggi<br/>nel database"]
+    poop -->|"sì"| count["messages.py: +1 💩 nel giorno del messaggio<br/>(message.date) nel database"]
     commands --> output["Testo o grafico<br/>(formatting.py, charts.py)"]
     output --> send["RetryingRequest: invio a Telegram,<br/>fino a 6 tentativi se il proxy fallisce"]
     count --> send
@@ -244,11 +247,14 @@ flowchart LR
         proxy["Proxy in uscita<br/>a volte risponde 503"]
         db[("SQLite<br/>un file per chat in db/")]
         log[("caccometro.log<br/>al massimo 4 MB")]
+        task["Attività pianificata<br/>ogni giorno alle 22:00 UTC<br/>caccometro.announce"]
     end
     person -->|"💩 e comandi"| api
     api -->|"HTTPS POST /webhook con secret token"| flask
     flask -->|"conteggi e utenti"| db
     flask -->|"righe di log, senza testo dei messaggi"| log
+    task -->|"legge i conteggi"| db
+    task -->|"annuncio del primo del mese"| proxy
     flask -->|"risposte e grafici"| proxy
     proxy -->|"HTTPS sendMessage, sendPhoto"| api
     api -->|"risposta del bot"| person
@@ -299,9 +305,56 @@ cd /home/<your-username> && python3.10 -m caccometro.announce
 
 Alle 22:00 UTC in Italia sono le 23:00 (ora solare) o la mezzanotte (ora legale): lo script aspetta la mezzanotte se manca poco e scrive solo il primo giorno del mese. Per provarlo senza mandare niente: `python3.10 -m caccometro.announce --date 2027-01-01 --dry-run`.
 
+### Scadenza della web app
+
+Sul piano gratuito la web app **scade ogni 3 mesi**: dalla tab Web si sceglie "Run until 3 months from today". Va esteso anche l'attività pianificata, altrimenti l'annuncio di mezzanotte salta. Non esiste un'API per farlo: lo ricordano gli script di deploy e di scarico dei log, che stampano i giorni rimasti e avvisano sotto i 14.
+
 ### Versioni
 
 La versione è in `caccometro/__init__.py` (`__version__`, [Semantic Versioning](https://semver.org/lang/it/)): la mostrano `/start` e la home page. A ogni rilascio si aggiorna `__version__`, si crea il tag `vX.Y.Z` con la release su GitHub e si carica sul server anche `caccometro/__init__.py`.
+
+---
+
+## ⚙️ Operazioni
+
+Oltre al bot, il progetto ha alcuni script di servizio che girano sulla macchina di sviluppo e parlano con l'hosting tramite la sua API HTTP. Sono script locali, **non fanno parte del repository**; qui si descrive cosa fanno.
+
+```mermaid
+flowchart LR
+    subgraph dev["Macchina di sviluppo"]
+        repo["Repository locale<br/>codice, test"]
+        deploy["Script di deploy"]
+        backup["Script di backup<br/>cron, ogni giorno alle 03:30"]
+        logs["Script di scarico dei log"]
+        local[("backups/<br/>copie dei file e dei db<br/>logs/")]
+    end
+    subgraph gh["GitHub"]
+        ci["CI: pytest su Python 3.10<br/>obbligatoria per il merge"]
+        rel["Release e tag vX.Y.Z"]
+    end
+    subgraph hosting["Hosting"]
+        files["Codice, assets, db/, log"]
+        web["Web app"]
+    end
+    repo -->|"pull request"| ci
+    ci -->|"merge su main"| rel
+    repo --> deploy
+    deploy -->|"1. copia locale dei .py e dei db"| local
+    deploy -->|"2. upload dei file"| files
+    deploy -->|"3. reload e controllo della home"| web
+    backup -->|"scarica db/*.db"| files
+    backup -->|"controlla e tiene le ultime 14 copie"| local
+    logs -->|"scarica i log"| files
+    logs --> local
+    style dev stroke-dasharray: 5 5
+    style gh stroke-dasharray: 5 5
+    style hosting stroke-dasharray: 5 5
+```
+
+- **Deploy:** parte solo dopo il merge e a mano. Una prova a vuoto mostra cosa cambierebbe; poi salva in locale i vecchi file e i database, carica i nuovi, ricarica la web app e controlla la home page (che mostra la versione). Il rollback ripristina i `.py` salvati.
+- **Backup dei database:** ogni notte scarica `db/*.db`, controlla che ogni copia sia integra (`PRAGMA integrity_check`) e tiene le ultime 14. Se qualcosa fallisce lo segnala con un errore. Gira solo mentre la macchina è accesa.
+- **Log:** scarica il log del bot e i log del web server per cercare gli errori. I log contengono username: non vanno mai pubblicati.
+- **Release:** a ogni rilascio si alza `__version__`, si crea la release su GitHub e si fa il deploy.
 
 ---
 
