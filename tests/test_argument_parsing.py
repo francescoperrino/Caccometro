@@ -1,5 +1,6 @@
 """Command argument validation and case-insensitive usernames."""
 import asyncio
+from datetime import datetime
 
 import pytest
 
@@ -27,16 +28,81 @@ def test_username_argument_requires_at_sign(command):
 
 @pytest.mark.parametrize("command", [
     commands.classifica_mese_command, commands.statistiche_mese_command])
-@pytest.mark.parametrize("arg", ["13-2024", "00-2024", "abc", "2024", "03-24", "03-2024-01", "1-0150", "1-1969", "1-2101", "1-9999"])
+@pytest.mark.parametrize("arg", ["13-2024", "00-2024", "abc", "2024", "13/24", "0-24", "03-2024-01", "03_2024", "03-2o24", "1-0150", "1-1969", "1-2101", "1-9999"])
 def test_invalid_month_argument_replies_with_error(command, arg):
     assert "Formato data non valido" in reply_of(command, arg)
 
 
 @pytest.mark.parametrize("command", [
     commands.classifica_anno_command, commands.statistiche_anno_command])
-@pytest.mark.parametrize("arg", ["abc", "24", "20245", "-2024", "1800"])
+@pytest.mark.parametrize("arg", ["abc", "2", "20245", "-2024", "1800", "0150"])
 def test_invalid_year_argument_replies_with_error(command, arg):
     assert "Formato anno non valido" in reply_of(command, arg)
+
+
+@pytest.mark.parametrize("arg", ["03-2026", "3-2026", "03/2026", "3.2026", "03-26", "3/26", "03.26"])
+def test_month_written_in_the_common_formats(arg):
+    assert commands.parse_month_arg(arg) == "03-2026"
+
+
+@pytest.mark.parametrize("arg", ["05-03-2026", "5-3-2026", "05/03/2026", "5.3.2026", "05-03-26", "5/3/26", "05.03.26"])
+def test_date_written_in_the_common_formats(arg):
+    assert commands.parse_date_arg(arg) == ("05-03-2026", "2026-03-05")
+
+
+@pytest.mark.parametrize("arg", ["31-02-2026", "0-3-2026", "5-13-2026", "2026-03-05", "5/3/", "5-3-202", "5_3_2026", "a/b/c"])
+def test_impossible_or_unknown_date_is_refused_with_examples(arg):
+    with pytest.raises(ValueError, match="Esempi"):
+        commands.parse_date_arg(arg)
+
+
+@pytest.mark.parametrize("arg", ["2026", "26"])
+def test_year_with_two_or_four_digits(arg):
+    assert commands.parse_year_arg(arg) == "2026"
+
+
+@pytest.mark.parametrize("arg", ["marzo 2026", "Marzo 2026", "marzo 26", "MARZO 2026"])
+def test_month_written_with_its_italian_name(arg):
+    assert commands.parse_month_arg(arg) == "03-2026"
+
+
+def test_month_name_without_a_year_is_this_year():
+    assert commands.parse_month_arg("marzo") == f"03-{commands.now_rome().year}"
+
+
+@pytest.mark.parametrize("arg", ["marzi 2026", "march 2026", "marzo 1969", "marzo 2101", "marzo 20245", "2026 marzo"])
+def test_unknown_month_name_or_year_is_refused(arg):
+    assert commands.parse_month_arg(arg) is None
+
+
+def test_month_command_joins_the_arguments(seed):
+    seed({"mario": {"2024-03-10": 2}})
+    upd = make_update()
+    run(commands.classifica_mese_command(upd, make_context("marzo", "2024")))
+    upd.message.reply_photo.assert_called_once()
+
+
+def test_oggi_and_ieri_are_the_current_and_the_previous_day():
+    today = commands.now_rome().date()
+    assert commands.parse_date_arg("oggi")[1] == today.isoformat()
+    assert commands.parse_date_arg("Ieri")[1] == (today - commands.timedelta(days=1)).isoformat()
+
+
+def test_a_day_without_the_year_is_this_year():
+    year = commands.now_rome().year
+    assert commands.parse_date_arg("1.1") == (f"01-01-{year}", f"{year}-01-01")
+
+
+def test_a_day_without_the_year_in_the_future_is_refused(monkeypatch):
+    monkeypatch.setattr(commands, "now_rome", lambda: datetime(2026, 11, 17, 12, 0))
+    with pytest.raises(ValueError, match="futuro"):
+        commands.parse_date_arg("31/12")
+
+
+def test_aggiungi_accepts_a_slash_date_and_replies_with_the_standard_format(seed):
+    upd = make_update()
+    run(commands.aggiungi_command(upd, make_context("5/3/26")))
+    assert "05-03-2026" in upd.message.reply_text.call_args[0][0]
 
 
 def test_month_argument_without_leading_zero_is_still_accepted(seed):

@@ -35,19 +35,21 @@ Il bot legge i messaggi del gruppo per trovare le 💩: per questo su @BotFather
 | Comando                                | Descrizione |
 | :------------------------------------- | :---------- |
 | `/start`                               | Prepara il database della chat e mostra la versione del bot. |
-| `/classifica_mese [MM-YYYY]`           | Classifica del mese (corrente se la data manca), con grafico dell'andamento giorno per giorno. Per il mese in corso, accanto a ogni conto, la previsione a fine mese. |
-| `/classifica_anno [YYYY]`              | Classifica dell'anno (corrente se manca), con grafico e, per l'anno in corso, la previsione a fine anno. |
+| `/classifica_mese [MM-YYYY]`           | Classifica del mese (corrente se la data manca; anche `marzo 2026`), con grafico dell'andamento giorno per giorno. Per il mese in corso, accanto a ogni conto, la previsione a fine mese. |
+| `/classifica_anno [YYYY]`              | Classifica dell'anno (corrente se manca; anche `26`), con grafico e, per l'anno in corso, la previsione a fine anno. |
 | `/statistiche_mese [MM-YYYY]`          | Media, mediana e varianza delle 💩 al giorno di ogni persona nel mese, con grafico delle distribuzioni. |
 | `/statistiche_anno [YYYY]`             | Le stesse statistiche sull'anno. |
 | `/record [io \| @username]`            | Senza argomenti i **record del gruppo** (chi detiene ciascun record e chi è in testa adesso). Con `io` i tuoi record, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, ciascuno con lo **stato attuale**. |
 | `/trofei [io \| @username]`            | Senza argomenti la **bacheca dei trofei** del gruppo; con `io` i tuoi trofei, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, con quanti giorni mancano al prossimo trofeo di serie. |
-| `/conto_giorno [@username] [DD-MM-YYYY]` | 💩 di una persona in un giorno (oggi se la data manca). |
+| `/conto_giorno [@username] [DD-MM-YYYY]` | 💩 di una persona in un giorno (oggi se la data manca; anche `ieri`). |
 | `/costipazione [@username]`            | Giorni passati dall'ultima 💩. |
-| `/aggiungi [@username] DD-MM-YYYY`     | Aggiunge 1 💩 in un giorno passato o di oggi. Sul conto di un altro: solo admin. |
-| `/togli [@username] DD-MM-YYYY`        | Toglie 1 💩 (fino a 0) in un giorno passato o di oggi. Sul conto di un altro: solo admin. |
+| `/aggiungi [@username] DD-MM-YYYY`     | Aggiunge 1 💩 in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
+| `/togli [@username] DD-MM-YYYY`        | Toglie 1 💩 (fino a 0) in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
 | `/collega [auto \| username storico]`  | Solo admin: collega lo storico registrato per username alle persone (vedi sotto). Senza argomenti mostra cosa resta da collegare. |
 
 Nei comandi con `[@username]` la persona si può indicare anche **rispondendo a un suo messaggio** (utile per chi non ha uno username). Nei gruppi con i topic, rispondere al messaggio che ha creato il topic non conta come rispondere a una persona.
+
+**Date e mesi** si possono scrivere in vari modi: `-`, `/` e `.` sono equivalenti, gli zeri iniziali sono facoltativi e l'anno può avere due cifre (`26` = 2026, anche per `/classifica_anno` e `/statistiche_anno`). Quindi `5/3/26`, `05.03.2026` e `5-3-2026` indicano lo stesso giorno, e `3/26`, `03.2026` e `03-2026` lo stesso mese. Si possono usare anche `oggi` e `ieri`, un giorno senza anno (`5/3`, vale l'anno corrente) e il nome del mese in italiano (`marzo 2026`, `marzo 26`, `marzo` per l'anno corrente). Le risposte mostrano sempre `DD-MM-YYYY` e `MM-YYYY`. Sono valide solo date reali tra il 1970 e oggi (mesi e anni fino al 2100).
 
 ---
 
@@ -104,16 +106,16 @@ pip install -r requirements-dev.txt   # dipendenze del bot più pytest
 
 ```
 start - Avvia il bot e spiega come contare le 💩.
-classifica_mese - Classifica del mese, corrente o [MM-YYYY].
-classifica_anno - Classifica dell'anno, corrente o [YYYY].
-statistiche_mese - Media, mediana e varianza del mese, corrente o [MM-YYYY].
-statistiche_anno - Media, mediana e varianza dell'anno, corrente o [YYYY].
+classifica_mese - Classifica del mese, corrente o [MM-YYYY, anche marzo 2026].
+classifica_anno - Classifica dell'anno, corrente o [YYYY o YY].
+statistiche_mese - Media, mediana e varianza del mese, corrente o [MM-YYYY, anche marzo 2026].
+statistiche_anno - Media, mediana e varianza dell'anno, corrente o [YYYY o YY].
 record - Record del gruppo; con io o @username quelli di una persona.
 trofei - Trofei del gruppo; con io o @username quelli di una persona.
-conto_giorno - 💩 di un giorno: [@username] [DD-MM-YYYY].
+conto_giorno - 💩 di un giorno: [@username] [DD-MM-YYYY, oggi, ieri].
 costipazione - Giorni senza 💩: [@username].
-aggiungi - Aggiunge 1 💩 in un giorno: [@username] DD-MM-YYYY (altri: solo admin).
-togli - Toglie 1 💩 in un giorno: [@username] DD-MM-YYYY (altri: solo admin).
+aggiungi - Aggiunge 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
+togli - Toglie 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
 ```
 
 `/collega` è solo per gli admin: va registrato a parte, nella lista dei comandi degli amministratori (`setMyCommands` con scope `all_chat_administrators`).
