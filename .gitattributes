@@ -1,0 +1,4 @@
+# Source files use CRLF in the working tree on every platform (the repository stores LF).
+*.py text eol=crlf
+# Shell scripts must stay LF, or the shebang breaks.
+.githooks/* text eol=lf
