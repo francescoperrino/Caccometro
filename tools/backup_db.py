@@ -92,5 +92,7 @@ if __name__ == "__main__":
         if isinstance(e.code, str):
             message = e.code if "FAILED" in e.code else f"{datetime.now():%Y-%m-%d %H:%M} backup FAILED: {e.code}"
     if message:
-        alert(f"Caccometro: {message}")
+        when, _, reason = message.partition(" backup FAILED: ")
+        reason = reason.replace("\\n", "\n")  # repr() of an httpx error shows its line breaks as backslash-n
+        alert(f"⚠️ Caccometro: backup non riuscito\n{when}\n\n{reason[:300]}")
         sys.exit(message)
