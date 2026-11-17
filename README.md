@@ -154,7 +154,7 @@ In modalità polling il bot chiede lui gli aggiornamenti a Telegram: non serve u
 python -m pytest -q
 ```
 
-I test (in `tests/`) non chiamano Telegram: usano database temporanei e oggetti finti, e scrivono il log in una cartella temporanea. Su GitHub gli stessi test partono da soli a ogni pull request e a ogni push su `main` (Python 3.10, la versione dell'hosting): il controllo `pytest` deve passare per poter fare il merge. Coprono comandi, conteggio dei messaggi, migrazione dello schema, record, statistiche, grafici, webhook e nuovi tentativi di invio.
+I test (in `tests/`) non chiamano Telegram: usano database temporanei e oggetti finti, e scrivono il log in una cartella temporanea. Su GitHub gli stessi test partono da soli a ogni pull request e a ogni push su `main` (Python 3.10, la versione dell'hosting): il controllo `pytest` deve passare per poter fare il merge. Coprono comandi, conteggio dei messaggi, migrazione dello schema, record, statistiche, grafici, webhook e nuovi tentativi di invio. Un test controlla anche che la documentazione corrisponda al codice: ogni comando nella tabella e nel menu, ogni modulo nell'architettura, ogni variabile in `.env.example`, ogni file citato esistente.
 
 ---
 
