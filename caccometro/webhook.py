@@ -21,9 +21,9 @@ SEEN_UPDATE_IDS = deque(maxlen=500)
 @app.route('/webhook', methods=['POST'])
 async def webhook():
     """This function receives the update from Telegram and passes it to the library."""
-    # Only Telegram knows the secret: without it anybody could send fake updates
+    # Only Telegram knows the secret: without it anybody could send fake updates (compared as bytes: str raises on non-ASCII)
     received_secret = request.headers.get('X-Telegram-Bot-Api-Secret-Token', '')
-    if not WEBHOOK_SECRET or not hmac.compare_digest(received_secret, WEBHOOK_SECRET):
+    if not WEBHOOK_SECRET or not hmac.compare_digest(received_secret.encode(), WEBHOOK_SECRET.encode()):
         logger.warning("Webhook call without the right secret token: refused.")
         return Response('forbidden', status=403)
     logger.info("Webhook received...")
