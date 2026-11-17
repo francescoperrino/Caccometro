@@ -59,7 +59,7 @@ def test_every_variable_the_bot_reads_is_in_env_example():
 
 def test_the_files_named_in_the_readme_exist():
     tree = code_block_containing("il bot, come pacchetto Python")
-    named = {line.split()[0] for line in tree.splitlines() if line.startswith(("scripts/", "tests/", ".github/", "requirements", "wsgi", "assets/"))}
+    named = {line.split()[0] for line in tree.splitlines() if line.startswith(("scripts/", "tools/", ".githooks/", ".gitattributes", "tests/", ".github/", "requirements", "wsgi", "assets/"))}
     named |= {f"caccometro/{line.split()[0]}" for line in tree.splitlines() if line.startswith("  ") and line.split()[0].endswith(".py")}
     assert named, "the architecture tree was not found"
     for path in sorted(named):
@@ -68,3 +68,8 @@ def test_the_files_named_in_the_readme_exist():
 
 def test_the_readme_has_no_hardcoded_test_counts():
     assert not re.search(r"\b\d+ (test|passed|passati)", README)
+
+
+def test_every_service_script_is_named_in_the_readme():
+    for script in (ROOT / "tools").glob("*.py"):
+        assert f"tools/{script.name}" in README, f"tools/{script.name} is not named in the README"

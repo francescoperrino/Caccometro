@@ -1,0 +1,21 @@
+#!/bin/sh
+# Checks before every commit: no private files, green tests. Enable once per clone:
+#   git config core.hooksPath .githooks
+# Line endings are handled by .gitattributes. Extra personal rules can go in .git/hooks/local-pre-commit.
+for f in $(git diff --cached --name-only --diff-filter=ACMR); do
+    case "$f" in
+        .env|logs/*|backups/*|*.log|*.log.*)
+            echo "pre-commit: $f must never be committed. Unstage it: git restore --staged $f" >&2
+            exit 1 ;;
+    esac
+done
+
+local_hook="$(git rev-parse --git-dir)/hooks/local-pre-commit"
+if [ -x "$local_hook" ]; then "$local_hook" "$@" || exit 1; fi
+
+# the virtual environment of Linux/macOS (bin) or Windows (Scripts)
+py=$(ls .venv/bin/python .venv/Scripts/python.exe 2>/dev/null | head -n 1)
+${py:-python} -m pytest -q -p no:cacheprovider > /dev/null 2>&1 || {
+    echo "pre-commit: tests fail. Run: python -m pytest -q" >&2
+    exit 1
+}

@@ -177,6 +177,9 @@ caccometro/          il bot, come pacchetto Python
   announce.py        annuncio di mezzanotte del 💩 del mese (attività pianificata)
   charts.py          grafici di classifiche e statistiche (PNG in memoria)
 scripts/set_webhook.py   registra il webhook su Telegram (una volta)
+tools/               script di servizio: deploy, backup dei database, scarico dei log, versione dei bot
+.githooks/           hook git (pre-commit, commit-msg), attivati con core.hooksPath
+.gitattributes       fine riga dei file .py (CRLF) e degli hook (LF)
 tests/               test pytest
 .github/workflows/tests.yml   CI: pytest su Python 3.10 a ogni pull request e a ogni push su main
 requirements.txt     dipendenze del bot (requirements-dev.txt: anche quelle dei test)
@@ -320,7 +323,7 @@ La versione è in `caccometro/__init__.py` (`__version__`, [Semantic Versioning]
 
 ## ⚙️ Operazioni
 
-Oltre al bot, il progetto ha alcuni script di servizio che girano sulla macchina di sviluppo e parlano con l'hosting tramite la sua API HTTP. Sono script locali, **non fanno parte del repository**; qui si descrive cosa fanno.
+Oltre al bot, il progetto ha alcuni script di servizio nella cartella `tools/`: girano sulla macchina di sviluppo e parlano con l'hosting tramite la sua API HTTP. Leggono `HOSTING_USERNAME` dal `.env` e il token dell'API dalla variabile d'ambiente `HOSTING_API_TOKEN` (mai nel `.env`, mai stampato). Si lanciano dalla radice del repository, con il virtual environment attivo; backup e log finiscono sempre nelle cartelle `backups/` e `logs/` del progetto, da qualunque cartella partano.
 
 ```mermaid
 flowchart LR
@@ -354,10 +357,10 @@ flowchart LR
     style hosting stroke-dasharray: 5 5
 ```
 
-- **Deploy:** parte solo dopo il merge e a mano. Una prova a vuoto mostra cosa cambierebbe; poi salva in locale i vecchi file e i database, carica i nuovi, ricarica la web app e controlla la home page (che mostra la versione). Il rollback ripristina i `.py` salvati.
-- **Backup dei database:** ogni notte scarica `db/*.db`, controlla che ogni copia sia integra (`PRAGMA integrity_check`) e tiene le ultime 14. Se qualcosa fallisce lo segnala con un errore. Gira solo mentre la macchina è accesa.
-- **Log:** scarica il log del bot e i log del web server per cercare gli errori. I log contengono username: non vanno mai pubblicati.
-- **Release:** a ogni rilascio si alza `__version__`, si crea la release su GitHub e si fa il deploy.
+- **Deploy** (`tools/deploy.py`): parte solo dopo il merge e a mano. Una prova a vuoto mostra cosa cambierebbe; poi salva in locale i vecchi file e i database, carica i nuovi, ricarica la web app e controlla la home page (che mostra la versione). Il rollback ripristina i `.py` salvati. Esempio: `python tools/deploy.py caccometro/*.py` (prova a vuoto), poi con `--yes`.
+- **Backup dei database** (`tools/backup_db.py`): ogni notte scarica `db/*.db`, controlla che ogni copia sia integra (`PRAGMA integrity_check`) e tiene le ultime 14. Se qualcosa fallisce lo segnala con un errore. Gira solo mentre la macchina è accesa.
+- **Log** (`tools/fetch_logs.py`): scarica il log del bot e i log del web server per cercare gli errori. I log contengono username: non vanno mai pubblicati.
+- **Release:** a ogni rilascio si alza `__version__`, si crea la release su GitHub e si fa il deploy; poi `tools/bot_version.py` scrive la versione in fondo alla descrizione dei bot.
 
 ---
 
@@ -366,6 +369,7 @@ flowchart LR
 - Ogni modifica parte da una issue: usa i template **Bug**, **Feature** o **Task** (titolo e descrizione in inglese). Le vulnerabilità si segnalano in privato da [Security](https://github.com/francescoperrino/Caccometro/security/advisories/new).
 - Un branch per issue, con il prefisso del tipo: `bugfix/`, `feature/` o `task/`, poi `<numero>_<titolo_con_underscore>` (es. `task/49_update_the_documentation`).
 - Commit, commenti e docstring in inglese; i messaggi del bot agli utenti in italiano.
+- Una volta per clone: `git config core.hooksPath .githooks`. Gli hook della cartella `.githooks/` rifiutano i file privati (`.env`, `logs/`, `backups/`, i log) e i messaggi con righe `Co-Authored-By`, e lanciano i test prima di ogni commit. Regole personali in più si possono aggiungere in `.git/hooks/local-pre-commit` e `.git/hooks/local-commit-msg`. I file `.py` hanno le fine riga CRLF nella cartella di lavoro su ogni sistema (`.gitattributes`).
 - Prima della pull request: `python -m pytest -q`. `main` accetta modifiche solo tramite pull request.
 - Le label indicano l'area toccata (`commands`, `charts`, `database`, `hosting`, `deploy`, `dependencies`, `documentation`); il tipo della issue dice se è un bug, una feature o un task.
 
