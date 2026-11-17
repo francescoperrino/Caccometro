@@ -16,14 +16,22 @@ LOGS = {
     "access.log": f"{HOST}/api/v0/user/{USER}/files/path/var/log/{DOMAIN}.access.log",
 }
 
-if __name__ == "__main__":
+def main():
+    """Download the logs; return the names that could not be downloaded."""
     (REPO / "logs").mkdir(exist_ok=True)
+    failed = []
     with httpx.Client(headers={"Authorization": f"Token {token()}"}, timeout=120) as client:
         for name, url in LOGS.items():
             r = client.get(url)
             if r.status_code != 200:
                 print(f"  {name}: {r.status_code}")
+                failed.append(name)
                 continue
             (REPO / "logs" / name).write_bytes(r.content)
             print(f"  {name}: {len(r.content) // 1024} KB")
         expiry_warning(client)
+    return failed
+
+
+if __name__ == "__main__":
+    main()
