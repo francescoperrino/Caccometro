@@ -2,9 +2,21 @@
 
 The functions return Telegram (legacy) Markdown. Names must already be escaped by the caller.
 """
+import re
+
 from caccometro.analysis import GroupBoard, Leaders, Period, UserRecords
 from caccometro.config import DISPLAY_FORMAT, MONTH_NAMES
 from caccometro.trophies import STREAK_STEP
+
+
+ESCAPED = re.compile(r"(\\[_*`\[])")
+
+
+def bold(text):
+    """`text` in bold. Legacy Markdown shows the backslash of an escaped character written inside an entity, and an
+    unescaped `*` breaks the message, so the bold is closed and reopened around each escaped character
+    (which is then not bold): '@mario\\_rossi' becomes '*@mario*\\_*rossi*'."""
+    return "".join(part if ESCAPED.fullmatch(part) else f"*{part}*" for part in ESCAPED.split(text) if part)
 
 
 def _times(n):
@@ -60,7 +72,7 @@ def format_user_record(name, records: UserRecords):
     name: the user's name, already escaped for Markdown.
     """
     status = records.status
-    lines = [f"📊 *Record per {name}* 📊\n"]
+    lines = [f"📊 {bold(f'Record per {name}')} 📊\n"]
 
     # most 💩 in a day
     daily = records.daily
@@ -140,7 +152,7 @@ def _holders(leaders: Leaders, names, fmt=None):
     """'*@mario* (10-03-2025), *@luigi* (22-05-2025) e altri 2'."""
     parts = []
     for holder in leaders.holders[:MAX_HOLDERS]:
-        text = f"*{names.get(holder.key, str(holder.key))}*"
+        text = bold(names.get(holder.key, str(holder.key)))
         if fmt is not None and holder.when:
             text += f" ({_when_text(holder.when, fmt)})"
         parts.append(text)
@@ -201,7 +213,7 @@ def _month_name(month):
 
 def _names(user_ids, names):
     """'*@mario*', '*@mario* e *@luigi*', '*@anna*, *@mario* e *@luigi*'."""
-    parts = [f"*{names.get(user_id, str(user_id))}*" for user_id in user_ids]
+    parts = [bold(names.get(user_id, str(user_id))) for user_id in user_ids]
     return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " e " + parts[-1]
 
 
@@ -224,7 +236,7 @@ def format_group_trophies(trophies, names):
                                                             -item[1].streak_trophies, names.get(item[0], "")))
         for key, user in ranked:
             counts = (("👑", len(user.years)), ("🏅", len(user.months)), ("🔥", user.streak_trophies))
-            lines.append(f"*{names.get(key, str(key))}*: " + " · ".join(f"{emoji} {n}" for emoji, n in counts if n))
+            lines.append(f"{bold(names.get(key, str(key)))}: " + " · ".join(f"{emoji} {n}" for emoji, n in counts if n))
         lines.append(f"\n{TROPHY_LEGEND}")
     lines.append(("" if trophies else "\n") + "I tuoi: /trofei io — di un altro: /trofei @username (o rispondi a un suo messaggio)")
     return "\n".join(lines)
@@ -235,7 +247,7 @@ def format_user_trophies(name, trophies, current_streak):
 
     name: already escaped for Markdown; trophies: UserTrophies or None; current_streak: days of the run in progress.
     """
-    lines = [f"🏆 *Trofei di {name}* 🏆\n"]
+    lines = [f"🏆 {bold(f'Trofei di {name}')} 🏆\n"]
     if trophies is None:
         lines.append("Ancora nessun trofeo.")
     else:
