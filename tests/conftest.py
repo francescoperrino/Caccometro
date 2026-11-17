@@ -83,10 +83,11 @@ def make_tg_user(username="mario", user_id=None, full_name=None, is_bot=False):
 
 def make_update(text=None, username="mario", user_id=None, chat_id=CHAT_ID,
                 sticker_emoji=None, has_from_user=True, full_name=None,
-                reply_to=None, is_bot=False, chat_type="group", date=None):
+                reply_to=None, is_bot=False, chat_type="group", date=None, reply_in_topic=False):
     """Fake Telegram Update, enough for the bot handlers.
 
     reply_to: a make_tg_user(...) of the author of the message being replied to.
+    reply_in_topic: the replied message is the one that created a forum topic.
     """
     chat = SimpleNamespace(type=chat_type, effective_name="Gruppo test")
     from_user = (make_tg_user(username, user_id, full_name, is_bot) if has_from_user else None)
@@ -97,7 +98,8 @@ def make_update(text=None, username="mario", user_id=None, chat_id=CHAT_ID,
         chat_id=chat_id,
         chat=chat,
         sticker=SimpleNamespace(emoji=sticker_emoji) if sticker_emoji else None,
-        reply_to_message=SimpleNamespace(from_user=reply_to) if reply_to is not None else None,
+        reply_to_message=(SimpleNamespace(from_user=reply_to, forum_topic_created=object() if reply_in_topic else None)
+                          if reply_to is not None else None),
         reply_text=AsyncMock(),
         reply_photo=AsyncMock(),
     )

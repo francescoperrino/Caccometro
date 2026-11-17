@@ -3,10 +3,8 @@
 The functions return Telegram (legacy) Markdown. Names must already be escaped by the caller.
 """
 from caccometro.analysis import GroupBoard, Leaders, Period, UserRecords
-from caccometro.config import MONTH_NAMES
+from caccometro.config import DISPLAY_FORMAT, MONTH_NAMES
 from caccometro.trophies import STREAK_STEP
-
-DISPLAY_FORMAT = "%d-%m-%Y"
 
 
 def _times(n):
