@@ -49,6 +49,13 @@ def test_without_a_known_language_the_reply_shows_the_current_one(args):
     assert run(commands.lingua_command, *args, member_status="administrator").startswith("La lingua di questa chat")
 
 
+def test_every_command_answers_to_its_english_name_too():
+    from caccometro import bot
+    registered = {frozenset(h.commands): h.callback for h in bot.application.handlers[0] if hasattr(h, "commands")}
+    for italian, english, handler in bot.COMMANDS:
+        assert registered[frozenset({italian, english})] is handler, italian
+
+
 def test_an_unknown_stored_language_falls_back_to_italian():
     i18n.use("xx")
     assert i18n.current() == "it"

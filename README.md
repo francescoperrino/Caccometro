@@ -33,21 +33,21 @@ Il bot legge i messaggi del gruppo per trovare le 💩: per questo su @BotFather
 
 ## 📚 Comandi
 
-| Comando                                | Descrizione |
+| Comando (nome inglese)                 | Descrizione |
 | :------------------------------------- | :---------- |
 | `/start`                               | Prepara il database della chat e mostra la versione del bot. |
-| `/classifica_mese [MM-YYYY]`           | Classifica del mese (corrente se la data manca; anche `marzo 2026`), con grafico dell'andamento giorno per giorno. Per il mese in corso, accanto a ogni conto, la previsione a fine mese. |
-| `/classifica_anno [YYYY]`              | Classifica dell'anno (corrente se manca; anche `26`), con grafico e, per l'anno in corso, la previsione a fine anno. |
-| `/statistiche_mese [MM-YYYY]`          | Media, mediana e varianza delle 💩 al giorno di ogni persona nel mese, con grafico delle distribuzioni. |
-| `/statistiche_anno [YYYY]`             | Le stesse statistiche sull'anno. |
-| `/record [io \| @username]`            | Senza argomenti i **record del gruppo** (chi detiene ciascun record e chi è in testa adesso). Con `io` i tuoi record, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, ciascuno con lo **stato attuale**. |
-| `/trofei [io \| @username]`            | Senza argomenti la **bacheca dei trofei** del gruppo; con `io` i tuoi trofei, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, con quanti giorni mancano al prossimo trofeo di serie. |
-| `/conto_giorno [@username] [DD-MM-YYYY]` | 💩 di una persona in un giorno (oggi se la data manca; anche `ieri`). |
-| `/costipazione [@username]`            | Giorni passati dall'ultima 💩. |
-| `/aggiungi [@username] DD-MM-YYYY`     | Aggiunge 1 💩 in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
-| `/togli [@username] DD-MM-YYYY`        | Toglie 1 💩 (fino a 0) in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
-| `/collega [auto \| username storico]`  | Solo admin: collega lo storico registrato per username alle persone (vedi sotto). Senza argomenti mostra cosa resta da collegare. |
-| `/lingua [it \| en]`                   | Senza argomenti mostra la lingua della chat; con `it` o `en` la cambia (nei gruppi solo admin). Vale per risposte, grafici e annuncio di mezzanotte della chat. |
+| `/classifica_mese [MM-YYYY]` `/rank_month`           | Classifica del mese (corrente se la data manca; anche `marzo 2026`), con grafico dell'andamento giorno per giorno. Per il mese in corso, accanto a ogni conto, la previsione a fine mese. |
+| `/classifica_anno [YYYY]` `/rank_year`              | Classifica dell'anno (corrente se manca; anche `26`), con grafico e, per l'anno in corso, la previsione a fine anno. |
+| `/statistiche_mese [MM-YYYY]` `/stats_month`          | Media, mediana e varianza delle 💩 al giorno di ogni persona nel mese, con grafico delle distribuzioni. |
+| `/statistiche_anno [YYYY]` `/stats_year`             | Le stesse statistiche sull'anno. |
+| `/record [io \| @username]` `/records`            | Senza argomenti i **record del gruppo** (chi detiene ciascun record e chi è in testa adesso). Con `io` i tuoi record, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, ciascuno con lo **stato attuale**. |
+| `/trofei [io \| @username]` `/trophies`            | Senza argomenti la **bacheca dei trofei** del gruppo; con `io` i tuoi trofei, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, con quanti giorni mancano al prossimo trofeo di serie. |
+| `/conto_giorno [@username] [DD-MM-YYYY]` `/day_count` | 💩 di una persona in un giorno (oggi se la data manca; anche `ieri`). |
+| `/costipazione [@username]` `/constipation`            | Giorni passati dall'ultima 💩. |
+| `/aggiungi [@username] DD-MM-YYYY` `/add`     | Aggiunge 1 💩 in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
+| `/togli [@username] DD-MM-YYYY` `/remove`        | Toglie 1 💩 (fino a 0) in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
+| `/collega [auto \| username storico]` `/link`  | Solo admin: collega lo storico registrato per username alle persone (vedi sotto). Senza argomenti mostra cosa resta da collegare. |
+| `/lingua [it \| en]` `/language`                   | Senza argomenti mostra la lingua della chat; con `it` o `en` la cambia (nei gruppi solo admin). Vale per risposte, grafici e annuncio di mezzanotte della chat. |
 
 Nei comandi con `[@username]` la persona si può indicare anche **rispondendo a un suo messaggio** (utile per chi non ha uno username). Nei gruppi con i topic, rispondere al messaggio che ha creato il topic non conta come rispondere a una persona.
 
@@ -121,7 +121,24 @@ togli - Toglie 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: 
 lingua - Lingua del bot in questa chat: it o en (nei gruppi solo admin).
 ```
 
-`/collega` è solo per gli admin: va registrato a parte, nella lista dei comandi degli amministratori (`setMyCommands` con scope `all_chat_administrators`).
+Ogni comando ha anche un nome inglese (colonna della tabella sopra), valido in ogni chat. Telegram mostra il menu nella lingua dell'app di chi lo apre: quello inglese si registra con `setMyCommands` e `language_code=en`:
+
+```
+start - Start the bot and explain how to count 💩.
+rank_month - Ranking of the month, current or [MM-YYYY, also march 2026].
+rank_year - Ranking of the year, current or [YYYY or YY].
+stats_month - Mean, median and variance of the month, current or [MM-YYYY, also march 2026].
+stats_year - Mean, median and variance of the year, current or [YYYY or YY].
+records - Group records; with me or @username those of one person.
+trophies - Group trophies; with me or @username those of one person.
+day_count - 💩 of a day: [@username] [DD-MM-YYYY, today, yesterday].
+constipation - Days without 💩: [@username].
+add - Add 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
+remove - Remove 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
+language - Language of the bot in this chat: it or en (in groups admins only).
+```
+
+`/collega` (`/link`) è solo per gli admin: va registrato a parte, nella lista dei comandi degli amministratori (`setMyCommands` con scope `all_chat_administrators`), in tutte e due le lingue.
 
 Con `/setdescription` e `/setabouttext` puoi impostare anche le descrizioni:
 
