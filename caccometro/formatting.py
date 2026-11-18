@@ -68,7 +68,7 @@ def _month_label(months):
 
 
 def format_user_record(name, records: UserRecords):
-    """The /record message of one user: every record followed by where the user stands right now.
+    """The /records message of one user: every record followed by where the user stands right now.
 
     name: the user's name, already escaped for Markdown.
     """
@@ -171,7 +171,7 @@ def _holders(leaders: Leaders, names, fmt=None):
 
 
 def format_group_record(board: GroupBoard, names):
-    """The /record message of the whole group: who holds each record, and who leads right now.
+    """The /records message of the whole group: who holds each record, and who leads right now.
 
     names: {user key: name already escaped for Markdown}.
     """
@@ -240,7 +240,7 @@ def format_streak_trophy(days):
 
 
 def format_group_trophies(trophies, names):
-    """The /trofei message of the whole group: how many trophies of each kind every winner has.
+    """The /trophies message of the whole group: how many trophies of each kind every winner has.
 
     trophies: {user key: UserTrophies}; names: {user key: name already escaped for Markdown}.
     """
@@ -261,7 +261,7 @@ def format_group_trophies(trophies, names):
 
 
 def format_user_trophies(name, trophies, current_streak):
-    """The /trofei message of one user: every trophy, then how far the next streak trophy is.
+    """The /trophies message of one user: every trophy, then how far the next streak trophy is.
 
     name: already escaped for Markdown; trophies: UserTrophies or None; current_streak: days of the run in progress.
     """

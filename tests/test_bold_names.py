@@ -56,6 +56,6 @@ def test_messages_with_the_name_in_bold_are_well_formed(chat_id):
     database.upsert_user(chat_id, 5, None, NAME)
     database.add_count(5, "2024-03-10", 2, chat_id)
     bold_segments(commands.ranked_line(1, escape_md(NAME), 2))
-    for command, args in ((commands.record_command, ()), (commands.record_command, ("io",)),
-                          (commands.trofei_command, ()), (commands.trofei_command, ("io",))):
+    for command, args in ((commands.records_command, ()), (commands.records_command, ("io",)),
+                          (commands.trophies_command, ()), (commands.trophies_command, ("io",))):
         assert bold_segments(run(command, *args)), (command, args)

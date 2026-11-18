@@ -20,21 +20,21 @@ def reply_of(command, *args, username="mario"):
     return upd.message.reply_text.call_args[0][0]
 
 
-@pytest.mark.parametrize("command", [commands.record_command, commands.costipazione_command])
+@pytest.mark.parametrize("command", [commands.records_command, commands.last_poop_command])
 def test_username_argument_requires_at_sign(command):
     assert "Formato non valido" in reply_of(command, "luigi")
     assert "Formato non valido" in reply_of(command, "@")
 
 
 @pytest.mark.parametrize("command", [
-    commands.classifica_mese_command, commands.statistiche_mese_command])
+    commands.leaderboard_month_command, commands.stats_month_command])
 @pytest.mark.parametrize("arg", ["13-2024", "00-2024", "abc", "2024", "13/24", "0-24", "03-2024-01", "03_2024", "03-2o24", "1-0150", "1-1969", "1-2101", "1-9999"])
 def test_invalid_month_argument_replies_with_error(command, arg):
     assert "Formato data non valido" in reply_of(command, arg)
 
 
 @pytest.mark.parametrize("command", [
-    commands.classifica_anno_command, commands.statistiche_anno_command])
+    commands.leaderboard_year_command, commands.stats_year_command])
 @pytest.mark.parametrize("arg", ["abc", "2", "20245", "-2024", "1800", "0150"])
 def test_invalid_year_argument_replies_with_error(command, arg):
     assert "Formato anno non valido" in reply_of(command, arg)
@@ -78,7 +78,7 @@ def test_unknown_month_name_or_year_is_refused(arg):
 def test_month_command_joins_the_arguments(seed):
     seed({"mario": {"2024-03-10": 2}})
     upd = make_update()
-    run(commands.classifica_mese_command(upd, make_context("marzo", "2024")))
+    run(commands.leaderboard_month_command(upd, make_context("marzo", "2024")))
     upd.message.reply_photo.assert_called_once()
 
 
@@ -105,16 +105,16 @@ def test_a_day_without_the_year_in_the_future_is_refused(monkeypatch):
         commands.parse_date_arg("31/12")
 
 
-def test_aggiungi_accepts_a_slash_date_and_replies_with_the_standard_format(seed):
+def test_add_poop_accepts_a_slash_date_and_replies_with_the_standard_format(seed):
     upd = make_update()
-    run(commands.aggiungi_command(upd, make_context("5/3/26")))
+    run(commands.add_poop_command(upd, make_context("5/3/26")))
     assert "05-03-2026" in upd.message.reply_text.call_args[0][0]
 
 
 def test_month_argument_without_leading_zero_is_still_accepted(seed):
     seed({"mario": {"2024-03-10": 2}})
     upd = make_update()
-    run(commands.classifica_mese_command(upd, make_context("3-2024")))
+    run(commands.leaderboard_month_command(upd, make_context("3-2024")))
     upd.message.reply_photo.assert_called_once()
 
 
@@ -125,23 +125,23 @@ def test_username_lookup_is_case_insensitive(seed, chat_id):
     assert database.find_user_by_username(chat_id, "sconosciuto") is None
 
 
-def test_aggiungi_with_different_case_updates_same_user(seed, chat_id):
+def test_add_poop_with_different_case_updates_same_user(seed, chat_id):
     seed({"mario": {"2024-03-10": 1}})
-    run(commands.aggiungi_command(make_update(), make_context("@Mario", "10-03-2024")))
+    run(commands.add_poop_command(make_update(), make_context("@Mario", "10-03-2024")))
     ((user, count),) = database.get_rank(chat_id, "year", "2024")
     assert (user.name, count) == ("mario", 2)
 
 
-def test_costipazione_with_different_case(seed):
+def test_last_poop_with_different_case(seed):
     from datetime import datetime
     import pytz
     today = datetime.now(pytz.timezone("Europe/Rome")).strftime("%Y-%m-%d")
     seed({"luigi": {today: 1}})
-    assert "oggi hai fatto" in reply_of(commands.costipazione_command, "@LUIGI")
+    assert "oggi hai fatto" in reply_of(commands.last_poop_command, "@LUIGI")
 
 
 @pytest.mark.parametrize("command", [
-    commands.aggiungi_command, commands.togli_command, commands.conto_giorno_command])
+    commands.add_poop_command, commands.remove_poop_command, commands.day_count_command])
 @pytest.mark.parametrize("arg", ["01-01-0001", "01-01-0150", "01-01-0999", "31-12-1969"])
 def test_date_before_1970_is_refused_and_not_stored(command, arg, chat_id):
     assert "Errore" in reply_of(command, arg)

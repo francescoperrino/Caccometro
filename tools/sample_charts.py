@@ -48,7 +48,7 @@ def main():
     OUT.mkdir(exist_ok=True)
     for language in i18n.LANGUAGES:
         i18n.use(language)
-        (OUT / f"rank_month_{language}.png").write_bytes(charts.generate_rank_chart(rank, month, "month", MONTH, forecast))
+        (OUT / f"leaderboard_month_{language}.png").write_bytes(charts.generate_rank_chart(rank, month, "month", MONTH, forecast))
         (OUT / f"stats_month_{language}.png").write_bytes(charts.generate_statistics_chart(statistics, month, "month", MONTH))
     print(f"Charts written to {OUT.relative_to(REPO)}")
 

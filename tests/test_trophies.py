@@ -1,4 +1,4 @@
-"""Trophies (#6): streaks every 15 days, 💩 of the month and of the year, /trofei and the midnight announcement."""
+"""Trophies (#6): streaks every 15 days, 💩 of the month and of the year, /trophies and the midnight announcement."""
 import asyncio
 from datetime import date, datetime, timedelta
 
@@ -136,36 +136,36 @@ def test_poop_without_milestone_has_no_trophy(seed, monkeypatch):
     assert "trofeo" not in upd.message.reply_text.call_args[0][0]
 
 
-# ---------------------------------------------------------------- /trofei
+# ---------------------------------------------------------------- /trophies
 
-def trofei_text(*args, **update_kwargs):
+def trophies_text(*args, **update_kwargs):
     upd = make_update(**update_kwargs)
-    run(commands.trofei_command(upd, make_context(*args)))
+    run(commands.trophies_command(upd, make_context(*args)))
     return upd.message.reply_text.call_args[0][0]
 
 
-def test_trofei_group_board(seed):
+def test_trophies_group_board(seed):
     seed({"mario": {"2024-01-01": 3}, "luigi": {"2024-01-02": 1}})
-    text = trofei_text()
+    text = trophies_text()
     assert "Bacheca dei trofei" in text
     assert "*@mario*: 👑 1 · 🏅 1" in text
     assert "@luigi" not in text
 
 
-def test_trofei_of_another_user(seed):
+def test_trophies_of_another_user(seed):
     seed({"mario": {"2024-01-01": 3}, "luigi": {"2024-01-02": 1}})
-    assert "Trofei di @mario" in trofei_text("@mario", username="luigi")
+    assert "Trofei di @mario" in trophies_text("@mario", username="luigi")
 
 
-def test_trofei_io_without_data(chat_id):
-    text = trofei_text("io")
+def test_trophies_io_without_data(chat_id):
+    text = trophies_text("io")
     assert "Trofei di @mario" in text
     assert "Ancora nessun trofeo." in text
 
 
-def test_trofei_rejects_extra_arguments(seed):
+def test_trophies_rejects_extra_arguments(seed):
     seed({"mario": {"2024-01-01": 3}})
-    assert "Formato non valido" in trofei_text("@mario", "boh")
+    assert "Formato non valido" in trophies_text("@mario", "boh")
 
 
 # ---------------------------------------------------------------- midnight announcement

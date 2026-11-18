@@ -1,4 +1,4 @@
-"""/record of the whole group: who holds each record and who leads right now."""
+"""/records of the whole group: who holds each record and who leads right now."""
 import asyncio
 import random
 from datetime import date, timedelta
@@ -165,7 +165,7 @@ def test_get_all_user_rows_reads_the_database_once(seed, chat_id, monkeypatch):
 
 def record(*args, reply_to=None, username="mario"):
     upd = make_update(username=username, reply_to=reply_to)
-    run(commands.record_command(upd, make_context(*args)))
+    run(commands.records_command(upd, make_context(*args)))
     return upd.message.reply_text.call_args[0][0]
 
 

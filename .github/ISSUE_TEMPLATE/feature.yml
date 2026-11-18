@@ -1,6 +1,6 @@
 name: Feature
 description: Something new for the people who use the bot
-title: "<imperative verb first, e.g. Add the /costipazione command>"
+title: "<imperative verb first, e.g. Add the /last_poop command>"
 type: Feature
 assignees:
   - francescoperrino

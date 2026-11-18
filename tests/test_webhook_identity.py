@@ -102,7 +102,7 @@ def test_webhook_command_with_bot_suffix_is_recognized(telegram_calls):
     update["message"]["entities"] = [{"type": "bot_command", "offset": 0, "length": len("/costipazione@caccometro_test_bot")}]
     response = client.post("/webhook", headers=SECRET, json=update)
     assert response.status_code == 200
-    assert telegram_calls.count("sendMessage") == 2      # the 💩 reply and the /costipazione reply
+    assert telegram_calls.count("sendMessage") == 2      # the 💩 reply and the reply to the old name of /last_poop
 
 
 @pytest.mark.parametrize("headers", [{}, {"X-Telegram-Bot-Api-Secret-Token": "wrong"}, {"X-Telegram-Bot-Api-Secret-Token": "caffé"}])

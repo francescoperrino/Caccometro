@@ -14,7 +14,7 @@ from caccometro.config import DISPLAY_FORMAT, MONTH_NAMES, STORING_FORMAT, now_r
 from caccometro.i18n import MONTHS, tr
 from caccometro.database import (init_database, find_user_by_username, add_count, get_count, get_daily_counts,
                                  get_daily_counts_between,
-                                 get_rank, get_users, get_record, get_all_user_rows, get_constipation_days,
+                                 get_rank, get_users, get_record, get_all_user_rows, get_days_since_last_poop,
                                  list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username,
                                  set_language)
 from caccometro.formatting import bold, format_group_record, format_group_trophies, format_user_record, format_user_trophies
@@ -134,7 +134,7 @@ def replied_person(update: Update):
 
 
 def resolve_optional_target(update: Update, context: ContextTypes.DEFAULT_TYPE, sender, usage):
-    """Target of /record and /trofei: io, @username or a reply. Returns (target, error); no target and no error means the group."""
+    """Target of /records and /trophies: io, @username or a reply. Returns (target, error); no target and no error means the group."""
     if len(context.args) == 1 and context.args[0].lower() in ("io", "me"):
         return sender, None
     if not context.args and replied_person(update) is None:
@@ -148,7 +148,7 @@ def resolve_optional_target(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 def legacy_hint(chat_id):
     """Suffix for 'no data' replies when old username-based history is still waiting to be linked."""
     if list_legacy_users(chat_id):
-        return "\n\n" + tr("ℹ️ Ci sono dati storici ancora da collegare: usa /collega.")
+        return "\n\n" + tr("ℹ️ Ci sono dati storici ancora da collegare: usa /collega_storico.")
     return ""
 
 
@@ -176,8 +176,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # The two kinds of period of the rank and statistics commands; their sentences are chosen with `month and ... or ...`
 PERIODS = {
-    'month': {'name': 'mese', 'parse': parse_month_arg, 'current': '%m-%Y'},
-    'year': {'name': 'anno', 'parse': parse_year_arg, 'current': '%Y'},
+    'month': {'parse': parse_month_arg, 'current': '%m-%Y'},
+    'year': {'parse': parse_year_arg, 'current': '%Y'},
 }
 MEDALS = {1: '🥇', 2: '🥈', 3: '🥉'}
 
@@ -205,13 +205,12 @@ async def period_from_args(update: Update, args, time_period):
     return date
 
 
-async def rank_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
-    """/classifica_mese and /classifica_anno: total 💩 per person in the period, with a chart."""
+async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
+    """/leaderboard_month and /leaderboard_year: total 💩 per person in the period, with a chart."""
     sender = register_sender(update)
     if sender is None:
         return
-    period = PERIODS[time_period]
-    command = f"classifica_{period['name']}"
+    command = f"leaderboard_{time_period}"
     logger.info(f"Command received: /{command} from {sender.mention} in {where(update)}")
     date = await period_from_args(update, context.args, time_period)
     if date is None:
@@ -245,13 +244,12 @@ async def rank_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_
     await reply_chart(update, generate_rank_chart(rank, daily_counts, time_period, date, forecast), message)
     logger.info(f"Command /{command} completed in {where(update)}")
 
-async def statistics_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
-    """/statistiche_mese and /statistiche_anno: mean, median and variance per person, with a chart."""
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
+    """/stats_month and /stats_year: mean, median and variance per person, with a chart."""
     sender = register_sender(update)
     if sender is None:
         return
-    period = PERIODS[time_period]
-    command = f"statistiche_{period['name']}"
+    command = f"stats_{time_period}"
     logger.info(f"Command received: /{command} from {sender.mention} in {where(update)}")
     date = await period_from_args(update, context.args, time_period)
     if date is None:
@@ -277,28 +275,28 @@ async def statistics_command(update: Update, context: ContextTypes.DEFAULT_TYPE,
     await reply_chart(update, generate_statistics_chart(statistics, daily_counts, time_period, date), message)
     logger.info(f"Command /{command} completed in {where(update)}")
 
-async def classifica_mese_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /classifica_mese command."""
-    await rank_command(update, context, 'month')
+async def leaderboard_month_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /leaderboard_month command."""
+    await leaderboard_command(update, context, 'month')
 
-async def classifica_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /classifica_anno command."""
-    await rank_command(update, context, 'year')
+async def leaderboard_year_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /leaderboard_year command."""
+    await leaderboard_command(update, context, 'year')
 
-async def statistiche_mese_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /statistiche_mese command."""
-    await statistics_command(update, context, 'month')
+async def stats_month_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /stats_month command."""
+    await stats_command(update, context, 'month')
 
-async def statistiche_anno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /statistiche_anno command."""
-    await statistics_command(update, context, 'year')
+async def stats_year_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /stats_year command."""
+    await stats_command(update, context, 'year')
 
-async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /record command."""
+async def records_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /records command."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /record from {sender.mention} in {where(update)}")
+    logger.info(f"Command received: /records from {sender.mention} in {where(update)}")
     usage = tr("/record [@username | io]")
     chat_id = update.message.chat_id
     target, error = resolve_optional_target(update, context, sender, usage)
@@ -315,7 +313,7 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         board = analyze_group(rows_by_user, now_rome().date())
         names = {user_id: escape_md(user.mention) for user_id, user in users.items()}
         await update.message.reply_text(format_group_record(board, names), parse_mode='Markdown')
-        logger.info(f"Command /record (group) completed in {where(update)}")
+        logger.info(f"Command /records (group) completed in {where(update)}")
         return
 
     rows = get_record(target.user_id, chat_id)
@@ -327,14 +325,14 @@ async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = format_user_record(escape_md(target.mention), records)
 
     await update.message.reply_text(message, parse_mode='Markdown')
-    logger.info(f"Command /record completed in {where(update)}")
+    logger.info(f"Command /records completed in {where(update)}")
 
-async def trofei_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /trofei command: the trophies of the group, or of one person (io, @username or a reply)."""
+async def trophies_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /trophies command: the trophies of the group, or of one person (io, @username or a reply)."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /trofei from {sender.mention} in {where(update)}")
+    logger.info(f"Command received: /trophies from {sender.mention} in {where(update)}")
     usage = tr("/trofei [@username | io]")
     chat_id = update.message.chat_id
     target, error = resolve_optional_target(update, context, sender, usage)
@@ -353,15 +351,15 @@ async def trofei_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         current_streak = analyze_user(rows, today).status.streak_days if rows and any(c > 0 for _, c in rows) else 0
         message = format_user_trophies(escape_md(target.mention), trophies.get(target.user_id), current_streak)
     await update.message.reply_text(message, parse_mode='Markdown')
-    logger.info(f"Command /trofei completed in {where(update)}")
+    logger.info(f"Command /trophies completed in {where(update)}")
 
 async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE, command, delta):
-    """Shared body of /aggiungi (delta +1) and /togli (delta -1)."""
+    """Shared body of /add_poop (delta +1) and /remove_poop (delta -1)."""
     sender = register_sender(update)
     if sender is None:
         return
     logger.info(f"Command received: /{command} from {sender.mention} in {where(update)}")
-    usage = tr("/aggiungi @username DD-MM-YYYY") if delta > 0 else tr("/togli @username DD-MM-YYYY")
+    usage = tr("/aggiungi_cacca @username DD-MM-YYYY") if delta > 0 else tr("/togli_cacca @username DD-MM-YYYY")
     target, args, error = resolve_target(update, context.args, sender, usage)
     if error is None and len(args) != 1:
         error = invalid_format(usage)
@@ -389,20 +387,20 @@ async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYP
             .format(name=target.mention, date=date, count=new_count))
     logger.info(f"Command /{command} completed in {where(update)}")
 
-async def aggiungi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /aggiungi command."""
-    await change_count_command(update, context, 'aggiungi', 1)
+async def add_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /add_poop command."""
+    await change_count_command(update, context, 'add_poop', 1)
 
-async def togli_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /togli command."""
-    await change_count_command(update, context, 'togli', -1)
+async def remove_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /remove_poop command."""
+    await change_count_command(update, context, 'remove_poop', -1)
 
-async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /conto_giorno command."""
+async def day_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /day_count command."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /conto_giorno from {sender.mention} in {where(update)}")
+    logger.info(f"Command received: /day_count from {sender.mention} in {where(update)}")
     usage = tr("/conto_giorno @username DD-MM-YYYY")
     target, args, error = resolve_target(update, context.args, sender, usage)
     if error is None and len(args) > 1:
@@ -427,42 +425,42 @@ async def conto_giorno_command(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         reply = tr("{name} {day} hai fatto 💩 {count} volte.") if count > 1 else tr("{name} {day} hai fatto 💩 {count} volta.")
     await update.message.reply_text(reply.format(name=target.mention, day=day, count=count))
-    logger.info(f"Command /conto_giorno completed in {where(update)}")
+    logger.info(f"Command /day_count completed in {where(update)}")
 
-async def costipazione_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /costipazione command."""
+async def last_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /last_poop command."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /costipazione from {sender.mention} in {where(update)}")
-    usage = tr("/costipazione @username")
+    logger.info(f"Command received: /last_poop from {sender.mention} in {where(update)}")
+    usage = tr("/ultima_cacca @username")
     target, args, error = resolve_target(update, context.args, sender, usage)
     if error is None and args:
         error = invalid_format(usage)
     if error:
         await update.message.reply_text(error)
         return
-    days = get_constipation_days(target.user_id, update.message.chat_id)
+    days = get_days_since_last_poop(target.user_id, update.message.chat_id)
     if days is None:
-        reply = tr("{name} non ci sono dati sulla costipazione.")
+        reply = tr("{name} non ci sono dati sull'ultima 💩.")
     elif days == 0:
         reply = tr("{name} oggi hai fatto 💩.")
     else:
         reply = tr("{name} non fai 💩 da {days} giorni.") if days > 1 else tr("{name} non fai 💩 da {days} giorno.")
     await update.message.reply_text(reply.format(name=target.mention, days=days))
-    logger.info(f"Command /costipazione completed in {where(update)}")
+    logger.info(f"Command /last_poop completed in {where(update)}")
 
-async def collega_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /collega command: link the old username-based history to Telegram users.
+async def link_history_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /link_history command: link the old username-based history to Telegram users.
 
-    /collega                    list the history that is still to be linked (everybody)
-    /collega auto               link every old username that matches a known user (admins)
-    /collega <old username>     as a reply to a message of the person: link that history to them (admins)
+    /link_history               list the history that is still to be linked (everybody)
+    /link_history auto          link every old username that matches a known user (admins)
+    /link_history <old username>as a reply to a message of the person: link that history to them (admins)
     """
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /collega from {sender.mention} in {where(update)}")
+    logger.info(f"Command received: /link_history from {sender.mention} in {where(update)}")
     chat_id = update.message.chat_id
     args = context.args
 
@@ -479,8 +477,8 @@ async def collega_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         orphans = count_legacy_orphans(chat_id)
         if orphans:
             lines.append(tr("({orphans} registrazioni senza username non si possono collegare.)").format(orphans=orphans))
-        lines.append("\n" + tr("Gli admin possono usare /collega auto per collegare le corrispondenze, "
-                               "oppure rispondere a un messaggio della persona con /collega <username storico>."))
+        lines.append("\n" + tr("Gli admin possono usare /collega_storico auto per collegare le corrispondenze, "
+                               "oppure rispondere a un messaggio della persona con /collega_storico <username storico>."))
         await update.message.reply_text("\n".join(lines))
         return
 
@@ -503,12 +501,12 @@ async def collega_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             lines.append(tr("Nessuna corrispondenza trovata tra lo storico e gli utenti che hanno già scritto nel gruppo."))
         if remaining:
-            lines.append("\n" + tr("Da collegare a mano (rispondi a un messaggio della persona con /collega <username storico>):"))
+            lines.append("\n" + tr("Da collegare a mano (rispondi a un messaggio della persona con /collega_storico <username storico>):"))
             lines += [f"• {legacy_username}: {total} 💩" for legacy_username, total in remaining]
         await update.message.reply_text("\n".join(lines))
         return
 
-    usage = tr("/collega <username storico> (in risposta a un messaggio della persona)")
+    usage = tr("/collega_storico <username storico> (in risposta a un messaggio della persona)")
     if len(args) != 1:
         await update.message.reply_text(invalid_format(usage))
         return
@@ -526,15 +524,15 @@ async def collega_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(tr("Collegati {days} giorni di dati storici di «{username}» a {name}.")
                                         .format(days=days, username=legacy_username, name=target.mention))
-    logger.info(f"Command /collega completed in {where(update)}")
+    logger.info(f"Command /link_history completed in {where(update)}")
 
 
-async def lingua_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /lingua command: show the language of the chat or, for the admins, change it (/lingua en)."""
+async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /language command: show the language of the chat or, for the admins, change it (/language en)."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /lingua from {sender.mention} in {where(update)}")
+    logger.info(f"Command received: /language from {sender.mention} in {where(update)}")
     language = context.args[0].lower() if len(context.args) == 1 else None
     if language not in i18n.LANGUAGES:
         await update.message.reply_text(tr("La lingua di questa chat è {name}. Per cambiarla: /lingua it oppure /lingua en.")
@@ -547,4 +545,4 @@ async def lingua_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     i18n.use(language)
     logger.info(f"Language changed by {sender.mention} in {where(update)}: {language}")
     await update.message.reply_text(tr("Da ora parlo italiano 🇮🇹"))
-    logger.info(f"Command /lingua completed in {where(update)}")
+    logger.info(f"Command /language completed in {where(update)}")

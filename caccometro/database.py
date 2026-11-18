@@ -179,7 +179,7 @@ def init_database(chat_id):
 # Settings
 
 def get_language(chat_id):
-    """Language chosen for the chat with /lingua; None when it was never chosen."""
+    """Language chosen for the chat with /language; None when it was never chosen."""
     conn = _connect(chat_id)
     try:
         if not _has_table(conn, 'settings'):
@@ -361,9 +361,8 @@ def get_all_user_rows(chat_id):
         conn.close()
     return rows, users
 
-# Function to get constipation days for the specific user
-def get_constipation_days(user_id, chat_id):
-    """Get the constipation days for the specific user."""
+def get_days_since_last_poop(user_id, chat_id):
+    """Days since the last 💩 of the user (0 = today), None without any 💩."""
     conn = _connect(chat_id)
     try:
         last_day = conn.execute('''SELECT date
