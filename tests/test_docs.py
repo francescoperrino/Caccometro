@@ -56,12 +56,10 @@ def handled_commands(language):
 MENUS = {"it": "Italian menu", "en": "English menu"}   # the line before the menu block of each language
 
 
-def test_every_command_is_in_the_readme_table_with_its_italian_name(readme):
-    from caccometro.bot import COMMANDS
-    for italian, english, _ in COMMANDS:
-        row = re.search(rf"^\| `/{english}[ `].*$", readme, re.MULTILINE)
-        assert row, f"/{english} is not in the commands table"
-        assert italian == english or f"`/{italian}`" in row.group(0), f"/{italian} is not in the row of /{english}"
+def test_every_command_is_in_the_readme_table(readme):
+    # The Italian names are in the Italian menu of docs/deployment.md (/collega in the sentence under it)
+    for english in handled_commands("en"):
+        assert re.search(rf"^\| `/{english}[ `]", readme, re.MULTILINE), f"/{english} is not in the commands table"
 
 
 @pytest.mark.parametrize("language", MENUS)
