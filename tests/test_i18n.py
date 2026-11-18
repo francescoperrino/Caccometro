@@ -2,11 +2,12 @@
 import ast
 import asyncio
 import string
+from datetime import date
 from pathlib import Path
 
 import pytest
 
-from caccometro import commands, database, i18n
+from caccometro import announce, commands, database, i18n
 from conftest import make_context, make_update
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -54,6 +55,14 @@ def test_every_command_answers_to_its_english_name_too():
     registered = {frozenset(h.commands): h.callback for h in bot.application.handlers[0] if hasattr(h, "commands")}
     for italian, english, handler in bot.COMMANDS:
         assert registered[frozenset({italian, english})] is handler, italian
+
+
+def test_the_midnight_announcement_follows_the_language_of_each_chat(seed, chat_id):
+    seed({"mario": {"2026-10-05": 3}})
+    database.set_language(chat_id, "en")
+    assert "October 2026 is over!" in announce.announcement(chat_id, date(2026, 11, 1))
+    assert announce.announcement(-2002, date(2026, 11, 1)) is None   # another chat: nobody to celebrate, and Italian
+    assert i18n.current() == "it"
 
 
 def test_an_unknown_stored_language_falls_back_to_italian():
