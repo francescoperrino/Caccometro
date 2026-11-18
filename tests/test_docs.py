@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-DOCS = sorted([ROOT / "README.md", ROOT / "CONTRIBUTING.md", ROOT / "SECURITY.md", *(ROOT / "docs").glob("*.md")])
+DOCS = sorted([ROOT / "README.md", ROOT / "README.it.md", ROOT / "CONTRIBUTING.md", ROOT / "SECURITY.md", *(ROOT / "docs").glob("*.md")])
 ADMIN_ONLY = {"collega_storico", "link_history"}  # in the admin command list only
 TREE = "  __main__.py"  # a line found only in the architecture tree
 
@@ -54,6 +54,12 @@ def handled_commands(language):
 
 
 MENUS = {"it": "Italian menu", "en": "English menu"}   # the line before the menu block of each language
+
+
+def test_every_italian_command_is_in_the_italian_readme_table():
+    italian = read("README.it.md")
+    for name in handled_commands("it"):
+        assert re.search(rf"^\| `/{name}[ `]", italian, re.MULTILINE), f"/{name} is not in the Italian commands table"
 
 
 def test_every_command_is_in_the_readme_table(readme):
@@ -114,6 +120,7 @@ def test_the_relative_links_point_to_existing_files(doc):
         assert (doc.parent / target).exists(), f"{doc.name} links to {target}, which does not exist"
 
 
-def test_the_readme_shows_every_sample_chart(readme):
+@pytest.mark.parametrize("name", ["README.md", "README.it.md"])
+def test_the_readmes_show_every_sample_chart(name):
     for chart in (ROOT / "assets" / "screenshots").glob("*.png"):
-        assert f"assets/screenshots/{chart.name}" in readme, f"{chart.name} is not in the README"
+        assert f"assets/screenshots/{chart.name}" in read(name), f"{chart.name} is not in {name}"

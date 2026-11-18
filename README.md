@@ -1,5 +1,7 @@
 # 💩 Caccometro Telegram Bot
 
+**English** · [Italiano](README.it.md)
+
 <p align="center">
   <img src="assets/avatar.png" alt="Caccometro avatar" height="200">
   <img src="assets/demo.gif" alt="Caccometro: a 💩 sent from the phone, the leaderboard gets +1 and a medal" height="200">
