@@ -73,7 +73,7 @@ flowchart TD
 1. Run `tools/backup_db.py` to save the current state.
 2. Pick the copy in `backups/db/` or `backups/db_monthly/` and check it with `sqlite3 <file> "PRAGMA integrity_check"`.
 3. In the hosting Files tab, `db/` folder, upload the file with the same name `<chat_id>_bot_data.db`, overwriting the current one (no reload or journal files needed).
-4. Try `/record` in the chat. The 💩 counted after the copy must be added back with `/aggiungi`.
+4. Try `/records` in the chat. The 💩 counted after the copy must be added back with `/add_poop`.
 
 Tested on a copy: the restored file is sound and the totals are those of the copy.
 

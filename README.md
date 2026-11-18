@@ -28,23 +28,23 @@ Caccometro is an open source Telegram bot that counts the 💩 of every person i
 
 ## 📚 Commands
 
-Every command has an Italian name and an English name, both valid in every chat.
+Every command has an English name and an Italian name, both valid in every chat whatever its language.
 
-| Command (English name)                 | Description |
-| :------------------------------------- | :---------- |
-| `/start`                               | Prepares the database of the chat and shows the version of the bot. |
-| `/classifica_mese [MM-YYYY]` `/rank_month`           | Ranking of the month (the current one if the date is missing; also `march 2026`), with a chart of the day-by-day trend. For the current month, next to each count, the forecast for the end of the month. |
-| `/classifica_anno [YYYY]` `/rank_year`              | Ranking of the year (the current one if missing; also `26`), with a chart and, for the current year, the forecast for the end of the year. |
-| `/statistiche_mese [MM-YYYY]` `/stats_month`          | Mean, median and variance of the 💩 per day of each person in the month, with a chart of the distributions. |
-| `/statistiche_anno [YYYY]` `/stats_year`             | The same statistics over the year. |
-| `/record [io \| @username]` `/records`            | Without arguments the **group records** (who holds each record and who leads right now). With `me` (or `io`) your own records, with `@username` (or replying to a message) those of another person, each with its **current state**. |
-| `/trofei [io \| @username]` `/trophies`            | Without arguments the **trophy board** of the group; with `me` (or `io`) your trophies, with `@username` (or replying to a message) those of another person, with how many days are left to the next streak trophy. |
-| `/conto_giorno [@username] [DD-MM-YYYY]` `/day_count` | 💩 of a person on a day (today if the date is missing; also `yesterday`). |
-| `/costipazione [@username]` `/constipation`            | Days since the last 💩. |
-| `/aggiungi [@username] DD-MM-YYYY` `/add_poop`     | Adds 1 💩 on a past day or today (also `today`, `yesterday`). On someone else's count: admins only. |
-| `/togli [@username] DD-MM-YYYY` `/remove_poop`        | Removes 1 💩 (down to 0) on a past day or today (also `today`, `yesterday`). On someone else's count: admins only. |
-| `/collega [auto \| historical username]` `/link_history`  | Admins only: links the old history recorded by username to the people (see below). Without arguments it shows what is left to link. |
-| `/lingua [it \| en]` `/language`                   | Without arguments it shows the language of the chat; with `it` or `en` it changes it (in groups admins only). It applies to the replies, the charts and the midnight announcement of the chat. |
+| Command (Italian name)                               | Description |
+| :--------------------------------------------------- | :---------- |
+| `/start`                                             | Prepares the database of the chat and shows the version of the bot. |
+| `/rank_month [MM-YYYY]` `/classifica_mese`           | Ranking of the month (the current one if the date is missing; also `march 2026`), with a chart of the day-by-day trend. For the current month, next to each count, the forecast for the end of the month. |
+| `/rank_year [YYYY]` `/classifica_anno`               | Ranking of the year (the current one if missing; also `26`), with a chart and, for the current year, the forecast for the end of the year. |
+| `/stats_month [MM-YYYY]` `/statistiche_mese`         | Mean, median and variance of the 💩 per day of each person in the month, with a chart of the distributions. |
+| `/stats_year [YYYY]` `/statistiche_anno`             | The same statistics over the year. |
+| `/records [me \| @username]` `/record`               | Without arguments the **group records** (who holds each record and who leads right now). With `me` (or `io`) your own records, with `@username` (or replying to a message) those of another person, each with its **current state**. |
+| `/trophies [me \| @username]` `/trofei`              | Without arguments the **trophy board** of the group; with `me` (or `io`) your trophies, with `@username` (or replying to a message) those of another person, with how many days are left to the next streak trophy. |
+| `/day_count [@username] [DD-MM-YYYY]` `/conto_giorno` | 💩 of a person on a day (today if the date is missing; also `yesterday`). |
+| `/constipation [@username]` `/costipazione`          | Days since the last 💩. |
+| `/add_poop [@username] DD-MM-YYYY` `/aggiungi`       | Adds 1 💩 on a past day or today (also `today`, `yesterday`). On someone else's count: admins only. |
+| `/remove_poop [@username] DD-MM-YYYY` `/togli`       | Removes 1 💩 (down to 0) on a past day or today (also `today`, `yesterday`). On someone else's count: admins only. |
+| `/link_history [auto \| historical username]` `/collega` | Admins only: links the old history recorded by username to the people (see below). Without arguments it shows what is left to link. |
+| `/language [it \| en]` `/lingua`                     | Without arguments it shows the language of the chat; with `it` or `en` it changes it (in groups admins only). It applies to the replies, the charts and the midnight announcement of the chat. |
 
 In the commands with `[@username]` the person can also be chosen by **replying to one of their messages** (useful for people without a username). An `@username` works only for people who have already written at least one message in the group. In groups with topics, replying to the message that created the topic does not count as replying to a person.
 
@@ -74,7 +74,7 @@ The same charts in an Italian chat: [ranking](assets/screenshots/rank_month_it.p
 - **Group records:** for each metric the best value among all the people (also those who left the group) and who holds it; on a tie, all of them are listed. The "Now" block only considers people who had a 💩 in the last 90 days.
 - **Current state:** a streak is "in progress" if the last 💩 is from today or yesterday; the current break is the days since the last 💩. The 🔥 appears when you reach a record (from 2 up) or go past the record break.
 - **Forecast:** for the current month or year, the total so far plus, for each day left, the mean 💩 per day of the last 30 days.
-- **Trophies:** 🔥 one every 15 consecutive days with at least one 💩 (15, 30, 45, ...; a 47-day streak is worth 3 trophies), announced in the reply to the first 💩 of the day that completes them; 🏅 **💩 of the month** and 👑 **💩 of the year** to whoever did the most in a complete month or year (on a tie, to all of them). Trophies are computed from the counts, so `/aggiungi` and `/togli` update them.
+- **Trophies:** 🔥 one every 15 consecutive days with at least one 💩 (15, 30, 45, ...; a 47-day streak is worth 3 trophies), announced in the reply to the first 💩 of the day that completes them; 🏅 **💩 of the month** and 👑 **💩 of the year** to whoever did the most in a complete month or year (on a tie, to all of them). Trophies are computed from the counts, so `/add_poop` and `/remove_poop` update them.
 - **Midnight announcement:** on the first day of every month, at midnight, the bot writes the 💩 of the month just ended in every chat; on January 1st also the 💩 of the year, with happy new year wishes.
 
 ---
@@ -84,10 +84,10 @@ The same charts in an Italian chat: [ranking](assets/screenshots/rank_month_it.p
 The counts are tied to the **Telegram user ID**, not to the username: whoever changes username keeps their data, and people without a username are counted under their name.
 
 - The databases of the first versions (counts by username) are **migrated automatically** on the first start. A copy is made first; the old data stays in an archive table until it is linked.
-- The group **admins** link the old history to the people with `/collega`:
-  1. `/collega` shows the history still to link;
-  2. when everybody has written at least one message, `/collega auto` links the identical usernames;
-  3. for the others, reply to a message of the person with `/collega <historical username>`.
+- The group **admins** link the old history to the people with `/link_history`:
+  1. `/link_history` shows the history still to link;
+  2. when everybody has written at least one message, `/link_history auto` links the identical usernames;
+  3. for the others, reply to a message of the person with `/link_history <historical username>`.
 - Old records without a username cannot be linked.
 - When a group becomes a **supergroup**, Telegram gives it a new chat ID: the bot moves the history to the new chat by itself, and merges it if the supergroup already has counts.
 
@@ -95,7 +95,7 @@ The counts are tied to the **Telegram user ID**, not to the username: whoever ch
 
 ## 🔒 Privacy
 
-The bot reads the group messages to find the 💩: this is why its **Group Privacy** is disabled. The text of the messages is never stored or written to the log. The bot stores, for each chat, the Telegram user ID, username and name of whoever writes, and the 💩 per day. The log records the changes made by hand: for every `/aggiungi` and `/togli`, who sent it, the person, the day and the count before and after; for `/collega`, the old username, the person and the days moved.
+The bot reads the group messages to find the 💩: this is why its **Group Privacy** is disabled. The text of the messages is never stored or written to the log. The bot stores, for each chat, the Telegram user ID, username and name of whoever writes, and the 💩 per day. The log records the changes made by hand: for every `/add_poop` and `/remove_poop`, who sent it, the person, the day and the count before and after; for `/link_history`, the old username, the person and the days moved.
 
 ---
 

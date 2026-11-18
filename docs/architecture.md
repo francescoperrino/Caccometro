@@ -11,14 +11,14 @@ caccometro/          the bot, as a Python package
   config.py          environment variables, date formats, Italian time
   bot.py             python-telegram-bot Application, logging, send retries, command registration
   webhook.py         Flask app that receives the updates from Telegram (production)
-  commands.py        the commands (/classifica_mese, /record, ...) and the permission checks
+  commands.py        the commands (/rank_month, /records, ...) and the permission checks
   messages.py        counting the 💩 in messages and stickers
   chat.py            shared helpers on Telegram users and messages
   i18n.py            translations: the Italian sentences are the keys, one dictionary per language
   database.py        SQLite database: schema, migration, queries
   analysis.py        records, streaks, statistics and forecasts (pure functions, no database)
   trophies.py        trophies: 15-day streaks, 💩 of the month and of the year (pure functions)
-  formatting.py      texts of /record, /trofei and the midnight announcement
+  formatting.py      texts of /records, /trophies and the midnight announcement
   announce.py        midnight announcement of the 💩 of the month (scheduled task)
   charts.py          ranking and statistics charts (PNG in memory)
 scripts/set_webhook.py   registers the webhook on Telegram (once)
@@ -92,8 +92,8 @@ erDiagram
     }
 ```
 
-- `settings` is created on the first choice made with `/lingua`: without the table the chat speaks Italian.
-- `user_count_legacy` exists only in the chats migrated from the first version and empties as `/collega` moves the history into `user_count`.
+- `settings` is created on the first choice made with `/language`: without the table the chat speaks Italian.
+- `user_count_legacy` exists only in the chats migrated from the first version and empties as `/link_history` moves the history into `user_count`.
 - The schema version is in `PRAGMA user_version` (2 today). The migration starts by itself when the database is opened, inside `BEGIN IMMEDIATE`, after a copy `db/<chat_id>_bot_data.db.v1.bak`.
 - When a group becomes a supergroup, the database is renamed `db/<old>_bot_data.db` → `db/<new>_bot_data.db`. If the migration message arrives late and the new database already has counts, the two are merged (same user and same day are added up) and the old file stays as `<old>_bot_data.db.merged`. The migration also starts from the twin message in the old chat, so it gets two chances.
 

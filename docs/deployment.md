@@ -44,7 +44,7 @@ remove_poop - Remove 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday
 language - Language of the bot in this chat: it or en (in groups admins only).
 ```
 
-`/collega` (`/link_history`) is for admins only: it goes in the administrators' list (`setMyCommands` with scope `all_chat_administrators`), together with the other commands, in both languages. The menus are set for four scopes: default, private chats, groups, group administrators. After changing them, read them back with `getMyCommands`.
+`/link_history` (`/collega`) is for admins only: it goes in the administrators' list (`setMyCommands` with scope `all_chat_administrators`), together with the other commands, in both languages. The menus are set for four scopes: default, private chats, groups, group administrators. After changing them, read them back with `getMyCommands`.
 
 ### Descriptions
 
