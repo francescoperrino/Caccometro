@@ -1,4 +1,4 @@
-"""formatting.format_user_record: the /record message of a user, with the current status of every metric."""
+"""formatting.format_user_record: the /records message of a user, with the current status of every metric."""
 from datetime import date
 
 from caccometro.analysis import analyze_user

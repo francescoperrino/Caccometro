@@ -47,8 +47,8 @@ def test_get_record_is_sorted_by_date(seed, chat_id):
     assert database.get_record(uid("mario"), chat_id) == [("2024-01-05", 2), ("2024-03-10", 1)]
 
 
-def test_constipation_days(seed, chat_id):
+def test_days_since_last_poop(seed, chat_id):
     today = database.now_rome().date()
     seed({"mario": {today.strftime("%Y-%m-%d"): 1}, "luigi": {}})
-    assert database.get_constipation_days(uid("mario"), chat_id) == 0
-    assert database.get_constipation_days(uid("luigi"), chat_id) is None
+    assert database.get_days_since_last_poop(uid("mario"), chat_id) == 0
+    assert database.get_days_since_last_poop(uid("luigi"), chat_id) is None

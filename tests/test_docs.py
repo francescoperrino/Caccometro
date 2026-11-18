@@ -9,7 +9,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = sorted([ROOT / "README.md", ROOT / "CONTRIBUTING.md", ROOT / "SECURITY.md", *(ROOT / "docs").glob("*.md")])
-ADMIN_ONLY = {"collega", "link_history"}  # in the admin command list only
+ADMIN_ONLY = {"collega_storico", "link_history"}  # in the admin command list only
 TREE = "  __main__.py"  # a line found only in the architecture tree
 
 
@@ -48,16 +48,16 @@ def code_block_containing(readme, marker):
 
 
 def handled_commands(language):
-    """The names of the commands in 'it' or 'en' (bot.COMMANDS: Italian name, English name, handler)."""
+    """The names of the commands in 'it' or 'en' (bot.COMMANDS: English name, Italian name, handler)."""
     from caccometro.bot import COMMANDS
-    return {names[0 if language == "it" else 1] for names in COMMANDS}
+    return {names[0 if language == "en" else 1] for names in COMMANDS}
 
 
 MENUS = {"it": "Italian menu", "en": "English menu"}   # the line before the menu block of each language
 
 
 def test_every_command_is_in_the_readme_table(readme):
-    # The Italian names are in the Italian menu of docs/deployment.md (/collega in the sentence under it)
+    # The Italian names are in the Italian menu of docs/deployment.md (/collega_storico in the sentence under it)
     for english in handled_commands("en"):
         assert re.search(rf"^\| `/{english}[ `]", readme, re.MULTILINE), f"/{english} is not in the commands table"
 

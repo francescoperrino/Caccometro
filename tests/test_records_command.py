@@ -1,4 +1,4 @@
-"""Fixes for the /record command."""
+"""Fixes for the /records command."""
 import asyncio
 from datetime import datetime, timedelta
 
@@ -14,7 +14,7 @@ def run(coro):
 
 def record_text(username="mario"):
     upd = make_update(username=username)
-    run(commands.record_command(upd, make_context("io")))
+    run(commands.records_command(upd, make_context("io")))
     return upd.message.reply_text.call_args[0][0]
 
 
@@ -68,5 +68,5 @@ def test_record_in_a_forum_topic_shows_the_group_not_the_topic_creator(seed):
     today = datetime.now(pytz.timezone("Europe/Rome")).strftime("%Y-%m-%d")
     seed({"mario": {today: 1}, "creatore": {today: 1}})
     upd = make_update(reply_to=make_tg_user("creatore"), reply_in_topic=True)
-    run(commands.record_command(upd, make_context()))
+    run(commands.records_command(upd, make_context()))
     assert "Record per @creatore" not in upd.message.reply_text.call_args[0][0]

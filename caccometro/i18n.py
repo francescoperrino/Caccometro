@@ -7,7 +7,7 @@ from contextvars import ContextVar
 
 from caccometro.config import MONTH_NAMES
 
-LANGUAGES = {'it': 'italiano', 'en': 'English'}   # code -> name shown by /lingua
+LANGUAGES = {'it': 'italiano', 'en': 'English'}   # code -> name shown by /language
 DEFAULT_LANGUAGE = 'it'
 
 # One value per update: each update is handled in its own asyncio task, which has its own copy of the context
@@ -40,7 +40,7 @@ def month_name(number):
 
 
 EN = {
-    # /lingua
+    # /language
     "La lingua di questa chat è {name}. Per cambiarla: /lingua it oppure /lingua en.":
         "The language of this chat is {name}. To change it: /language en or /language it.",
     "Solo gli admin del gruppo possono cambiare la lingua.": "Only the group admins can change the language.",
@@ -69,21 +69,21 @@ EN = {
         "I do not know @{username}: they must write at least one message in the group (or reply to one of their messages).",
     "/record [@username | io]": "/records [@username | me]",
     "/trofei [@username | io]": "/trophies [@username | me]",
-    "/aggiungi @username DD-MM-YYYY": "/add_poop @username DD-MM-YYYY",
-    "/togli @username DD-MM-YYYY": "/remove_poop @username DD-MM-YYYY",
+    "/aggiungi_cacca @username DD-MM-YYYY": "/add_poop @username DD-MM-YYYY",
+    "/togli_cacca @username DD-MM-YYYY": "/remove_poop @username DD-MM-YYYY",
     "/conto_giorno @username DD-MM-YYYY": "/day_count @username DD-MM-YYYY",
-    "/costipazione @username": "/constipation @username",
-    "/collega <username storico> (in risposta a un messaggio della persona)":
+    "/ultima_cacca @username": "/last_poop @username",
+    "/collega_storico <username storico> (in risposta a un messaggio della persona)":
         "/link_history <old username> (as a reply to a message of the person)",
     "Nessun dato disponibile.": "No data available.",
     "Nessun dato disponibile per {name}.": "No data available for {name}.",
-    "ℹ️ Ci sono dati storici ancora da collegare: usa /collega.": "ℹ️ There is old history still to link: use /link_history.",
+    "ℹ️ Ci sono dati storici ancora da collegare: usa /collega_storico.": "ℹ️ There is old history still to link: use /link_history.",
 
-    # rankings and statistics
+    # leaderboards and statistics
     "Nel mese {date} non sono state contate 💩.": "No 💩 was counted in the month {date}.",
     "Nell'anno {date} non sono state contate 💩.": "No 💩 was counted in the year {date}.",
-    "🏆 *Classifica del mese {date}*": "🏆 *Ranking of the month {date}*",
-    "🏆 *Classifica dell'anno {date}*": "🏆 *Ranking of the year {date}*",
+    "🏆 *Classifica del mese {date}*": "🏆 *Leaderboard of the month {date}*",
+    "🏆 *Classifica dell'anno {date}*": "🏆 *Leaderboard of the year {date}*",
     "_💩 finora → previsione a fine mese_": "_💩 so far → forecast at the end of the month_",
     "_💩 finora → previsione a fine anno_": "_💩 so far → forecast at the end of the year_",
     "Nessuna statistica disponibile per il mese {date}.": "No statistics available for the month {date}.",
@@ -92,7 +92,7 @@ EN = {
     "📊 *Statistiche dell'anno {date}*": "📊 *Statistics of the year {date}*",
     "💩 al giorno: media · mediana · varianza": "💩 per day: mean · median · variance",
 
-    # /aggiungi, /togli, /conto_giorno, /costipazione
+    # /add_poop, /remove_poop, /day_count, /last_poop
     "Solo gli admin del gruppo possono modificare i conteggi degli altri.":
         "Only the group admins can change the counts of somebody else.",
     "Il conteggio di {name} nel giorno {date} non può essere aggiornato poiché era già 0 💩.":
@@ -107,22 +107,22 @@ EN = {
     "{name} oggi hai fatto 💩.": "{name}, today you did 💩.",
     "{name} non fai 💩 da {days} giorno.": "{name}, no 💩 for {days} day.",
     "{name} non fai 💩 da {days} giorni.": "{name}, no 💩 for {days} days.",
-    "{name} non ci sono dati sulla costipazione.": "{name}, there is no data about constipation.",
+    "{name} non ci sono dati sull'ultima 💩.": "{name}, there is no data about your last 💩.",
 
-    # /collega
+    # /link_history
     "Non ci sono dati storici da collegare.": "There is no old history to link.",
     "Dati storici ancora da collegare:": "Old history still to link:",
     " → {name} (corrispondenza trovata)": " → {name} (match found)",
     "({orphans} registrazioni senza username non si possono collegare.)":
         "({orphans} records without a username cannot be linked.)",
-    "Gli admin possono usare /collega auto per collegare le corrispondenze, oppure rispondere a un messaggio della persona con /collega <username storico>.":
+    "Gli admin possono usare /collega_storico auto per collegare le corrispondenze, oppure rispondere a un messaggio della persona con /collega_storico <username storico>.":
         "The admins can use /link_history auto to link the matches, or reply to a message of the person with /link_history <old username>.",
     "Solo gli admin del gruppo possono collegare i dati storici.": "Only the group admins can link the old history.",
     "Collegati:": "Linked:",
     "• {username} → {name} ({days} giorni)": "• {username} → {name} ({days} days)",
     "Nessuna corrispondenza trovata tra lo storico e gli utenti che hanno già scritto nel gruppo.":
         "No match found between the old history and the users who have already written in the group.",
-    "Da collegare a mano (rispondi a un messaggio della persona con /collega <username storico>):":
+    "Da collegare a mano (rispondi a un messaggio della persona con /collega_storico <username storico>):":
         "To link by hand (reply to a message of the person with /link_history <old username>):",
     "Rispondi a un messaggio della persona da collegare. Usa: {usage}": "Reply to a message of the person to link. Use: {usage}",
     "Nessun dato storico trovato per «{username}» (già collegato o inesistente).":
@@ -142,7 +142,7 @@ EN = {
     "nel mese": "in the month",
     "nei mesi": "in the months",
 
-    # /record of one person
+    # /records of one person
     "Record per {name}": "Records of {name}",
     " 🔥 è il tuo record!": " 🔥 it is your record!",
     " 🔥 già oltre il tuo record mensile!": " 🔥 already beyond your monthly record!",
@@ -172,7 +172,7 @@ EN = {
     "   ↳ In corso: oggi hai fatto 💩, nessuna pausa": "   ↳ Now: you did 💩 today, no pause",
     "   ↳ In corso: {count} {days} senza 💩": "   ↳ Now: {count} {days} without 💩",
 
-    # /record of the group
+    # /records of the group
     "🏆 *Record del gruppo* 🏆": "🏆 *Group records* 🏆",
     "🥵 Più 💩 in un giorno: {value} — {holders}": "🥵 Most 💩 in a day: {value} — {holders}",
     "🤩 Più 💩 in un mese: {value} — {holders}": "🤩 Most 💩 in a month: {value} — {holders}",
@@ -187,7 +187,7 @@ EN = {
     "Il tuo: /record io — di un altro: /record @username (o rispondi a un suo messaggio)":
         "Yours: /records me — somebody else's: /records @username (or reply to one of their messages)",
 
-    # /trofei
+    # /trophies
     "🔥 *Nuovo trofeo!* {days} giorni di fila con almeno una 💩!": "🔥 *New trophy!* {days} days in a row with at least one 💩!",
     "🏆 *Bacheca dei trofei* 🏆": "🏆 *Trophy board* 🏆",
     "Ancora nessun trofeo: servono {days} giorni di fila con almeno una 💩, oppure vincere un mese.":
@@ -225,8 +225,8 @@ EN = {
         "Well done! Back to zero: happy {month} and happy 💩 🧻",
 
     # charts
-    "Classifica di {title}": "Ranking of {title}",
-    "Classifica del {title}": "Ranking of {title}",
+    "Classifica di {title}": "Leaderboard of {title}",
+    "Classifica del {title}": "Leaderboard of {title}",
     "Totale": "Total",
     "Giorno": "Day",
     "Totale progressivo": "Running total",

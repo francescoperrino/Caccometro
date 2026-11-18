@@ -1,4 +1,4 @@
-"""Charts of /classifica_* and /statistiche_*: one shared style, PNG bytes in memory."""
+"""Charts of /leaderboard_* and /stats_*: one shared style, PNG bytes in memory."""
 import io
 import calendar
 from collections import defaultdict

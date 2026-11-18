@@ -11,10 +11,10 @@ from telegram.error import NetworkError
 from telegram.ext import Application, CommandHandler, ExtBot, MessageHandler, filters, ContextTypes
 from telegram.request import HTTPXRequest
 
-from caccometro.commands import (start_command, classifica_mese_command, classifica_anno_command,
-                                 statistiche_mese_command, statistiche_anno_command, record_command, aggiungi_command,
-                                 togli_command, conto_giorno_command, costipazione_command, collega_command,
-                                 trofei_command, lingua_command)
+from caccometro.commands import (start_command, leaderboard_month_command, leaderboard_year_command,
+                                 stats_month_command, stats_year_command, records_command, add_poop_command,
+                                 remove_poop_command, day_count_command, last_poop_command, link_history_command,
+                                 trophies_command, language_command)
 from caccometro.config import BOT_TOKEN, PROJECT_DIR, ROME_TZ, RUN_MODE
 from caccometro.messages import handle_message, handle_migration
 
@@ -114,24 +114,33 @@ application = Application.builder().bot(CachedMeBot(
     get_updates_request=HTTPXRequest(connection_pool_size=1),
 )).build()
 
-# Commands: Italian name, English name, handler. Both names work in every chat; the Italian and English menus list one each
+# Commands: English name, Italian name, handler. Both names work in every chat; the Italian and English menus list one each
 COMMANDS = [
     ('start', 'start', start_command),
-    ('classifica_mese', 'rank_month', classifica_mese_command),
-    ('classifica_anno', 'rank_year', classifica_anno_command),
-    ('statistiche_mese', 'stats_month', statistiche_mese_command),
-    ('statistiche_anno', 'stats_year', statistiche_anno_command),
-    ('record', 'records', record_command),
-    ('trofei', 'trophies', trofei_command),
-    ('aggiungi', 'add_poop', aggiungi_command),
-    ('togli', 'remove_poop', togli_command),
-    ('conto_giorno', 'day_count', conto_giorno_command),
-    ('costipazione', 'constipation', costipazione_command),
-    ('collega', 'link_history', collega_command),
-    ('lingua', 'language', lingua_command),
+    ('leaderboard_month', 'classifica_mese', leaderboard_month_command),
+    ('leaderboard_year', 'classifica_anno', leaderboard_year_command),
+    ('stats_month', 'statistiche_mese', stats_month_command),
+    ('stats_year', 'statistiche_anno', stats_year_command),
+    ('records', 'record', records_command),
+    ('trophies', 'trofei', trophies_command),
+    ('add_poop', 'aggiungi_cacca', add_poop_command),
+    ('remove_poop', 'togli_cacca', remove_poop_command),
+    ('day_count', 'conto_giorno', day_count_command),
+    ('last_poop', 'ultima_cacca', last_poop_command),
+    ('link_history', 'collega_storico', link_history_command),
+    ('language', 'lingua', language_command),
 ]
-for italian, english, handler in COMMANDS:
-    application.add_handler(CommandHandler([italian, english], handler))
+# Names used before v1.5.0: they still work, but are in no menu
+OLD_NAMES = {
+    'leaderboard_month': ['rank_month'],
+    'leaderboard_year': ['rank_year'],
+    'add_poop': ['aggiungi'],
+    'remove_poop': ['togli'],
+    'last_poop': ['costipazione', 'constipation'],
+    'link_history': ['collega'],
+}
+for english, italian, handler in COMMANDS:
+    application.add_handler(CommandHandler([english, italian, *OLD_NAMES.get(english, [])], handler))
 
 # Messages (the migration handler comes first: only the first matching handler of a group runs)
 application.add_handler(MessageHandler(filters.StatusUpdate.MIGRATE, handle_migration))

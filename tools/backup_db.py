@@ -21,8 +21,8 @@ import httpx
 from deploy import FILES, REPO, download, token
 
 KEEP = 14
-MAX_DROP = 0.2  # a legitimate /togli removes a few; losing a fifth of a chat's total is not normal
-MIN_TOTAL = 10  # below this a single /togli is already a big relative drop
+MAX_DROP = 0.2  # a legitimate /remove_poop removes a few; losing a fifth of a chat's total is not normal
+MIN_TOTAL = 10  # below this a single /remove_poop is already a big relative drop
 
 
 def alert(text):

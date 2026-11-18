@@ -32,24 +32,24 @@ Caccometro is an open source Telegram bot that counts the 💩 of every person i
 | Command                                        | Description |
 | :--------------------------------------------- | :---------- |
 | `/start`                                       | Prepares the database of the chat and shows the version of the bot. |
-| `/rank_month [MM-YYYY]`                        | Ranking of the month (the current one if the date is missing; also `march 2026`), with a chart of the day-by-day trend. For the current month, next to each count, the forecast for the end of the month. |
-| `/rank_year [YYYY]`                            | Ranking of the year (the current one if missing; also `26`), with a chart and, for the current year, the forecast for the end of the year. |
+| `/leaderboard_month [MM-YYYY]`                 | Leaderboard of the month (the current one if the date is missing; also `march 2026`), with a chart of the day-by-day trend. For the current month, next to each count, the forecast for the end of the month. |
+| `/leaderboard_year [YYYY]`                     | Leaderboard of the year (the current one if missing; also `26`), with a chart and, for the current year, the forecast for the end of the year. |
 | `/stats_month [MM-YYYY]`                       | Mean, median and variance of the 💩 per day of each person in the month, with a chart of the distributions. |
 | `/stats_year [YYYY]`                           | The same statistics over the year. |
 | `/records [me \| @username]`                   | Without arguments the **group records** (who holds each record and who leads right now). With `me` (or `io`) your own records, with `@username` (or replying to a message) those of another person, each with its **current state**. |
 | `/trophies [me \| @username]`                  | Without arguments the **trophy board** of the group; with `me` (or `io`) your trophies, with `@username` (or replying to a message) those of another person, with how many days are left to the next streak trophy. |
 | `/day_count [@username] [DD-MM-YYYY]`          | 💩 of a person on a day (today if the date is missing; also `yesterday`). |
-| `/constipation [@username]`                    | Days since the last 💩. |
+| `/last_poop [@username]`                       | Days since the last 💩. |
 | `/add_poop [@username] DD-MM-YYYY`             | Adds 1 💩 on a past day or today (also `today`, `yesterday`). On someone else's count: admins only. |
 | `/remove_poop [@username] DD-MM-YYYY`          | Removes 1 💩 (down to 0) on a past day or today (also `today`, `yesterday`). On someone else's count: admins only. |
 | `/link_history [auto \| historical username]`  | Admins only: links the old history recorded by username to the people (see below). Without arguments it shows what is left to link. |
 | `/language [it \| en]`                         | Without arguments it shows the language of the chat; with `it` or `en` it changes it (in groups admins only). It applies to the replies, the charts and the midnight announcement of the chat. |
 
-Every command also has an Italian name (`/classifica_mese`, `/aggiungi`, ...), valid in every chat whatever its language: see the Italian menu in [docs/deployment.md](docs/deployment.md#command-menus).
+Every command also has an Italian name (`/classifica_mese`, `/aggiungi_cacca`, ...), valid in every chat whatever its language: see the Italian menu in [docs/deployment.md](docs/deployment.md#command-menus). The names used before version 1.5.0 (`/rank_month`, `/rank_year`, `/constipation`, `/costipazione`, `/aggiungi`, `/togli`, `/collega`) still work, but are in no menu.
 
 In the commands with `[@username]` the person can also be chosen by **replying to one of their messages** (useful for people without a username). An `@username` works only for people who have already written at least one message in the group. In groups with topics, replying to the message that created the topic does not count as replying to a person.
 
-**Dates and months** can be written in several ways: `-`, `/` and `.` are the same, leading zeros are optional and the year can have two digits (`26` = 2026, also for `/rank_year` and `/stats_year`). So `5/3/26`, `05.03.2026` and `5-3-2026` are the same day (day first, then month), and `3/26`, `03.2026` and `03-2026` the same month. You can also use `today` and `yesterday` (or `oggi` and `ieri`), a day without a year (`5/3`, the current year) and the name of the month in English or Italian (`march 2026`, `marzo 26`, `march` for the current year), whatever the language of the chat. The replies always show `DD-MM-YYYY` and `MM-YYYY`. Only real dates between 1970 and today are valid (months and years up to 2100).
+**Dates and months** can be written in several ways: `-`, `/` and `.` are the same, leading zeros are optional and the year can have two digits (`26` = 2026, also for `/leaderboard_year` and `/stats_year`). So `5/3/26`, `05.03.2026` and `5-3-2026` are the same day (day first, then month), and `3/26`, `03.2026` and `03-2026` the same month. You can also use `today` and `yesterday` (or `oggi` and `ieri`), a day without a year (`5/3`, the current year) and the name of the month in English or Italian (`march 2026`, `marzo 26`, `march` for the current year), whatever the language of the chat. The replies always show `DD-MM-YYYY` and `MM-YYYY`. Only real dates between 1970 and today are valid (months and years up to 2100).
 
 Dates follow Italian time (`Europe/Rome`). A 💩 counts on the day the message was **sent**, even if the bot handles it later.
 
@@ -57,13 +57,13 @@ Dates follow Italian time (`Europe/Rome`). A 💩 counts on the day the message 
 
 ## 📈 Charts
 
-The rankings and the statistics come with a chart. These are drawn by the bot's own code from sample data, and are drawn again whenever the code changes (`tools/sample_charts.py`).
+The leaderboards and the statistics come with a chart. These are drawn by the bot's own code from sample data, and are drawn again whenever the code changes (`tools/sample_charts.py`).
 
-| Ranking of the month, with the forecast | Statistics of the month |
+| Leaderboard of the month, with the forecast | Statistics of the month |
 | :---: | :---: |
-| <img src="assets/screenshots/rank_month_en.png" alt="Ranking chart: table of the daily counts with medals, and the running total of each person with a dotted forecast to the end of the month" width="400"> | <img src="assets/screenshots/stats_month_en.png" alt="Statistics chart: a bell curve per person and a box plot of the daily 💩" width="400"> |
+| <img src="assets/screenshots/leaderboard_month_en.png" alt="Leaderboard chart: table of the daily counts with medals, and the running total of each person with a dotted forecast to the end of the month" width="400"> | <img src="assets/screenshots/stats_month_en.png" alt="Statistics chart: a bell curve per person and a box plot of the daily 💩" width="400"> |
 
-The same charts in an Italian chat: [ranking](assets/screenshots/rank_month_it.png), [statistics](assets/screenshots/stats_month_it.png).
+The same charts in an Italian chat: [leaderboard](assets/screenshots/leaderboard_month_it.png), [statistics](assets/screenshots/stats_month_it.png).
 
 ---
 

@@ -18,7 +18,7 @@ body:
       label: Steps to reproduce
       description: Numbered steps, when known.
       placeholder: |
-        1. Send `/classifica_mese 13-2026` in a group
+        1. Send `/leaderboard_month 13-2026` in a group
         2. ...
   - type: textarea
     id: expected

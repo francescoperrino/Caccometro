@@ -11,7 +11,7 @@ caccometro/          the bot, as a Python package
   config.py          environment variables, date formats, Italian time
   bot.py             python-telegram-bot Application, logging, send retries, command registration
   webhook.py         Flask app that receives the updates from Telegram (production)
-  commands.py        the commands (/rank_month, /records, ...) and the permission checks
+  commands.py        the commands (/leaderboard_month, /records, ...) and the permission checks
   messages.py        counting the 💩 in messages and stickers
   chat.py            shared helpers on Telegram users and messages
   i18n.py            translations: the Italian sentences are the keys, one dictionary per language

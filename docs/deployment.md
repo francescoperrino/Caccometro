@@ -21,9 +21,9 @@ statistiche_anno - Media, mediana e varianza dell'anno, corrente o [YYYY o YY].
 record - Record del gruppo; con io o @username quelli di una persona.
 trofei - Trofei del gruppo; con io o @username quelli di una persona.
 conto_giorno - 💩 di un giorno: [@username] [DD-MM-YYYY, oggi, ieri].
-costipazione - Giorni senza 💩: [@username].
-aggiungi - Aggiunge 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
-togli - Toglie 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
+ultima_cacca - Giorni dall'ultima 💩: [@username].
+aggiungi_cacca - Aggiunge 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
+togli_cacca - Toglie 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
 lingua - Lingua del bot in questa chat: it o en (nei gruppi solo admin).
 ```
 
@@ -31,20 +31,20 @@ English menu (`setMyCommands` with `language_code=en`):
 
 ```
 start - Start the bot and explain how to count 💩.
-rank_month - Ranking of the month, current or [MM-YYYY, also march 2026].
-rank_year - Ranking of the year, current or [YYYY or YY].
+leaderboard_month - Leaderboard of the month, current or [MM-YYYY, also march 2026].
+leaderboard_year - Leaderboard of the year, current or [YYYY or YY].
 stats_month - Mean, median and variance of the month, current or [MM-YYYY, also march 2026].
 stats_year - Mean, median and variance of the year, current or [YYYY or YY].
 records - Group records; with me or @username those of one person.
 trophies - Group trophies; with me or @username those of one person.
 day_count - 💩 of a day: [@username] [DD-MM-YYYY, today, yesterday].
-constipation - Days without 💩: [@username].
+last_poop - Days since the last 💩: [@username].
 add_poop - Add 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
 remove_poop - Remove 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
 language - Language of the bot in this chat: it or en (in groups admins only).
 ```
 
-`/link_history` (`/collega`) is for admins only: it goes in the administrators' list (`setMyCommands` with scope `all_chat_administrators`), together with the other commands, in both languages. The menus are set for four scopes: default, private chats, groups, group administrators. After changing them, read them back with `getMyCommands`.
+`/link_history` (`/collega_storico`) is for admins only: it goes in the administrators' list (`setMyCommands` with scope `all_chat_administrators`), together with the other commands, in both languages. The menus are set for four scopes: default, private chats, groups, group administrators. After changing them, read them back with `getMyCommands`.
 
 ### Descriptions
 
@@ -55,8 +55,8 @@ Italian (`/setdescription` and `/setabouttext`, or `setMyDescription` and `setMy
 
 English (`setMyDescription` and `setMyShortDescription` with `language_code=en`):
 
-- **Description:** Send 💩 or 🚽 when you have done your duty: the bot keeps the count for every person in the group, with rankings, statistics, charts and personal and group records.
-- **Short description:** Counts the 💩 of the group: rankings, statistics, charts and records.
+- **Description:** Send 💩 or 🚽 when you have done your duty: the bot keeps the count for every person in the group, with leaderboards, statistics, charts and personal and group records.
+- **Short description:** Counts the 💩 of the group: leaderboards, statistics, charts and records.
 
 After every release `tools/bot_version.py` adds a "Versione X.Y.Z" / "Version X.Y.Z" line at the end of both descriptions ([operations.md](operations.md#releases)).
 
