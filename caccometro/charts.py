@@ -16,10 +16,9 @@ from matplotlib.patches import FancyBboxPatch
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 
-from caccometro import __version__
-from caccometro.config import MONTH_NAMES, now_rome, STORING_FORMAT
-
-MONTH_ABBRS = ['', 'gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
+from caccometro import __version__, i18n
+from caccometro.config import now_rome, STORING_FORMAT
+from caccometro.i18n import month_name, tr
 
 # Colours taken from the bot avatar. The user colours are in a fixed order checked for colour
 # blindness on the card colour (8 slots; a 9th user gets a dashed line).
@@ -102,14 +101,15 @@ def user_style(i):
     return PALETTE[i % len(PALETTE)], '-' if i < len(PALETTE) else '--'
 
 def decimal(value):
-    """Italian decimal comma: 1.25 -> '1,25'."""
-    return f'{value:.2f}'.replace('.', ',')
+    """Two decimals, with the decimal comma in Italian: 1.25 -> '1,25' ('1.25' in English)."""
+    text = f'{value:.2f}'
+    return text.replace('.', ',') if i18n.current() == 'it' else text
 
 def period_info(time_period, date):
     """Year, month (None for a year), number of days and title of the period."""
     if time_period == 'month':
         month, year = (int(part) for part in date.split('-'))
-        return year, month, calendar.monthrange(year, month)[1], f'{MONTH_NAMES[month]} {year}'
+        return year, month, calendar.monthrange(year, month)[1], f'{month_name(month)} {year}'
     year = int(date)
     return year, None, 366 if calendar.isleap(year) else 365, str(year)
 
@@ -202,7 +202,7 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
         header = [str(day) for day in range(1, days + 1)]
         steps_shown = shown
     else:
-        header = MONTH_ABBRS[1:]
+        header = [month_name(number)[:3].lower() for number in range(1, 13)]  # 'gen', 'feb'... or 'jan', 'feb'...
         steps_shown = datetime.strptime(f'{year}-{shown}', '%Y-%j').month
 
     table_data = []
@@ -228,7 +228,7 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
         name_width = 0.16
         total_width = 0.10
         step_width = (1 - name_width - total_width) / len(header)
-        table = ax_table.table(cellText=table_data, colLabels=[''] + header + ['Totale'],
+        table = ax_table.table(cellText=table_data, colLabels=[''] + header + [tr('Totale')],
                                colWidths=[name_width] + [step_width] * len(header) + [total_width],
                                cellLoc='center', bbox=[0, 0, 1, 1])
         table.auto_set_font_size(False)
@@ -265,7 +265,7 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
                 ax_table.text(badge_x, y, f'{position}°', ha='center', va='center', fontsize=11,
                               color=TEXT_MUTED, transform=ax_table.transAxes, zorder=6)
         ax_table.axis('off')
-        ax_table.set_title(f'Classifica di {title}' if month else f'Classifica del {title}')
+        ax_table.set_title((tr('Classifica di {title}') if month else tr('Classifica del {title}')).format(title=title))
 
         # Cumulative counts, up to today for the current period
         x = np.arange(1, shown + 1)
@@ -294,7 +294,7 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
         if time_period == 'month':
             ax_lines.set_xticks(range(1, days + 1))
             fine_vlines(ax_lines, range(1, days + 1))
-            ax_lines.set_xlabel('Giorno')
+            ax_lines.set_xlabel(tr('Giorno'))
         else:
             # Lines at the month starts, names in the middle of each month
             month_starts = [datetime(year, m, 1).timetuple().tm_yday for m in range(1, 13)] + [days + 1]
@@ -307,8 +307,8 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
         # headroom: the leader's line is not cut at the top; a year rounds to hundreds
         step = 10 if time_period == 'month' else 100
         layered_grid(ax_lines, max_total * 1.05, step, fine_step=step // 10)  # thin lines every 💩 (every 10 a year)
-        ax_lines.set_ylabel('Totale progressivo')
-        ax_lines.set_title('Come è andata giorno per giorno', fontsize=15, weight='normal', color=TEXT_MUTED)
+        ax_lines.set_ylabel(tr('Totale progressivo'))
+        ax_lines.set_title(tr('Come è andata giorno per giorno'), fontsize=15, weight='normal', color=TEXT_MUTED)
         ax_lines.legend(loc='upper left', ncol=2 if len(rows) > 4 else 1)
 
         add_cards(fig, [ax_table, ax_lines])
@@ -375,9 +375,9 @@ def generate_statistics_chart(statistics, daily_counts, time_period, date):
         fine_vlines(ax_curves, range(0, max(max_count, 1) + 1))
         layered_grid(ax_curves, max([top] + [y for _, y in placed]) + height, 5)  # headroom for the labels
         ax_curves.xaxis.set_major_locator(MaxNLocator(integer=True))
-        ax_curves.set_xlabel('Volte al giorno')
-        ax_curves.set_ylabel('Giorni')
-        ax_curves.set_title(f'Statistiche di {title}' if month else f'Statistiche del {title}')
+        ax_curves.set_xlabel(tr('Volte al giorno'))
+        ax_curves.set_ylabel(tr('Giorni'))
+        ax_curves.set_title((tr('Statistiche di {title}') if month else tr('Statistiche del {title}')).format(title=title))
         if peaks:  # no legend when there are no curves (zero variance)
             ax_curves.legend(loc='upper right', ncol=2 if len(peaks) > 4 else 1)
 
@@ -402,9 +402,9 @@ def generate_statistics_chart(statistics, daily_counts, time_period, date):
             box_plot['fliers'][i].set_markerfacecolor(colour)
         ax_box.set_yticks(np.arange(0, max_count + 2, 1))
         ax_box.set_ylim(-0.3, max_count + 0.6)
-        ax_box.set_ylabel('Volte al giorno')
+        ax_box.set_ylabel(tr('Volte al giorno'))
         ax_box.tick_params(axis='x', labelsize=13, colors=TEXT)
-        ax_box.set_title('Distribuzione giornaliera  (◆ media, — mediana)', fontsize=15, weight='normal',
+        ax_box.set_title(tr('Distribuzione giornaliera  (◆ media, — mediana)'), fontsize=15, weight='normal',
                          color=TEXT_MUTED)
 
         add_cards(fig, [ax_curves, ax_box])

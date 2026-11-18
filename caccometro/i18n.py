@@ -223,6 +223,19 @@ EN = {
     "🏅 💩 del mese": "🏅 💩 of the month",
     "Complimenti! Si riparte da zero: buon {month} e buone 💩 🧻":
         "Well done! Back to zero: happy {month} and happy 💩 🧻",
+
+    # charts
+    "Classifica di {title}": "Ranking of {title}",
+    "Classifica del {title}": "Ranking of {title}",
+    "Totale": "Total",
+    "Giorno": "Day",
+    "Totale progressivo": "Running total",
+    "Come è andata giorno per giorno": "How it went day by day",
+    "Statistiche di {title}": "Statistics of {title}",
+    "Statistiche del {title}": "Statistics of {title}",
+    "Volte al giorno": "Times per day",
+    "Giorni": "Days",
+    "Distribuzione giornaliera  (◆ media, — mediana)": "Daily distribution  (◆ mean, — median)",
 }
 
 TRANSLATIONS = {'en': EN}
