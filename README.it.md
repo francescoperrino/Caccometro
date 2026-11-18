@@ -46,7 +46,7 @@ Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in u
 | `/collega_storico [auto \| username storico]`  | Solo admin: collega il vecchio storico registrato per username alle persone (vedi sotto). Senza argomenti mostra cosa resta da collegare. |
 | `/lingua [it \| en]`                           | Senza argomenti mostra la lingua della chat; con `it` o `en` la cambia (nei gruppi solo admin). Vale per le risposte, i grafici e l'annuncio di mezzanotte della chat. |
 
-Ogni comando ha anche un nome inglese (`/leaderboard_month`, `/add_poop`, ...), valido in ogni chat qualunque sia la sua lingua: vedi il menu inglese in [docs/deployment.md](docs/deployment.md#command-menus). I nomi usati prima della versione 1.5.0 (`/rank_month`, `/rank_year`, `/constipation`, `/costipazione`, `/aggiungi`, `/togli`, `/collega`) funzionano ancora, ma non sono in nessun menu.
+Ogni comando ha anche un nome inglese (`/leaderboard_month`, `/add_poop`, ...), valido in ogni chat qualunque sia la sua lingua: vedi il menu inglese in [docs/deployment.md](docs/deployment.md#command-menus).
 
 Nei comandi con `[@username]` la persona si può indicare anche **rispondendo a un suo messaggio** (utile per chi non ha uno username). Un `@username` funziona solo per chi ha già scritto almeno un messaggio nel gruppo. Nei gruppi con i topic, rispondere al messaggio che ha creato il topic non conta come rispondere a una persona.
 

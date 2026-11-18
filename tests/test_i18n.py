@@ -50,12 +50,11 @@ def test_without_a_known_language_the_reply_shows_the_current_one(args):
     assert run(commands.language_command, *args, member_status="administrator").startswith("La lingua di questa chat")
 
 
-def test_every_command_answers_to_its_english_italian_and_old_names():
+def test_every_command_answers_to_its_english_and_italian_names_only():
     from caccometro import bot
     registered = {frozenset(h.commands): h.callback for h in bot.application.handlers[0] if hasattr(h, "commands")}
     for english, italian, handler in bot.COMMANDS:
-        assert registered[frozenset({english, italian, *bot.OLD_NAMES.get(english, [])})] is handler, english
-    assert registered[frozenset({"last_poop", "ultima_cacca", "costipazione", "constipation"})] is bot.last_poop_command
+        assert registered[frozenset({english, italian})] is handler, english
 
 
 def test_the_midnight_announcement_follows_the_language_of_each_chat(seed, chat_id):

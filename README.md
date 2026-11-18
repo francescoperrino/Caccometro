@@ -47,7 +47,7 @@ Caccometro is an open source Telegram bot that counts the 💩 of every person i
 | `/link_history [auto \| historical username]`  | Admins only: links the old history recorded by username to the people (see below). Without arguments it shows what is left to link. |
 | `/language [it \| en]`                         | Without arguments it shows the language of the chat; with `it` or `en` it changes it (in groups admins only). It applies to the replies, the charts and the midnight announcement of the chat. |
 
-Every command also has an Italian name (`/classifica_mese`, `/aggiungi_cacca`, ...), valid in every chat whatever its language: see the Italian menu in [docs/deployment.md](docs/deployment.md#command-menus). The names used before version 1.5.0 (`/rank_month`, `/rank_year`, `/constipation`, `/costipazione`, `/aggiungi`, `/togli`, `/collega`) still work, but are in no menu.
+Every command also has an Italian name (`/classifica_mese`, `/aggiungi_cacca`, ...), valid in every chat whatever its language: see the Italian menu in [docs/deployment.md](docs/deployment.md#command-menus).
 
 In the commands with `[@username]` the person can also be chosen by **replying to one of their messages** (useful for people without a username). An `@username` works only for people who have already written at least one message in the group. In groups with topics, replying to the message that created the topic does not count as replying to a person.
 

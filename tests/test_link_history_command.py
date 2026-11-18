@@ -179,7 +179,7 @@ def test_empty_ranking_has_no_hint_without_pending_history(chat_id):
 def test_link_history_is_registered_as_a_command():
     handlers = bot.application.handlers[0]
     commands = {c for h in handlers if hasattr(h, "commands") for c in h.commands}
-    assert {"link_history", "collega_storico", "collega"} <= commands
+    assert {"link_history", "collega_storico"} <= commands
 
 
 def test_links_are_logged_with_old_username_target_and_days(tmp_path, caplog):

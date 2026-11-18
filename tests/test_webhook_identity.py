@@ -98,11 +98,11 @@ def test_webhook_command_with_bot_suffix_is_recognized(telegram_calls):
     pytest.importorskip("asgiref")   # Flask async views need it
     client = webhook.app.test_client()
     client.post("/webhook", headers=SECRET, json=telegram_update(text="💩", update_id=1))
-    update = telegram_update(text="/costipazione@caccometro_test_bot", update_id=2)
-    update["message"]["entities"] = [{"type": "bot_command", "offset": 0, "length": len("/costipazione@caccometro_test_bot")}]
+    update = telegram_update(text="/last_poop@caccometro_test_bot", update_id=2)
+    update["message"]["entities"] = [{"type": "bot_command", "offset": 0, "length": len("/last_poop@caccometro_test_bot")}]
     response = client.post("/webhook", headers=SECRET, json=update)
     assert response.status_code == 200
-    assert telegram_calls.count("sendMessage") == 2      # the 💩 reply and the reply to the old name of /last_poop
+    assert telegram_calls.count("sendMessage") == 2      # the 💩 reply and the reply to /last_poop
 
 
 @pytest.mark.parametrize("headers", [{}, {"X-Telegram-Bot-Api-Secret-Token": "wrong"}, {"X-Telegram-Bot-Api-Secret-Token": "caffé"}])
