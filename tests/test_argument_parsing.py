@@ -61,8 +61,8 @@ def test_year_with_two_or_four_digits(arg):
     assert commands.parse_year_arg(arg) == "2026"
 
 
-@pytest.mark.parametrize("arg", ["marzo 2026", "Marzo 2026", "marzo 26", "MARZO 2026"])
-def test_month_written_with_its_italian_name(arg):
+@pytest.mark.parametrize("arg", ["marzo 2026", "Marzo 2026", "marzo 26", "MARZO 2026", "march 2026", "March 26"])
+def test_month_written_with_its_italian_or_english_name(arg):
     assert commands.parse_month_arg(arg) == "03-2026"
 
 
@@ -70,7 +70,7 @@ def test_month_name_without_a_year_is_this_year():
     assert commands.parse_month_arg("marzo") == f"03-{commands.now_rome().year}"
 
 
-@pytest.mark.parametrize("arg", ["marzi 2026", "march 2026", "marzo 1969", "marzo 2101", "marzo 20245", "2026 marzo"])
+@pytest.mark.parametrize("arg", ["marzi 2026", "mar 2026", "marzo 1969", "marzo 2101", "marzo 20245", "2026 marzo"])
 def test_unknown_month_name_or_year_is_refused(arg):
     assert commands.parse_month_arg(arg) is None
 
@@ -86,6 +86,12 @@ def test_oggi_and_ieri_are_the_current_and_the_previous_day():
     today = commands.now_rome().date()
     assert commands.parse_date_arg("oggi")[1] == today.isoformat()
     assert commands.parse_date_arg("Ieri")[1] == (today - commands.timedelta(days=1)).isoformat()
+
+
+def test_today_and_yesterday_are_accepted_in_every_chat():
+    today = commands.now_rome().date()
+    assert commands.parse_date_arg("today")[1] == today.isoformat()
+    assert commands.parse_date_arg("Yesterday")[1] == (today - commands.timedelta(days=1)).isoformat()
 
 
 def test_a_day_without_the_year_is_this_year():

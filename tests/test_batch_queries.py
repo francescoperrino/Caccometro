@@ -6,7 +6,7 @@ import pytest
 
 from caccometro import commands, messages
 from caccometro import database
-from caccometro import charts
+from caccometro import charts, i18n
 from conftest import make_context, make_update, uid
 
 
@@ -208,3 +208,12 @@ def test_poop_messages_sent_at_the_same_time_are_all_counted(chat_id):
     for thread in threads:
         thread.join()
     assert database.get_count(uid("mario"), today, chat_id) == 12
+
+
+def test_the_year_table_follows_the_language_of_the_chat(seed, chat_id, monkeypatch):
+    seed({"mario": {"2024-03-10": 2}})
+    i18n.use("en")
+    table = table_of_rank_chart(monkeypatch, database.get_rank(chat_id, "year", "2024"),
+                                database.get_daily_counts(chat_id, "year", "2024"), "year", "2024", chat_id)
+    assert table[0][1:4] == ["jan", "feb", "mar"] and table[0][-1] == "Total"
+    assert charts.decimal(1.25) == "1.25"

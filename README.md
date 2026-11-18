@@ -25,6 +25,7 @@ Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in u
 1. Aggiungi il bot al gruppo e manda `/start`.
 2. Quando hai fatto il tuo dovere manda un messaggio con 💩 o 🚽 (anche come sticker): il bot risponde con il conto di oggi.
 3. Usa i comandi qui sotto per classifiche, statistiche e record.
+4. Il bot parla italiano; per l'inglese un admin manda `/lingua en` (in privato chiunque).
 
 Il bot legge i messaggi del gruppo per trovare le 💩: per questo su @BotFather la **Group Privacy** deve essere disattivata. Il testo dei messaggi non viene mai salvato né scritto nel log. Nel log finiscono invece le modifiche fatte a mano: per ogni `/aggiungi` e `/togli` chi l'ha mandato, la persona, il giorno e il conteggio prima e dopo; per `/collega` il vecchio username, la persona e i giorni spostati.
 
@@ -32,24 +33,25 @@ Il bot legge i messaggi del gruppo per trovare le 💩: per questo su @BotFather
 
 ## 📚 Comandi
 
-| Comando                                | Descrizione |
+| Comando (nome inglese)                 | Descrizione |
 | :------------------------------------- | :---------- |
 | `/start`                               | Prepara il database della chat e mostra la versione del bot. |
-| `/classifica_mese [MM-YYYY]`           | Classifica del mese (corrente se la data manca; anche `marzo 2026`), con grafico dell'andamento giorno per giorno. Per il mese in corso, accanto a ogni conto, la previsione a fine mese. |
-| `/classifica_anno [YYYY]`              | Classifica dell'anno (corrente se manca; anche `26`), con grafico e, per l'anno in corso, la previsione a fine anno. |
-| `/statistiche_mese [MM-YYYY]`          | Media, mediana e varianza delle 💩 al giorno di ogni persona nel mese, con grafico delle distribuzioni. |
-| `/statistiche_anno [YYYY]`             | Le stesse statistiche sull'anno. |
-| `/record [io \| @username]`            | Senza argomenti i **record del gruppo** (chi detiene ciascun record e chi è in testa adesso). Con `io` i tuoi record, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, ciascuno con lo **stato attuale**. |
-| `/trofei [io \| @username]`            | Senza argomenti la **bacheca dei trofei** del gruppo; con `io` i tuoi trofei, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, con quanti giorni mancano al prossimo trofeo di serie. |
-| `/conto_giorno [@username] [DD-MM-YYYY]` | 💩 di una persona in un giorno (oggi se la data manca; anche `ieri`). |
-| `/costipazione [@username]`            | Giorni passati dall'ultima 💩. |
-| `/aggiungi [@username] DD-MM-YYYY`     | Aggiunge 1 💩 in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
-| `/togli [@username] DD-MM-YYYY`        | Toglie 1 💩 (fino a 0) in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
-| `/collega [auto \| username storico]`  | Solo admin: collega lo storico registrato per username alle persone (vedi sotto). Senza argomenti mostra cosa resta da collegare. |
+| `/classifica_mese [MM-YYYY]` `/rank_month`           | Classifica del mese (corrente se la data manca; anche `marzo 2026`), con grafico dell'andamento giorno per giorno. Per il mese in corso, accanto a ogni conto, la previsione a fine mese. |
+| `/classifica_anno [YYYY]` `/rank_year`              | Classifica dell'anno (corrente se manca; anche `26`), con grafico e, per l'anno in corso, la previsione a fine anno. |
+| `/statistiche_mese [MM-YYYY]` `/stats_month`          | Media, mediana e varianza delle 💩 al giorno di ogni persona nel mese, con grafico delle distribuzioni. |
+| `/statistiche_anno [YYYY]` `/stats_year`             | Le stesse statistiche sull'anno. |
+| `/record [io \| @username]` `/records`            | Senza argomenti i **record del gruppo** (chi detiene ciascun record e chi è in testa adesso). Con `io` i tuoi record, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, ciascuno con lo **stato attuale**. |
+| `/trofei [io \| @username]` `/trophies`            | Senza argomenti la **bacheca dei trofei** del gruppo; con `io` i tuoi trofei, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, con quanti giorni mancano al prossimo trofeo di serie. |
+| `/conto_giorno [@username] [DD-MM-YYYY]` `/day_count` | 💩 di una persona in un giorno (oggi se la data manca; anche `ieri`). |
+| `/costipazione [@username]` `/constipation`            | Giorni passati dall'ultima 💩. |
+| `/aggiungi [@username] DD-MM-YYYY` `/add_poop`     | Aggiunge 1 💩 in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
+| `/togli [@username] DD-MM-YYYY` `/remove_poop`        | Toglie 1 💩 (fino a 0) in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
+| `/collega [auto \| username storico]` `/link_history`  | Solo admin: collega lo storico registrato per username alle persone (vedi sotto). Senza argomenti mostra cosa resta da collegare. |
+| `/lingua [it \| en]` `/language`                   | Senza argomenti mostra la lingua della chat; con `it` o `en` la cambia (nei gruppi solo admin). Vale per risposte, grafici e annuncio di mezzanotte della chat. |
 
 Nei comandi con `[@username]` la persona si può indicare anche **rispondendo a un suo messaggio** (utile per chi non ha uno username). Nei gruppi con i topic, rispondere al messaggio che ha creato il topic non conta come rispondere a una persona.
 
-**Date e mesi** si possono scrivere in vari modi: `-`, `/` e `.` sono equivalenti, gli zeri iniziali sono facoltativi e l'anno può avere due cifre (`26` = 2026, anche per `/classifica_anno` e `/statistiche_anno`). Quindi `5/3/26`, `05.03.2026` e `5-3-2026` indicano lo stesso giorno, e `3/26`, `03.2026` e `03-2026` lo stesso mese. Si possono usare anche `oggi` e `ieri`, un giorno senza anno (`5/3`, vale l'anno corrente) e il nome del mese in italiano (`marzo 2026`, `marzo 26`, `marzo` per l'anno corrente). Le risposte mostrano sempre `DD-MM-YYYY` e `MM-YYYY`. Sono valide solo date reali tra il 1970 e oggi (mesi e anni fino al 2100).
+**Date e mesi** si possono scrivere in vari modi: `-`, `/` e `.` sono equivalenti, gli zeri iniziali sono facoltativi e l'anno può avere due cifre (`26` = 2026, anche per `/classifica_anno` e `/statistiche_anno`). Quindi `5/3/26`, `05.03.2026` e `5-3-2026` indicano lo stesso giorno, e `3/26`, `03.2026` e `03-2026` lo stesso mese. Si possono usare anche `oggi` e `ieri` (o `today` e `yesterday`), un giorno senza anno (`5/3`, vale l'anno corrente) e il nome del mese in italiano o in inglese (`marzo 2026`, `march 26`, `marzo` per l'anno corrente), in qualunque lingua sia la chat. Le risposte mostrano sempre `DD-MM-YYYY` e `MM-YYYY`. Sono valide solo date reali tra il 1970 e oggi (mesi e anni fino al 2100).
 
 ---
 
@@ -116,14 +118,37 @@ conto_giorno - 💩 di un giorno: [@username] [DD-MM-YYYY, oggi, ieri].
 costipazione - Giorni senza 💩: [@username].
 aggiungi - Aggiunge 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
 togli - Toglie 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
+lingua - Lingua del bot in questa chat: it o en (nei gruppi solo admin).
 ```
 
-`/collega` è solo per gli admin: va registrato a parte, nella lista dei comandi degli amministratori (`setMyCommands` con scope `all_chat_administrators`).
+Ogni comando ha anche un nome inglese (colonna della tabella sopra), valido in ogni chat. Telegram mostra il menu nella lingua dell'app di chi lo apre: quello inglese si registra con `setMyCommands` e `language_code=en`:
+
+```
+start - Start the bot and explain how to count 💩.
+rank_month - Ranking of the month, current or [MM-YYYY, also march 2026].
+rank_year - Ranking of the year, current or [YYYY or YY].
+stats_month - Mean, median and variance of the month, current or [MM-YYYY, also march 2026].
+stats_year - Mean, median and variance of the year, current or [YYYY or YY].
+records - Group records; with me or @username those of one person.
+trophies - Group trophies; with me or @username those of one person.
+day_count - 💩 of a day: [@username] [DD-MM-YYYY, today, yesterday].
+constipation - Days without 💩: [@username].
+add_poop - Add 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
+remove_poop - Remove 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
+language - Language of the bot in this chat: it or en (in groups admins only).
+```
+
+`/collega` (`/link_history`) è solo per gli admin: va registrato a parte, nella lista dei comandi degli amministratori (`setMyCommands` con scope `all_chat_administrators`), in tutte e due le lingue.
 
 Con `/setdescription` e `/setabouttext` puoi impostare anche le descrizioni:
 
 - **Descrizione:** Manda 💩 o 🚽 quando hai fatto il tuo dovere: il bot tiene il conto per ogni persona del gruppo, con classifiche, statistiche, grafici e record personali e di gruppo.
 - **Descrizione breve:** Conta le 💩 del gruppo: classifiche, statistiche, grafici e record.
+
+In inglese (`setMyDescription` e `setMyShortDescription` con `language_code=en`):
+
+- **Description:** Send 💩 or 🚽 when you have done your duty: the bot keeps the count for every person in the group, with rankings, statistics, charts and personal and group records.
+- **Short description:** Counts the 💩 of the group: rankings, statistics, charts and records.
 
 ### 3. File `.env`
 
@@ -170,6 +195,7 @@ caccometro/          il bot, come pacchetto Python
   commands.py        i comandi (/classifica_mese, /record, ...) e il controllo dei permessi
   messages.py        il conteggio delle 💩 dai messaggi e dagli sticker
   chat.py            funzioni comuni su utenti e messaggi Telegram
+  i18n.py            traduzioni: le frasi italiane sono le chiavi, un dizionario per lingua
   database.py        database SQLite: schema, migrazione, query
   analysis.py        record, serie e statistiche (funzioni pure, senza database)
   trophies.py        trofei: serie di 15 giorni, 💩 del mese e dell'anno (funzioni pure)
@@ -231,7 +257,13 @@ erDiagram
         TEXT date "YYYY-MM-DD"
         INTEGER count "💩 di quel giorno"
     }
+    settings {
+        TEXT key PK "language"
+        TEXT value "it o en"
+    }
 ```
+
+`settings` nasce alla prima scelta fatta con `/lingua`: senza la tabella la chat parla italiano.
 
 `user_count_legacy` esiste solo nelle chat migrate dalla versione vecchia e si svuota man mano che `/collega` sposta lo storico in `user_count`.
 La versione dello schema è in `PRAGMA user_version` (oggi 2); la migrazione parte da sola all'apertura del database.
@@ -362,7 +394,7 @@ flowchart LR
 - **Ripristino di un database**: (1) lancia `tools/backup_db.py` per salvare lo stato attuale; (2) scegli la copia in `backups/db/` o `backups/db_monthly/` e controllala con `sqlite3 <file> "PRAGMA integrity_check"`; (3) nella tab Files dell'hosting, cartella `db/`, carica il file con lo stesso nome `<chat_id>_bot_data.db`, sovrascrivendo l'attuale (non servono reload né file di journal); (4) prova con `/record` nella chat. Le 💩 contate dopo la copia vanno rimesse con `/aggiungi`. Provato su una copia: il file ripristinato è integro e i totali tornano quelli della copia.
 - **Log** (`tools/fetch_logs.py`): scarica il log del bot e i log del web server per cercare gli errori. I log contengono username: non vanno mai pubblicati.
 - **Riassunto dei log** (`tools/log_summary.py`): ogni notte, subito dopo il backup (stessa riga del cron, stesso file `backups/db_backup.log`), scarica i log e stampa un riassunto delle ultime 24 ore: update ricevuti, tentativi ripetuti verso Telegram, risposte perse, chiamate rifiutate dal webhook, update più lento ed errori raggruppati per tipo. Il riassunto resta in `logs/summary_<data>.txt` (gli ultimi 30). Un tipo di errore che non è nell'elenco dei noti (`KNOWN` nello script) e non è già stato segnalato (`logs/seen_kinds.txt`) arriva una sola volta come messaggio Telegram privato, come per il backup; se i log non si scaricano, arriva un avviso.
-- **Release:** a ogni rilascio si alza `__version__`, si crea la release su GitHub e si fa il deploy; poi `tools/bot_version.py` scrive la versione in fondo alla descrizione dei bot.
+- **Release:** a ogni rilascio si alza `__version__`, si crea la release su GitHub e si fa il deploy; poi `tools/bot_version.py` scrive la versione in fondo alla descrizione dei bot, in italiano e in inglese (la descrizione inglese deve già esserci).
 
 ---
 
@@ -370,7 +402,7 @@ flowchart LR
 
 - Ogni modifica parte da una issue: usa i template **Bug**, **Feature** o **Task** (titolo e descrizione in inglese). Le vulnerabilità si segnalano in privato da [Security](https://github.com/francescoperrino/Caccometro/security/advisories/new).
 - Un branch per issue, con il prefisso del tipo: `bugfix/`, `feature/` o `task/`, poi `<numero>_<titolo_con_underscore>` (es. `task/49_update_the_documentation`).
-- Commit, commenti e docstring in inglese; i messaggi del bot agli utenti in italiano.
+- Commit, commenti e docstring in inglese; i messaggi del bot agli utenti si scrivono in italiano dentro `tr("...")`, con la traduzione inglese in `caccometro/i18n.py` (`tests/test_i18n.py` controlla che non ne manchi nessuna). Una lingua nuova è un dizionario in più in `i18n.py`, più il nome in `LANGUAGES` e i mesi in `MONTHS`.
 - Una volta per clone: `git config core.hooksPath .githooks`. Gli hook della cartella `.githooks/` rifiutano i file privati (`.env`, `logs/`, `backups/`, i log) e i messaggi con righe `Co-Authored-By`, e lanciano i test prima di ogni commit. Regole personali in più si possono aggiungere in `.git/hooks/local-pre-commit` e `.git/hooks/local-commit-msg`. I file `.py` hanno le fine riga CRLF nella cartella di lavoro su ogni sistema (`.gitattributes`).
 - Prima della pull request: `python -m pytest -q`. `main` accetta modifiche solo tramite pull request.
 - Le label indicano l'area toccata (`commands`, `charts`, `database`, `hosting`, `deploy`, `dependencies`, `documentation`); il tipo della issue dice se è un bug, una feature o un task.

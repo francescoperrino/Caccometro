@@ -5,7 +5,8 @@ from telegram import Update
 from telegram.constants import ChatMemberStatus, MessageLimit
 from telegram.ext import ContextTypes
 
-from caccometro.database import User, upsert_user
+from caccometro import i18n
+from caccometro.database import User, get_language, upsert_user
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +24,14 @@ def register_user(chat_id, tg_user):
 
 
 def register_sender(update: Update):
-    """Record the sender of the message in the users table and return it.
+    """Record the sender of the message in the users table and return it; the replies follow the language of the chat.
 
     Returns None when there is no usable sender (channel posts, anonymous admins, bots).
     """
     tg_user = update.message.from_user if update.message else None
     if tg_user is None or tg_user.is_bot:
         return None
+    i18n.use(get_language(update.message.chat_id))
     return register_user(update.message.chat_id, tg_user)
 
 

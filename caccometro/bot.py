@@ -14,7 +14,7 @@ from telegram.request import HTTPXRequest
 from caccometro.commands import (start_command, classifica_mese_command, classifica_anno_command,
                                  statistiche_mese_command, statistiche_anno_command, record_command, aggiungi_command,
                                  togli_command, conto_giorno_command, costipazione_command, collega_command,
-                                 trofei_command)
+                                 trofei_command, lingua_command)
 from caccometro.config import BOT_TOKEN, PROJECT_DIR, ROME_TZ, RUN_MODE
 from caccometro.messages import handle_message, handle_migration
 
@@ -114,19 +114,24 @@ application = Application.builder().bot(CachedMeBot(
     get_updates_request=HTTPXRequest(connection_pool_size=1),
 )).build()
 
-# Add handlers
-application.add_handler(CommandHandler('start', start_command))
-application.add_handler(CommandHandler('classifica_mese', classifica_mese_command))
-application.add_handler(CommandHandler('classifica_anno', classifica_anno_command))
-application.add_handler(CommandHandler('statistiche_mese', statistiche_mese_command))
-application.add_handler(CommandHandler('statistiche_anno', statistiche_anno_command))
-application.add_handler(CommandHandler('record', record_command))
-application.add_handler(CommandHandler('trofei', trofei_command))
-application.add_handler(CommandHandler('aggiungi', aggiungi_command))
-application.add_handler(CommandHandler('togli', togli_command))
-application.add_handler(CommandHandler('conto_giorno', conto_giorno_command))
-application.add_handler(CommandHandler('costipazione', costipazione_command))
-application.add_handler(CommandHandler('collega', collega_command))
+# Commands: Italian name, English name, handler. Both names work in every chat; the Italian and English menus list one each
+COMMANDS = [
+    ('start', 'start', start_command),
+    ('classifica_mese', 'rank_month', classifica_mese_command),
+    ('classifica_anno', 'rank_year', classifica_anno_command),
+    ('statistiche_mese', 'stats_month', statistiche_mese_command),
+    ('statistiche_anno', 'stats_year', statistiche_anno_command),
+    ('record', 'records', record_command),
+    ('trofei', 'trophies', trofei_command),
+    ('aggiungi', 'add_poop', aggiungi_command),
+    ('togli', 'remove_poop', togli_command),
+    ('conto_giorno', 'day_count', conto_giorno_command),
+    ('costipazione', 'constipation', costipazione_command),
+    ('collega', 'link_history', collega_command),
+    ('lingua', 'language', lingua_command),
+]
+for italian, english, handler in COMMANDS:
+    application.add_handler(CommandHandler([italian, english], handler))
 
 # Messages (the migration handler comes first: only the first matching handler of a group runs)
 application.add_handler(MessageHandler(filters.StatusUpdate.MIGRATE, handle_migration))
