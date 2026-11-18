@@ -145,6 +145,11 @@ Con `/setdescription` e `/setabouttext` puoi impostare anche le descrizioni:
 - **Descrizione:** Manda 💩 o 🚽 quando hai fatto il tuo dovere: il bot tiene il conto per ogni persona del gruppo, con classifiche, statistiche, grafici e record personali e di gruppo.
 - **Descrizione breve:** Conta le 💩 del gruppo: classifiche, statistiche, grafici e record.
 
+In inglese (`setMyDescription` e `setMyShortDescription` con `language_code=en`):
+
+- **Description:** Send 💩 or 🚽 when you have done your duty: the bot keeps the count for every person in the group, with rankings, statistics, charts and personal and group records.
+- **Short description:** Counts the 💩 of the group: rankings, statistics, charts and records.
+
 ### 3. File `.env`
 
 Copia `.env.example` in `.env` e inserisci i tuoi valori. `.env` è escluso da Git: non va mai committato.
@@ -389,7 +394,7 @@ flowchart LR
 - **Ripristino di un database**: (1) lancia `tools/backup_db.py` per salvare lo stato attuale; (2) scegli la copia in `backups/db/` o `backups/db_monthly/` e controllala con `sqlite3 <file> "PRAGMA integrity_check"`; (3) nella tab Files dell'hosting, cartella `db/`, carica il file con lo stesso nome `<chat_id>_bot_data.db`, sovrascrivendo l'attuale (non servono reload né file di journal); (4) prova con `/record` nella chat. Le 💩 contate dopo la copia vanno rimesse con `/aggiungi`. Provato su una copia: il file ripristinato è integro e i totali tornano quelli della copia.
 - **Log** (`tools/fetch_logs.py`): scarica il log del bot e i log del web server per cercare gli errori. I log contengono username: non vanno mai pubblicati.
 - **Riassunto dei log** (`tools/log_summary.py`): ogni notte, subito dopo il backup (stessa riga del cron, stesso file `backups/db_backup.log`), scarica i log e stampa un riassunto delle ultime 24 ore: update ricevuti, tentativi ripetuti verso Telegram, risposte perse, chiamate rifiutate dal webhook, update più lento ed errori raggruppati per tipo. Il riassunto resta in `logs/summary_<data>.txt` (gli ultimi 30). Un tipo di errore che non è nell'elenco dei noti (`KNOWN` nello script) e non è già stato segnalato (`logs/seen_kinds.txt`) arriva una sola volta come messaggio Telegram privato, come per il backup; se i log non si scaricano, arriva un avviso.
-- **Release:** a ogni rilascio si alza `__version__`, si crea la release su GitHub e si fa il deploy; poi `tools/bot_version.py` scrive la versione in fondo alla descrizione dei bot.
+- **Release:** a ogni rilascio si alza `__version__`, si crea la release su GitHub e si fa il deploy; poi `tools/bot_version.py` scrive la versione in fondo alla descrizione dei bot, in italiano e in inglese (la descrizione inglese deve già esserci).
 
 ---
 
@@ -397,7 +402,7 @@ flowchart LR
 
 - Ogni modifica parte da una issue: usa i template **Bug**, **Feature** o **Task** (titolo e descrizione in inglese). Le vulnerabilità si segnalano in privato da [Security](https://github.com/francescoperrino/Caccometro/security/advisories/new).
 - Un branch per issue, con il prefisso del tipo: `bugfix/`, `feature/` o `task/`, poi `<numero>_<titolo_con_underscore>` (es. `task/49_update_the_documentation`).
-- Commit, commenti e docstring in inglese; i messaggi del bot agli utenti in italiano.
+- Commit, commenti e docstring in inglese; i messaggi del bot agli utenti si scrivono in italiano dentro `tr("...")`, con la traduzione inglese in `caccometro/i18n.py` (`tests/test_i18n.py` controlla che non ne manchi nessuna). Una lingua nuova è un dizionario in più in `i18n.py`, più il nome in `LANGUAGES` e i mesi in `MONTHS`.
 - Una volta per clone: `git config core.hooksPath .githooks`. Gli hook della cartella `.githooks/` rifiutano i file privati (`.env`, `logs/`, `backups/`, i log) e i messaggi con righe `Co-Authored-By`, e lanciano i test prima di ogni commit. Regole personali in più si possono aggiungere in `.git/hooks/local-pre-commit` e `.git/hooks/local-commit-msg`. I file `.py` hanno le fine riga CRLF nella cartella di lavoro su ogni sistema (`.gitattributes`).
 - Prima della pull request: `python -m pytest -q`. `main` accetta modifiche solo tramite pull request.
 - Le label indicano l'area toccata (`commands`, `charts`, `database`, `hosting`, `deploy`, `dependencies`, `documentation`); il tipo della issue dice se è un bug, una feature o un task.
