@@ -44,9 +44,9 @@ Il bot legge i messaggi del gruppo per trovare le 💩: per questo su @BotFather
 | `/trofei [io \| @username]` `/trophies`            | Senza argomenti la **bacheca dei trofei** del gruppo; con `io` i tuoi trofei, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, con quanti giorni mancano al prossimo trofeo di serie. |
 | `/conto_giorno [@username] [DD-MM-YYYY]` `/day_count` | 💩 di una persona in un giorno (oggi se la data manca; anche `ieri`). |
 | `/costipazione [@username]` `/constipation`            | Giorni passati dall'ultima 💩. |
-| `/aggiungi [@username] DD-MM-YYYY` `/add`     | Aggiunge 1 💩 in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
-| `/togli [@username] DD-MM-YYYY` `/remove`        | Toglie 1 💩 (fino a 0) in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
-| `/collega [auto \| username storico]` `/link`  | Solo admin: collega lo storico registrato per username alle persone (vedi sotto). Senza argomenti mostra cosa resta da collegare. |
+| `/aggiungi [@username] DD-MM-YYYY` `/add_poop`     | Aggiunge 1 💩 in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
+| `/togli [@username] DD-MM-YYYY` `/remove_poop`        | Toglie 1 💩 (fino a 0) in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
+| `/collega [auto \| username storico]` `/link_history`  | Solo admin: collega lo storico registrato per username alle persone (vedi sotto). Senza argomenti mostra cosa resta da collegare. |
 | `/lingua [it \| en]` `/language`                   | Senza argomenti mostra la lingua della chat; con `it` o `en` la cambia (nei gruppi solo admin). Vale per risposte, grafici e annuncio di mezzanotte della chat. |
 
 Nei comandi con `[@username]` la persona si può indicare anche **rispondendo a un suo messaggio** (utile per chi non ha uno username). Nei gruppi con i topic, rispondere al messaggio che ha creato il topic non conta come rispondere a una persona.
@@ -133,12 +133,12 @@ records - Group records; with me or @username those of one person.
 trophies - Group trophies; with me or @username those of one person.
 day_count - 💩 of a day: [@username] [DD-MM-YYYY, today, yesterday].
 constipation - Days without 💩: [@username].
-add - Add 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
-remove - Remove 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
+add_poop - Add 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
+remove_poop - Remove 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
 language - Language of the bot in this chat: it or en (in groups admins only).
 ```
 
-`/collega` (`/link`) è solo per gli admin: va registrato a parte, nella lista dei comandi degli amministratori (`setMyCommands` con scope `all_chat_administrators`), in tutte e due le lingue.
+`/collega` (`/link_history`) è solo per gli admin: va registrato a parte, nella lista dei comandi degli amministratori (`setMyCommands` con scope `all_chat_administrators`), in tutte e due le lingue.
 
 Con `/setdescription` e `/setabouttext` puoi impostare anche le descrizioni:
 

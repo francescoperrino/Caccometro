@@ -123,11 +123,11 @@ COMMANDS = [
     ('statistiche_anno', 'stats_year', statistiche_anno_command),
     ('record', 'records', record_command),
     ('trofei', 'trophies', trofei_command),
-    ('aggiungi', 'add', aggiungi_command),
-    ('togli', 'remove', togli_command),
+    ('aggiungi', 'add_poop', aggiungi_command),
+    ('togli', 'remove_poop', togli_command),
     ('conto_giorno', 'day_count', conto_giorno_command),
     ('costipazione', 'constipation', costipazione_command),
-    ('collega', 'link', collega_command),
+    ('collega', 'link_history', collega_command),
     ('lingua', 'language', lingua_command),
 ]
 for italian, english, handler in COMMANDS:

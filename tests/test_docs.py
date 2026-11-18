@@ -9,7 +9,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 README = (ROOT / "README.md").read_text(encoding="utf-8")
-ADMIN_ONLY = {"collega", "link"}  # in the admin command list only
+ADMIN_ONLY = {"collega", "link_history"}  # in the admin command list only
 
 
 def code_block_after(marker):

@@ -69,15 +69,15 @@ EN = {
         "I do not know @{username}: they must write at least one message in the group (or reply to one of their messages).",
     "/record [@username | io]": "/records [@username | me]",
     "/trofei [@username | io]": "/trophies [@username | me]",
-    "/aggiungi @username DD-MM-YYYY": "/add @username DD-MM-YYYY",
-    "/togli @username DD-MM-YYYY": "/remove @username DD-MM-YYYY",
+    "/aggiungi @username DD-MM-YYYY": "/add_poop @username DD-MM-YYYY",
+    "/togli @username DD-MM-YYYY": "/remove_poop @username DD-MM-YYYY",
     "/conto_giorno @username DD-MM-YYYY": "/day_count @username DD-MM-YYYY",
     "/costipazione @username": "/constipation @username",
     "/collega <username storico> (in risposta a un messaggio della persona)":
-        "/link <old username> (as a reply to a message of the person)",
+        "/link_history <old username> (as a reply to a message of the person)",
     "Nessun dato disponibile.": "No data available.",
     "Nessun dato disponibile per {name}.": "No data available for {name}.",
-    "ℹ️ Ci sono dati storici ancora da collegare: usa /collega.": "ℹ️ There is old history still to link: use /link.",
+    "ℹ️ Ci sono dati storici ancora da collegare: usa /collega.": "ℹ️ There is old history still to link: use /link_history.",
 
     # rankings and statistics
     "Nel mese {date} non sono state contate 💩.": "No 💩 was counted in the month {date}.",
@@ -116,14 +116,14 @@ EN = {
     "({orphans} registrazioni senza username non si possono collegare.)":
         "({orphans} records without a username cannot be linked.)",
     "Gli admin possono usare /collega auto per collegare le corrispondenze, oppure rispondere a un messaggio della persona con /collega <username storico>.":
-        "The admins can use /link auto to link the matches, or reply to a message of the person with /link <old username>.",
+        "The admins can use /link_history auto to link the matches, or reply to a message of the person with /link_history <old username>.",
     "Solo gli admin del gruppo possono collegare i dati storici.": "Only the group admins can link the old history.",
     "Collegati:": "Linked:",
     "• {username} → {name} ({days} giorni)": "• {username} → {name} ({days} days)",
     "Nessuna corrispondenza trovata tra lo storico e gli utenti che hanno già scritto nel gruppo.":
         "No match found between the old history and the users who have already written in the group.",
     "Da collegare a mano (rispondi a un messaggio della persona con /collega <username storico>):":
-        "To link by hand (reply to a message of the person with /link <old username>):",
+        "To link by hand (reply to a message of the person with /link_history <old username>):",
     "Rispondi a un messaggio della persona da collegare. Usa: {usage}": "Reply to a message of the person to link. Use: {usage}",
     "Nessun dato storico trovato per «{username}» (già collegato o inesistente).":
         "No old history found for «{username}» (already linked or never recorded).",
