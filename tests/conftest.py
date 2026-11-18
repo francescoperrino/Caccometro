@@ -23,6 +23,7 @@ os.environ["LOG_FILE"] = os.path.join(tempfile.mkdtemp(prefix="caccometro_tests_
 from caccometro import database  # noqa: E402
 from caccometro import charts  # noqa: E402
 from caccometro import webhook  # noqa: E402
+from caccometro import i18n  # noqa: E402
 
 CHAT_ID = -1001
 
@@ -39,6 +40,7 @@ def isolated_folders(tmp_path, monkeypatch):
     monkeypatch.setattr(database, "DB_FOLDER", str(db_dir))
     database.init_database(CHAT_ID)
     webhook.SEEN_UPDATE_IDS.clear()   # every test starts like a fresh process
+    i18n.use(i18n.DEFAULT_LANGUAGE)   # a test that sets the language outside asyncio.run must not leak it
     return tmp_path
 
 

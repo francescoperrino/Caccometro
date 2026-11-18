@@ -25,6 +25,7 @@ Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in u
 1. Aggiungi il bot al gruppo e manda `/start`.
 2. Quando hai fatto il tuo dovere manda un messaggio con 💩 o 🚽 (anche come sticker): il bot risponde con il conto di oggi.
 3. Usa i comandi qui sotto per classifiche, statistiche e record.
+4. Il bot parla italiano; per l'inglese un admin manda `/lingua en` (in privato chiunque).
 
 Il bot legge i messaggi del gruppo per trovare le 💩: per questo su @BotFather la **Group Privacy** deve essere disattivata. Il testo dei messaggi non viene mai salvato né scritto nel log. Nel log finiscono invece le modifiche fatte a mano: per ogni `/aggiungi` e `/togli` chi l'ha mandato, la persona, il giorno e il conteggio prima e dopo; per `/collega` il vecchio username, la persona e i giorni spostati.
 
@@ -46,6 +47,7 @@ Il bot legge i messaggi del gruppo per trovare le 💩: per questo su @BotFather
 | `/aggiungi [@username] DD-MM-YYYY`     | Aggiunge 1 💩 in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
 | `/togli [@username] DD-MM-YYYY`        | Toglie 1 💩 (fino a 0) in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
 | `/collega [auto \| username storico]`  | Solo admin: collega lo storico registrato per username alle persone (vedi sotto). Senza argomenti mostra cosa resta da collegare. |
+| `/lingua [it \| en]`                   | Senza argomenti mostra la lingua della chat; con `it` o `en` la cambia (nei gruppi solo admin). Vale per risposte, grafici e annuncio di mezzanotte della chat. |
 
 Nei comandi con `[@username]` la persona si può indicare anche **rispondendo a un suo messaggio** (utile per chi non ha uno username). Nei gruppi con i topic, rispondere al messaggio che ha creato il topic non conta come rispondere a una persona.
 
@@ -116,6 +118,7 @@ conto_giorno - 💩 di un giorno: [@username] [DD-MM-YYYY, oggi, ieri].
 costipazione - Giorni senza 💩: [@username].
 aggiungi - Aggiunge 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
 togli - Toglie 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
+lingua - Lingua del bot in questa chat: it o en (nei gruppi solo admin).
 ```
 
 `/collega` è solo per gli admin: va registrato a parte, nella lista dei comandi degli amministratori (`setMyCommands` con scope `all_chat_administrators`).
@@ -170,6 +173,7 @@ caccometro/          il bot, come pacchetto Python
   commands.py        i comandi (/classifica_mese, /record, ...) e il controllo dei permessi
   messages.py        il conteggio delle 💩 dai messaggi e dagli sticker
   chat.py            funzioni comuni su utenti e messaggi Telegram
+  i18n.py            traduzioni: le frasi italiane sono le chiavi, un dizionario per lingua
   database.py        database SQLite: schema, migrazione, query
   analysis.py        record, serie e statistiche (funzioni pure, senza database)
   trophies.py        trofei: serie di 15 giorni, 💩 del mese e dell'anno (funzioni pure)
@@ -231,7 +235,13 @@ erDiagram
         TEXT date "YYYY-MM-DD"
         INTEGER count "💩 di quel giorno"
     }
+    settings {
+        TEXT key PK "language"
+        TEXT value "it o en"
+    }
 ```
+
+`settings` nasce alla prima scelta fatta con `/lingua`: senza la tabella la chat parla italiano.
 
 `user_count_legacy` esiste solo nelle chat migrate dalla versione vecchia e si svuota man mano che `/collega` sposta lo storico in `user_count`.
 La versione dello schema è in `PRAGMA user_version` (oggi 2); la migrazione parte da sola all'apertura del database.

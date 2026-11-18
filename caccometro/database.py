@@ -176,6 +176,31 @@ def init_database(chat_id):
     _connect(chat_id).close()
 
 
+# Settings
+
+def get_language(chat_id):
+    """Language chosen for the chat with /lingua; None when it was never chosen."""
+    conn = _connect(chat_id)
+    try:
+        if not _has_table(conn, 'settings'):
+            return None
+        row = conn.execute("SELECT value FROM settings WHERE key = 'language'").fetchone()
+    finally:
+        conn.close()
+    return row[0] if row else None
+
+def set_language(chat_id, language):
+    """Store the language of the chat (the settings table is created by the first choice)."""
+    conn = _connect(chat_id)
+    try:
+        conn.execute('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)')
+        conn.execute("""INSERT INTO settings (key, value) VALUES ('language', ?)
+                        ON CONFLICT(key) DO UPDATE SET value = excluded.value""", (language,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
 # Users
 
 def _to_user(user_id, username, display_name):

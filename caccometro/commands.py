@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from caccometro import __version__
+from caccometro import __version__, i18n
 from caccometro.analysis import FORECAST_WINDOW_DAYS, analyze_group, analyze_user, forecast_totals, period_statistics
 from caccometro.charts import generate_rank_chart, generate_statistics_chart
 from caccometro.chat import escape_md, is_chat_admin, register_sender, register_user, reply_chart, where
@@ -14,8 +14,10 @@ from caccometro.config import DISPLAY_FORMAT, MONTH_NAMES, STORING_FORMAT, now_r
 from caccometro.database import (init_database, find_user_by_username, add_count, get_count, get_daily_counts,
                                  get_daily_counts_between,
                                  get_rank, get_users, get_record, get_all_user_rows, get_constipation_days,
-                                 list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username)
+                                 list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username,
+                                 set_language)
 from caccometro.formatting import bold, format_group_record, format_group_trophies, format_user_record, format_user_trophies
+from caccometro.i18n import tr
 from caccometro.trophies import trophies_by_user
 
 logger = logging.getLogger(__name__)
@@ -500,3 +502,24 @@ async def collega_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"Collegati {days} giorni di dati storici di «{legacy_username}» a {target.mention}.")
     logger.info(f"Command /collega completed in {where(update)}")
+
+
+async def lingua_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /lingua command: show the language of the chat or, for the admins, change it (/lingua en)."""
+    sender = register_sender(update)
+    if sender is None:
+        return
+    logger.info(f"Command received: /lingua from {sender.mention} in {where(update)}")
+    language = context.args[0].lower() if len(context.args) == 1 else None
+    if language not in i18n.LANGUAGES:
+        await update.message.reply_text(tr("La lingua di questa chat è {name}. Per cambiarla: /lingua it oppure /lingua en.")
+                                        .format(name=i18n.LANGUAGES[i18n.current()]))
+        return
+    if not await is_chat_admin(update, context):
+        await update.message.reply_text(tr("Solo gli admin del gruppo possono cambiare la lingua."))
+        return
+    set_language(update.message.chat_id, language)
+    i18n.use(language)
+    logger.info(f"Language changed by {sender.mention} in {where(update)}: {language}")
+    await update.message.reply_text(tr("Da ora parlo italiano 🇮🇹"))
+    logger.info(f"Command /lingua completed in {where(update)}")

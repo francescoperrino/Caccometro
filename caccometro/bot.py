@@ -14,7 +14,7 @@ from telegram.request import HTTPXRequest
 from caccometro.commands import (start_command, classifica_mese_command, classifica_anno_command,
                                  statistiche_mese_command, statistiche_anno_command, record_command, aggiungi_command,
                                  togli_command, conto_giorno_command, costipazione_command, collega_command,
-                                 trofei_command)
+                                 trofei_command, lingua_command)
 from caccometro.config import BOT_TOKEN, PROJECT_DIR, ROME_TZ, RUN_MODE
 from caccometro.messages import handle_message, handle_migration
 
@@ -127,6 +127,7 @@ application.add_handler(CommandHandler('togli', togli_command))
 application.add_handler(CommandHandler('conto_giorno', conto_giorno_command))
 application.add_handler(CommandHandler('costipazione', costipazione_command))
 application.add_handler(CommandHandler('collega', collega_command))
+application.add_handler(CommandHandler('lingua', lingua_command))
 
 # Messages (the migration handler comes first: only the first matching handler of a group runs)
 application.add_handler(MessageHandler(filters.StatusUpdate.MIGRATE, handle_migration))
