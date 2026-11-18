@@ -16,7 +16,7 @@ import re
 import time
 from datetime import date, datetime, timedelta
 
-from caccometro import database
+from caccometro import database, i18n
 from caccometro.bot import application
 from caccometro.chat import escape_md
 from caccometro.config import now_rome
@@ -37,7 +37,8 @@ def chat_ids():
 
 
 def announcement(chat_id, today: date):
-    """Message for the chat on `today` (the first day of a month); None when there is nobody to celebrate."""
+    """Message for the chat on `today` (the first day of a month), in its language; None when there is nobody to celebrate."""
+    i18n.use(database.get_language(chat_id))
     rows_by_user, users = database.get_all_user_rows(chat_id)
     ended = today - timedelta(days=1)
     month = monthly_winners(rows_by_user, today).get((ended.year, ended.month))
