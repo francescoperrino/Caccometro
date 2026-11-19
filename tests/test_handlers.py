@@ -22,7 +22,7 @@ def test_poop_message_increments_count(chat_id):
     run(messages.handle_message(upd, make_context()))
     run(messages.handle_message(make_update(text="ho fatto 💩"), make_context()))
     assert database.get_count(uid("mario"), today_rome(), chat_id) == 2
-    assert "Complimenti @mario" in upd.message.reply_text.call_args[0][0]
+    assert "@mario" in upd.message.reply_text.call_args[0][0]
 
 
 def test_poop_sticker_increments_count(chat_id):

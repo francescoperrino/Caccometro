@@ -2,6 +2,7 @@
 
 The functions return Telegram (legacy) Markdown. Names must already be escaped by the caller.
 """
+import random
 import re
 
 from caccometro.analysis import GroupBoard, Leaders, Period, UserRecords
@@ -319,3 +320,79 @@ def format_new_period(today, month_winners, year_winners, names):
                  winner(tr("🏅 💩 del mese"), month_winners),
                  "\n" + tr("Complimenti! Si riparte da zero: buon {month} e buone 💩 🧻").format(month=month_name(today.month))]
     return "\n".join(lines)
+
+
+# Time slots of the Italian hour: (first hour, key); the last slot goes on until midnight
+_SLOTS = ((0, "night"), (5, "early"), (9, "morning"), (12, "lunch"), (15, "afternoon"), (19, "evening"))
+
+
+def _slot(hour):
+    return [key for start, key in _SLOTS if hour >= start][-1]
+
+
+def _poop_sentences():
+    """The funny sentences, written as tr() literals (tests/test_i18n.py checks their translations) and built on
+    each call, in the language in use. Keys: a time slot, "any" (good at any time), or (count class, slot or None)."""
+    return {
+        "night": [tr("{name} a quest'ora? La notte porta consiglio, e anche 💩."),
+                  tr("Insonnia intestinale per {name}: il turno di notte non perdona."),
+                  tr("{name} fa 💩 mentre il mondo dorme. Eroe silenzioso."),
+                  tr("Luci spente, scarico acceso: bravo {name}.")],
+        "early": [tr("{name} apre la giornata con una 💩: colazione dei campioni."),
+                  tr("Il caffè ha fatto effetto, {name}!"),
+                  tr("Sveglia, caffè, 💩: la routine di {name} non tradisce."),
+                  tr("Buongiorno {name}, e buon alleggerimento!")],
+        "morning": [tr("{name} fa 💩 invece di lavorare: la scusa perfetta."),
+                    tr("Pausa strategica in bagno per {name}, telefono incluso."),
+                    tr("Mattinata produttiva per {name}: almeno qualcosa è uscito."),
+                    tr("{name} porta a termine un compito importante.")],
+        "lunch": [tr("Il pranzo è appena finito e {name} è già operativo."),
+                  tr("{name} smaltisce il pranzo in tempo record."),
+                  tr("Digestione lampo per {name}!"),
+                  tr("Dopo pranzo il dovere chiama, e {name} risponde.")],
+        "afternoon": [tr("Pomeriggio di gloria per {name}."),
+                      tr("{name} approfitta della pausa pomeridiana: saggio."),
+                      tr("Merenda smaltita? {name} sì."),
+                      tr("{name} sopravvive al calo di metà pomeriggio con una 💩.")],
+        "evening": [tr("{name} chiude la giornata in bellezza."),
+                    tr("Dopo cena si smaltisce: ci pensa {name}."),
+                    tr("Serata di relax per {name}, trono incluso."),
+                    tr("{name} va a letto più leggero.")],
+        "any": [tr("Complimenti {name}!"),
+                tr("{name} ha fatto il suo dovere."),
+                tr("Un applauso per {name}, che non si tira indietro."),
+                tr("Missione compiuta per {name}."),
+                tr("{name} lascia il segno."),
+                tr("Che soddisfazione, {name}!"),
+                tr("La classifica ringrazia {name}."),
+                tr("{name} scrive un'altra pagina di storia.")],
+        ("first", None): [tr("Prima 💩 della giornata per {name}: si parte bene."),
+                          tr("{name} inaugura la giornata."),
+                          tr("Ecco la prima di oggi, {name}!")],
+        ("first", "early"): [tr("{name} è mattiniero: la prima 💩 arriva presto.")],
+        ("first", "lunch"): [tr("Prima 💩 della giornata dopo pranzo? {name} ci ha messo un po'.")],
+        ("first", "night"): [tr("{name} inizia la giornata a notte fonda.")],
+        ("third", None): [tr("Di nuovo, {name}?! Che cosa hai mangiato?"),
+                          tr("{name} non si ferma più."),
+                          tr("{name} fa le cose in grande oggi.")],
+        ("third", "night"): [tr("{name} nelle ore piccole e ancora 💩: serve un medico?")],
+        ("third", "lunch"): [tr("Il pranzo non è andato giù a {name}: ancora!")],
+    }
+
+
+def poop_pool(hour, count):
+    """The sentences a 💩 can be answered with, by Italian hour and by count of the day.
+
+    The first and the 3rd or more 💩 of the day have their own sentences: those of their time slot when there are
+    some, else the slot's ones with the generic ones and those of that count. The 2nd has the slot and the generic ones.
+    """
+    sentences, slot = _poop_sentences(), _slot(hour)
+    kind = "first" if count == 1 else "third" if count >= 3 else None
+    if (kind, slot) in sentences:
+        return sentences[(kind, slot)]
+    return sentences[slot] + sentences["any"] + sentences.get((kind, None), [])
+
+
+def poop_sentence(name, hour, count):
+    """A random sentence for the 💩 of `name` sent at Italian `hour`, the `count`-th of the day."""
+    return random.choice(poop_pool(hour, count)).format(name=name)

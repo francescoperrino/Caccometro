@@ -12,7 +12,7 @@ from caccometro.config import ROME_TZ, STORING_FORMAT, now_rome
 from caccometro.conquest import WINDOW_SECONDS, cell_of, holdings, mention_of
 from caccometro.database import (add_count, conquer, get_language, get_record, get_users, migrate_chat,
                                  open_conquest_window)
-from caccometro.formatting import format_streak_trophy
+from caccometro.formatting import format_streak_trophy, poop_sentence
 from caccometro.i18n import tr
 from caccometro.menus import set_chat_menu
 from caccometro.trophies import new_streak_trophy
@@ -27,11 +27,11 @@ def record_poop(sender, chat_id, sent_at=None):
     The first 💩 of a day that completes a multiple of STREAK_STEP consecutive days also announces a trophy.
     The 💩 also opens the conquest window of the sender, and the reply reminds to send a location.
     """
-    today = now_rome().date() if sent_at is None else sent_at.astimezone(ROME_TZ).date()
+    sent = now_rome() if sent_at is None else sent_at.astimezone(ROME_TZ)
+    today = sent.date()
     _, count = add_count(sender.user_id, today.strftime(STORING_FORMAT), 1, chat_id)
     open_conquest_window(sender.user_id, int(time.time() if sent_at is None else sent_at.timestamp()), chat_id)
-    response = (tr("Complimenti {name}, oggi hai fatto 💩 {count} volte!") if count > 1
-                else tr("Complimenti {name}, oggi hai fatto 💩 {count} volta!")).format(name=escape_md(sender.mention), count=count)
+    response = poop_sentence(escape_md(sender.mention), sent.hour, count) + "\n" + tr("💩 oggi: {count}").format(count=count)
     if count == 1:
         streak = new_streak_trophy(get_record(sender.user_id, chat_id), today)
         if streak is not None:

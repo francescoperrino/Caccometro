@@ -19,5 +19,5 @@ def test_messages_the_bot_does_not_answer_are_not_logged(caplog):
 
 def test_answered_messages_are_logged_without_their_text(caplog):
     log = handle("💩 dopo il pranzo segreto", caplog)
-    assert "Complimenti" in log
+    assert "💩 oggi" in log
     assert "segreto" not in log
