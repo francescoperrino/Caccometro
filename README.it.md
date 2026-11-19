@@ -23,7 +23,7 @@ Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in u
 ## 💬 Come si usa
 
 1. Aggiungi il bot al gruppo e manda `/start`.
-2. Quando hai fatto il tuo dovere manda un messaggio con 💩 o 🚽 (anche come sticker): il bot risponde con il conto di oggi.
+2. Quando hai fatto il tuo dovere manda un messaggio con 💩 o 🚽 (anche come sticker): il bot risponde con il conto di oggi e ricorda di mandare la posizione.
 3. Entro 15 minuti dalla 💩 manda una posizione (📎 → Posizione) per conquistare la sua zona: vedi [Gioco di conquista](#-gioco-di-conquista).
 4. Usa i comandi qui sotto per classifiche, statistiche e record.
 5. Il bot parla italiano; per l'inglese un admin manda `/lingua en` (in privato chiunque).
@@ -91,6 +91,13 @@ Gli stessi grafici in una chat inglese: [classifica](assets/screenshots/leaderbo
 - 🚩 zona nuova, ⚔️ zona rubata a un'altra persona, 🏠 zona propria difesa. Una zona è di chi l'ha conquistata per ultimo.
 - 👑 Il **re della collina** tiene più zone di tutti; a parità il re attuale tiene la corona.
 - Ogni chat ha la sua mappa, mai azzerata; togliere una 💩 con `/togli_cacca` non toglie una conquista.
+- Ogni conquista arriva con una **mappa** delle zone intorno; `/conquiste` aggiunge la Lombardia, l'Italia e il mondo intero. Lì un esagono grande vale per le zone che contiene e prende il colore di chi ne tiene di più (a parità, di chi ha conquistato per ultimo). Se la mappa non si riesce a disegnare, la risposta arriva solo come testo.
+
+| Conquista | `/conquiste`: Lombardia |
+| :---: | :---: |
+| <img src="assets/screenshots/conquest_zoom_it.jpg" alt="Mappa di Milano con le zone esagonali nei colori di chi le tiene e la zona appena conquistata contornata" width="400"> | <img src="assets/screenshots/conquest_region_it.jpg" alt="Mappa della Lombardia con gli esagoni delle aree conquistate" width="400"> |
+| **`/conquiste`: Italia** | **`/conquiste`: mondo** |
+| <img src="assets/screenshots/conquest_country_it.jpg" alt="Mappa dell'Italia con gli esagoni più grandi delle aree conquistate" width="400"> | <img src="assets/screenshots/conquest_world_it.jpg" alt="Mappa del mondo con gli esagoni delle conquiste su più continenti" width="400"> |
 
 ---
 
@@ -129,3 +136,5 @@ La documentazione tecnica è solo in inglese:
 ## Licenza
 
 Caccometro è rilasciato con licenza [MIT](LICENSE).
+
+Le mappe usano tile e dati di [OpenStreetMap](https://www.openstreetmap.org/copyright), © OpenStreetMap contributors, disponibili con licenza Open Database License.

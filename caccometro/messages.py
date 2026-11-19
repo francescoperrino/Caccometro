@@ -6,8 +6,8 @@ import time
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from caccometro import config
-from caccometro.chat import escape_md, register_sender, where
+from caccometro import config, maps
+from caccometro.chat import escape_md, register_sender, reply_charts, where
 from caccometro.config import ROME_TZ, STORING_FORMAT, now_rome
 from caccometro.conquest import WINDOW_SECONDS, cell_of, holdings, mention_of
 from caccometro.database import (add_count, conquer, get_language, get_record, get_users, migrate_chat,
@@ -25,7 +25,7 @@ def record_poop(sender, chat_id, sent_at=None):
 
     sent_at is the aware datetime of the Telegram message, so a late-processed update still counts on its own day.
     The first 💩 of a day that completes a multiple of STREAK_STEP consecutive days also announces a trophy.
-    The 💩 also opens the conquest window of the sender.
+    The 💩 also opens the conquest window of the sender, and the reply reminds to send a location.
     """
     today = now_rome().date() if sent_at is None else sent_at.astimezone(ROME_TZ).date()
     _, count = add_count(sender.user_id, today.strftime(STORING_FORMAT), 1, chat_id)
@@ -36,15 +36,19 @@ def record_poop(sender, chat_id, sent_at=None):
         streak = new_streak_trophy(get_record(sender.user_id, chat_id), today)
         if streak is not None:
             response += "\n\n" + format_streak_trophy(streak)
-    return response
+    return response + "\n\n" + tr("📍 Manda la posizione entro 15 minuti per conquistare la zona!")
 
 
 def record_conquest(sender, chat_id, location, sent_at):
-    """Conquer the tile of a location sent within the window of the sender's last 💩; return the reply."""
+    """Conquer the tile of a location sent within the window of the sender's last 💩.
+
+    Returns the reply and, for the zoom image, the conquest history and the users of the chat
+    (None, None without an open window).
+    """
     result = conquer(chat_id, sender.user_id, int(sent_at.timestamp()), location.latitude, location.longitude,
                      cell_of(location.latitude, location.longitude), WINDOW_SECONDS)
     if result is None:
-        return tr("Prima la 💩, poi la conquista 😏")
+        return tr("Prima la 💩, poi la conquista 😏"), None, None
     previous, history = result
     king_before = holdings(history[:-1])[1]
     counts, king = holdings(history)
@@ -59,7 +63,7 @@ def record_conquest(sender, chat_id, location, sent_at):
             name=name, owner=escape_md(mention_of(users, previous)), total=total)
     if king != king_before:
         response += "\n" + tr("👑 {name} è il nuovo re della collina!").format(name=escape_md(mention_of(users, king)))
-    return response
+    return response, history, users
 
 
 async def handle_migration(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -113,8 +117,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(response, parse_mode='Markdown')
             logger.info(f"{sender.mention} in {where(update)}: Sticker | Risposta: {response}")
     elif update.message.location:
-        response = record_conquest(sender, chat_id, update.message.location, update.message.date)
-        await update.message.reply_text(response, parse_mode='Markdown')
+        response, history, users = record_conquest(sender, chat_id, update.message.location, update.message.date)
+        await reply_charts(update, [history and maps.render(maps.zoom_map, history, users)], response)
         logger.info(f"{sender.mention} in {where(update)}: Posizione | Risposta: {response}")  # never the coordinates
     else:
         logger.info("Update type not managed")
