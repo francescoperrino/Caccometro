@@ -23,7 +23,7 @@ Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in u
 ## 💬 Come si usa
 
 1. Aggiungi il bot al gruppo e manda `/start`.
-2. Quando hai fatto il tuo dovere manda un messaggio con 💩 o 🚽 (anche come sticker): il bot risponde con il conto di oggi e ricorda di mandare la posizione.
+2. Quando hai fatto il tuo dovere manda un messaggio con 💩 o 🚽 (anche come sticker): il bot risponde con una frase divertente (cambia con l'ora e con il numero della 💩 del giorno), il conto di oggi e ricorda di mandare la posizione.
 3. Entro 15 minuti dalla 💩 manda una posizione (📎 → Posizione) per conquistare la sua zona: vedi [Gioco di conquista](#-gioco-di-conquista).
 4. Usa i comandi qui sotto per classifiche, statistiche e record.
 5. Il bot parla italiano; per l'inglese un admin manda `/lingua en` (in privato chiunque).

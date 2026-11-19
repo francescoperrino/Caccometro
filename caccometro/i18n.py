@@ -51,8 +51,93 @@ EN = {
     "Entro 15 minuti manda una posizione per conquistare la sua zona 🚩.\n_Versione {version}_\n\n🇬🇧 English: /language en":
         "Hi, I am 🤖 *Caccometro* 🤖.\nSend 💩 when you have done your duty.\n"
         "Within 15 minutes send a location to conquer its tile 🚩.\n_Version {version}_\n\n🇮🇹 Italiano: /lingua it",
-    "Complimenti {name}, oggi hai fatto 💩 {count} volta!": "Well done {name}, today you did 💩 {count} time!",
-    "Complimenti {name}, oggi hai fatto 💩 {count} volte!": "Well done {name}, today you did 💩 {count} times!",
+    "💩 oggi: {count}": "💩 today: {count}",
+    "{name} a quest'ora? La notte porta consiglio, e anche 💩.":
+        "{name} at this hour? Night brings wisdom, and 💩 too.",
+    "Insonnia intestinale per {name}: il turno di notte non perdona.":
+        "Gut insomnia for {name}: the night shift forgives nothing.",
+    "{name} fa 💩 mentre il mondo dorme. Eroe silenzioso.":
+        "{name} does 💩 while the world sleeps. Silent hero.",
+    "Luci spente, scarico acceso: bravo {name}.":
+        "Lights off, flush on: well done {name}.",
+    "{name} apre la giornata con una 💩: colazione dei campioni.":
+        "{name} starts the day with a 💩: breakfast of champions.",
+    "Il caffè ha fatto effetto, {name}!":
+        "The coffee kicked in, {name}!",
+    "Sveglia, caffè, 💩: la routine di {name} non tradisce.":
+        "Alarm, coffee, 💩: {name}'s routine never fails.",
+    "Buongiorno {name}, e buon alleggerimento!":
+        "Good morning {name}, and happy unloading!",
+    "{name} fa 💩 invece di lavorare: la scusa perfetta.":
+        "{name} does 💩 instead of working: the perfect excuse.",
+    "Pausa strategica in bagno per {name}, telefono incluso.":
+        "Strategic bathroom break for {name}, phone included.",
+    "Mattinata produttiva per {name}: almeno qualcosa è uscito.":
+        "Productive morning for {name}: at least something got delivered.",
+    "{name} porta a termine un compito importante.":
+        "{name} completes an important task.",
+    "Il pranzo è appena finito e {name} è già operativo.":
+        "Lunch is barely over and {name} is already operational.",
+    "{name} smaltisce il pranzo in tempo record.":
+        "{name} clears lunch in record time.",
+    "Digestione lampo per {name}!":
+        "Lightning digestion for {name}!",
+    "Dopo pranzo il dovere chiama, e {name} risponde.":
+        "After lunch duty calls, and {name} answers.",
+    "Pomeriggio di gloria per {name}.":
+        "Afternoon of glory for {name}.",
+    "{name} approfitta della pausa pomeridiana: saggio.":
+        "{name} takes the afternoon break: wise.",
+    "Merenda smaltita? {name} sì.":
+        "Snack cleared? {name} certainly.",
+    "{name} sopravvive al calo di metà pomeriggio con una 💩.":
+        "{name} survives the mid-afternoon slump with a 💩.",
+    "{name} chiude la giornata in bellezza.":
+        "{name} closes the day in style.",
+    "Dopo cena si smaltisce: ci pensa {name}.":
+        "After dinner comes the cleanup: {name} is on it.",
+    "Serata di relax per {name}, trono incluso.":
+        "Relaxing evening for {name}, throne included.",
+    "{name} va a letto più leggero.":
+        "{name} goes to bed lighter.",
+    "Complimenti {name}!":
+        "Well done {name}!",
+    "{name} ha fatto il suo dovere.":
+        "{name} did their duty.",
+    "Un applauso per {name}, che non si tira indietro.":
+        "A round of applause for {name}, who never backs down.",
+    "Missione compiuta per {name}.":
+        "Mission accomplished for {name}.",
+    "{name} lascia il segno.":
+        "{name} leaves a mark.",
+    "Che soddisfazione, {name}!":
+        "What a relief, {name}!",
+    "La classifica ringrazia {name}.":
+        "The leaderboard thanks {name}.",
+    "{name} scrive un'altra pagina di storia.":
+        "{name} writes another page of history.",
+    "Prima 💩 della giornata per {name}: si parte bene.":
+        "First 💩 of the day for {name}: a good start.",
+    "{name} inaugura la giornata.":
+        "{name} opens the day.",
+    "Ecco la prima di oggi, {name}!":
+        "Here is the first of today, {name}!",
+    "{name} è mattiniero: la prima 💩 arriva presto.":
+        "{name} is an early bird: the first 💩 comes early.",
+    "Prima 💩 della giornata dopo pranzo? {name} ci ha messo un po'.":
+        "First 💩 of the day after lunch? {name} took a while.",
+    "{name} inizia la giornata a notte fonda.":
+        "{name} starts the day in the dead of night.",
+    "Di nuovo, {name}?! Che cosa hai mangiato?":
+        "Again, {name}?! What did you eat?",
+    "{name} non si ferma più.":
+        "{name} cannot be stopped.",
+    "{name} fa le cose in grande oggi.":
+        "{name} is going big today.",
+    "{name} nelle ore piccole e ancora 💩: serve un medico?":
+        "{name} in the small hours and 💩 again: need a doctor?",
+    "Il pranzo non è andato giù a {name}: ancora!":
+        "Lunch did not sit well with {name}: again!",
     "Cosa vuoi dirmi?": "What do you want to tell me?",
 
     # conquest game

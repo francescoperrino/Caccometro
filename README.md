@@ -23,7 +23,7 @@ Caccometro is an open source Telegram bot that counts the 💩 of every person i
 ## 💬 How to use it
 
 1. Add the bot to the group and send `/start`.
-2. When you have done your duty, send a message with 💩 or 🚽 (also as a sticker): the bot replies with today's count and a reminder to send your location.
+2. When you have done your duty, send a message with 💩 or 🚽 (also as a sticker): the bot replies with a funny sentence (it changes with the time of day and with the count of the day), today's count and a reminder to send your location.
 3. Within 15 minutes of the 💩, send a location (📎 → Location) to conquer its tile: see [Conquest game](#-conquest-game).
 4. Use the commands below for rankings, statistics and records.
 5. The bot speaks Italian; for English an admin sends `/language en` (in a private chat anybody can).

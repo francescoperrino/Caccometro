@@ -18,7 +18,7 @@ def test_poop_from_user_without_username_is_counted_by_user_id(chat_id):
     upd = make_update(text="💩", username=None, user_id=777, full_name="Anna Rossi")
     run(messages.handle_message(upd, make_context()))
     assert database.get_count(777, today(), chat_id) == 1
-    assert "Complimenti Anna Rossi" in upd.message.reply_text.call_args[0][0]
+    assert "Anna Rossi" in upd.message.reply_text.call_args[0][0]
 
 
 def test_sticker_from_user_without_username_is_counted(chat_id):
