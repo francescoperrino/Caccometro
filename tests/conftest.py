@@ -114,8 +114,9 @@ def make_update(text=None, username="mario", user_id=None, chat_id=CHAT_ID,
 
 
 def make_context(*args, member_status="member"):
-    """Fake CallbackContext; context.bot.get_chat_member returns a member with member_status."""
-    bot = SimpleNamespace(get_chat_member=AsyncMock(return_value=SimpleNamespace(status=member_status)))
+    """Fake CallbackContext; context.bot.get_chat_member returns a member with member_status, set_my_commands records the menus."""
+    bot = SimpleNamespace(get_chat_member=AsyncMock(return_value=SimpleNamespace(status=member_status)),
+                          set_my_commands=AsyncMock())
     return SimpleNamespace(args=list(args), bot=bot)
 
 

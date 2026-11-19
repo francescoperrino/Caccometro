@@ -77,7 +77,7 @@ flowchart LR
 - Comments and docstrings in English. The bot messages are written in Italian inside `tr("...")`, with the English translation in `caccometro/i18n.py` ([docs/architecture.md](docs/architecture.md#translations)).
 - The `.py` files have CRLF line endings in the working tree on every system (`.gitattributes`).
 - No secrets in the repository: tokens live in `.env` (not tracked) or in environment variables.
-- The documentation: [README.md](README.md) for the people who use the bot, `docs/` and this file for the people who work on it. Keep the README commands table and the menus in `docs/deployment.md` in step with `bot.COMMANDS`.
+- The documentation: [README.md](README.md) for the people who use the bot, `docs/` and this file for the people who work on it. Keep the README commands table and the menus in `docs/deployment.md` in step with `menus.MENU`.
 
 ## Git hooks
 

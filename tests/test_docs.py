@@ -9,7 +9,6 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = sorted([ROOT / "README.md", ROOT / "README.it.md", ROOT / "CONTRIBUTING.md", ROOT / "SECURITY.md", *(ROOT / "docs").glob("*.md")])
-ADMIN_ONLY = {"collega_storico", "link_history"}  # in the admin command list only
 TREE = "  __main__.py"  # a line found only in the architecture tree
 
 
@@ -69,15 +68,10 @@ def test_every_command_is_in_the_readme_table(readme):
 
 
 @pytest.mark.parametrize("language", MENUS)
-def test_the_commands_menu_lists_exactly_the_commands_of_everybody(deployment, language):
-    menu = {line.split(" - ")[0] for line in code_block_after(deployment, MENUS[language]).strip().splitlines()}
-    assert menu == handled_commands(language) - ADMIN_ONLY
-
-
-@pytest.mark.parametrize("language", MENUS)
-def test_menu_descriptions_fit_the_telegram_limit(deployment, language):
-    for line in code_block_after(deployment, MENUS[language]).strip().splitlines():
-        assert 3 <= len(line.split(" - ", 1)[1]) <= 256, line
+def test_the_menu_in_the_docs_is_the_menu_of_the_code(deployment, language):
+    from caccometro.menus import menu
+    block = code_block_after(deployment, MENUS[language]).strip().splitlines()
+    assert block == [f"{name} - {description}" for name, description in menu(language)]
 
 
 def test_every_module_is_in_the_architecture_tree(architecture):

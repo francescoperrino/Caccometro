@@ -8,9 +8,10 @@ from telegram.ext import ContextTypes
 from caccometro import config
 from caccometro.chat import escape_md, register_sender, where
 from caccometro.config import ROME_TZ, STORING_FORMAT, now_rome
-from caccometro.database import add_count, get_record, migrate_chat
+from caccometro.database import add_count, get_language, get_record, migrate_chat
 from caccometro.formatting import format_streak_trophy
 from caccometro.i18n import tr
+from caccometro.menus import set_chat_menu
 from caccometro.trophies import new_streak_trophy
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,9 @@ async def handle_migration(update: Update, context: ContextTypes.DEFAULT_TYPE):
                        "would collide: left untouched.")
     else:
         logger.info(f"Chat {old_chat_id} became {new_chat_id}: {result}.")
+    language = get_language(new_chat_id)
+    if language:  # a menu set with /language belongs to the old chat ID
+        await set_chat_menu(context.bot, new_chat_id, language, group=True)
 
 
 # Messages handler

@@ -17,6 +17,7 @@ from caccometro.database import (init_database, find_user_by_username, add_count
                                  get_rank, get_users, get_record, get_all_user_rows, get_days_since_last_poop,
                                  list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username,
                                  set_language)
+from caccometro.menus import set_chat_menu
 from caccometro.formatting import bold, format_group_record, format_group_trophies, format_user_record, format_user_trophies
 from caccometro.trophies import trophies_by_user
 
@@ -545,4 +546,5 @@ async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     i18n.use(language)
     logger.info(f"Language changed by {sender.mention} in {where(update)}: {language}")
     await update.message.reply_text(tr("Da ora parlo italiano 🇮🇹"))
+    await set_chat_menu(context.bot, update.message.chat_id, language, update.message.chat.type != 'private')
     logger.info(f"Command /language completed in {where(update)}")

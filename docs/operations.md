@@ -85,7 +85,7 @@ The version is in `caccometro/__init__.py` (`__version__`, [Semantic Versioning]
 2. Signed tag `vX.Y.Z` and GitHub release titled `vX.Y.Z <Short name>`.
 3. Deploy with `tools/deploy.py`, including `caccometro/__init__.py`.
 4. `tools/bot_version.py` writes "Versione X.Y.Z" / "Version X.Y.Z" at the end of the descriptions of the production and development bots, in Italian and English (the description of each language must already be there).
-5. If the commands changed, register the menus again on both bots ([deployment.md](deployment.md#command-menus)) and read them back with `getMyCommands`.
+5. If the commands changed, register the menus again on both bots with `tools/register_menus.py dev` and `prod` ([deployment.md](deployment.md#command-menus)). The menus already set in single chats with `/language` keep the old list until the chat sends `/language` again.
 
 The charts in the README carry the version too: the commit of the bump redraws them (`tools/sample_charts.py`, see [CONTRIBUTING.md](../CONTRIBUTING.md#git-hooks)).
 
