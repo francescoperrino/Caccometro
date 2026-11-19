@@ -15,6 +15,7 @@ caccometro/          the bot, as a Python package
   messages.py        counting the 💩 in messages and stickers
   chat.py            shared helpers on Telegram users and messages
   i18n.py            translations: the Italian sentences are the keys, one dictionary per language
+  menus.py           command names and menu descriptions in both languages, menu of a chat
   database.py        SQLite database: schema, migration, queries
   analysis.py        records, streaks, statistics and forecasts (pure functions, no database)
   trophies.py        trophies: 15-day streaks, 💩 of the month and of the year (pure functions)
@@ -22,7 +23,7 @@ caccometro/          the bot, as a Python package
   announce.py        midnight announcement of the 💩 of the month (scheduled task)
   charts.py          ranking and statistics charts (PNG in memory)
 scripts/set_webhook.py   registers the webhook on Telegram (once)
-tools/               service scripts: deploy, database backups, log download and summary, bot version, README charts
+tools/               service scripts: deploy, database backups, log download and summary, bot version, command menus, README charts
 .githooks/           git hooks (pre-commit, commit-msg), enabled with core.hooksPath
 .gitattributes       line endings of the .py files (CRLF) and of the hooks (LF)
 tests/               pytest tests

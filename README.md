@@ -45,7 +45,7 @@ Caccometro is an open source Telegram bot that counts the 💩 of every person i
 | `/add_poop [@username] DD-MM-YYYY`             | Adds 1 💩 on a past day or today (also `today`, `yesterday`). On someone else's count: admins only. |
 | `/remove_poop [@username] DD-MM-YYYY`          | Removes 1 💩 (down to 0) on a past day or today (also `today`, `yesterday`). On someone else's count: admins only. |
 | `/link_history [auto \| historical username]`  | Admins only: links the old history recorded by username to the people (see below). Without arguments it shows what is left to link. |
-| `/language [it \| en]`                         | Without arguments it shows the language of the chat; with `it` or `en` it changes it (in groups admins only). It applies to the replies, the charts and the midnight announcement of the chat. |
+| `/language [it \| en]`                         | Without arguments it shows the language of the chat; with `it` or `en` it changes it (in groups admins only). It applies to the replies, the charts, the midnight announcement and the command menu of the chat. |
 
 Every command also has an Italian name (`/classifica_mese`, `/aggiungi_cacca`, ...), valid in every chat whatever its language: see the Italian menu in [docs/deployment.md](docs/deployment.md#command-menus).
 

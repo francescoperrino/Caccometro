@@ -6,11 +6,11 @@ How to set up a bot on Telegram and run Caccometro in production. For the day-to
 
 1. On **[@BotFather](https://t.me/botfather)** create a bot with `/newbot` and note its username and token. Keep a separate bot for development.
 2. With `/setprivacy` choose **Disable**, otherwise the bot does not see the 💩 in groups.
-3. Register the command menus and the descriptions below, on every bot. Telegram shows them in the app language of whoever opens them: the Italian ones are the default, the English ones are registered with `language_code=en`.
+3. Register the command menus and the descriptions below, on every bot. Telegram shows them in the app language of whoever opens them: the Italian ones are the default, the English ones are registered with `language_code=en`. When a chat chooses its language with `/language`, the bot sets the menu of that chat in that language for everybody (see below).
 
 ### Command menus
 
-Italian menu (`/setcommands` on BotFather, or `setMyCommands`):
+Italian menu (`/setcommands` on BotFather, or `setMyCommands`; the texts come from `caccometro/menus.py`):
 
 ```
 start - Avvia il bot e spiega come contare le 💩.
@@ -44,7 +44,9 @@ remove_poop - Remove 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday
 language - Language of the bot in this chat: it or en (in groups admins only).
 ```
 
-`/link_history` (`/collega_storico`) is for admins only: it goes in the administrators' list (`setMyCommands` with scope `all_chat_administrators`), together with the other commands, in both languages. The menus are set for four scopes: default, private chats, groups, group administrators. After changing them, read them back with `getMyCommands`.
+`/link_history` (`/collega_storico`) is for admins only: it goes in the administrators' list (`setMyCommands` with scope `all_chat_administrators`), together with the other commands, in both languages. The menus are set for four scopes: default, private chats, groups, group administrators. `python tools/register_menus.py dev|prod` registers them all from the code and reads them back with `getMyCommands`.
+
+**Menu of a chat.** `/language it|en` also sets the menu of that chat in the chosen language, without `language_code`, so it wins over the menus above whatever the app language: scope `chat` in private chats; in groups scope `chat` and scope `chat_administrators` (with `/link_history`: for the admins Telegram looks at the chat scope before `all_chat_administrators`). A group that becomes a supergroup gets it again. Chats that never chose a language keep the menus above. If Telegram refuses the menu, the language is kept anyway and the log has a warning: sending `/language` again repairs it.
 
 ### Descriptions
 

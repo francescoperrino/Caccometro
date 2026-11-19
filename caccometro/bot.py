@@ -16,6 +16,7 @@ from caccometro.commands import (start_command, leaderboard_month_command, leade
                                  remove_poop_command, day_count_command, last_poop_command, link_history_command,
                                  trophies_command, language_command)
 from caccometro.config import BOT_TOKEN, PROJECT_DIR, ROME_TZ, RUN_MODE
+from caccometro.menus import MENU
 from caccometro.messages import handle_message, handle_migration
 
 # Enable logging
@@ -114,22 +115,24 @@ application = Application.builder().bot(CachedMeBot(
     get_updates_request=HTTPXRequest(connection_pool_size=1),
 )).build()
 
-# Commands: English name, Italian name, handler. Both names work in every chat; the Italian and English menus list one each
-COMMANDS = [
-    ('start', 'start', start_command),
-    ('leaderboard_month', 'classifica_mese', leaderboard_month_command),
-    ('leaderboard_year', 'classifica_anno', leaderboard_year_command),
-    ('stats_month', 'statistiche_mese', stats_month_command),
-    ('stats_year', 'statistiche_anno', stats_year_command),
-    ('records', 'record', records_command),
-    ('trophies', 'trofei', trophies_command),
-    ('add_poop', 'aggiungi_cacca', add_poop_command),
-    ('remove_poop', 'togli_cacca', remove_poop_command),
-    ('day_count', 'conto_giorno', day_count_command),
-    ('last_poop', 'ultima_cacca', last_poop_command),
-    ('link_history', 'collega_storico', link_history_command),
-    ('language', 'lingua', language_command),
-]
+# Handlers by English name; names and menu descriptions are in menus.MENU
+HANDLERS = {
+    'start': start_command,
+    'leaderboard_month': leaderboard_month_command,
+    'leaderboard_year': leaderboard_year_command,
+    'stats_month': stats_month_command,
+    'stats_year': stats_year_command,
+    'records': records_command,
+    'trophies': trophies_command,
+    'add_poop': add_poop_command,
+    'remove_poop': remove_poop_command,
+    'day_count': day_count_command,
+    'last_poop': last_poop_command,
+    'link_history': link_history_command,
+    'language': language_command,
+}
+# English name, Italian name, handler: both names work in every chat
+COMMANDS = [(english, italian, HANDLERS[english]) for english, italian, _, _ in MENU]
 for english, italian, handler in COMMANDS:
     application.add_handler(CommandHandler([english, italian], handler))
 
