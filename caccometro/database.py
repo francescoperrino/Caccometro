@@ -13,7 +13,8 @@ DB_FOLDER = str(PROJECT_DIR / 'db')
 # Schema versions (stored in PRAGMA user_version):
 #   0/1 = legacy: counts keyed by Telegram username
 #   2   = counts keyed by Telegram user ID, plus a users table
-SCHEMA_VERSION = 2
+#   3   = conquest game: conquests and last_poop tables (#156)
+SCHEMA_VERSION = 3
 
 class User(NamedTuple):
     """A Telegram user known to a chat."""
@@ -98,6 +99,16 @@ def _ensure_schema(path):
                                  PRIMARY KEY (user_id, date)) WITHOUT ROWID''')
                 conn.execute('CREATE INDEX IF NOT EXISTS idx_user_count_date ON user_count (date)')
                 conn.execute('CREATE INDEX IF NOT EXISTS idx_users_username ON users (username COLLATE NOCASE)')
+                # Every conquest is kept: the owner of a tile is its latest row (the order the bot handled them)
+                conn.execute('''CREATE TABLE IF NOT EXISTS conquests
+                                (user_id INTEGER NOT NULL,
+                                 ts INTEGER NOT NULL,
+                                 cell TEXT NOT NULL,
+                                 lat REAL NOT NULL,
+                                 lon REAL NOT NULL)''')
+                conn.execute('CREATE INDEX IF NOT EXISTS idx_conquests_cell ON conquests (cell)')
+                # Time of the last 💩 of each user while its conquest window is unused
+                conn.execute('CREATE TABLE IF NOT EXISTS last_poop (user_id INTEGER PRIMARY KEY, ts INTEGER NOT NULL)')
                 conn.execute(f'PRAGMA user_version = {SCHEMA_VERSION}')
             conn.execute('COMMIT')
         except Exception:
@@ -131,6 +142,10 @@ def _merge_into(old_chat_id, new_chat_id):
                 added = conn.execute('''INSERT INTO user_count (user_id, date, count)
                                         SELECT user_id, date, count FROM old.user_count WHERE true
                                         ON CONFLICT(user_id, date) DO UPDATE SET count = count + excluded.count''').rowcount
+                # shortcut: the old conquests go after the new ones, so they win a tile both hold; the gap is minutes
+                conn.execute('INSERT INTO conquests SELECT * FROM old.conquests ORDER BY rowid')
+                conn.execute('''INSERT INTO last_poop SELECT user_id, ts FROM old.last_poop WHERE true
+                                ON CONFLICT(user_id) DO UPDATE SET ts = MAX(ts, excluded.ts)''')
                 if legacy_sql:
                     conn.execute(legacy_sql[0])
                     conn.execute('INSERT INTO user_count_legacy SELECT * FROM old.user_count_legacy')
@@ -380,6 +395,61 @@ def get_days_since_last_poop(user_id, chat_id):
         return (today - last_day).days
 
     return None
+
+
+# Conquest game
+
+def open_conquest_window(user_id, ts, chat_id):
+    """Remember the time (Unix seconds) of a 💩 of the user: it opens the conquest window."""
+    conn = _connect(chat_id)
+    try:
+        conn.execute('''INSERT INTO last_poop (user_id, ts) VALUES (?, ?)
+                        ON CONFLICT(user_id) DO UPDATE SET ts = MAX(ts, excluded.ts)''', (user_id, ts))
+        conn.commit()
+    finally:
+        conn.close()
+
+def conquer(chat_id, user_id, ts, lat, lon, cell, window):
+    """Conquer `cell` if the user sent a 💩 at most `window` seconds before `ts`; the window is then used up.
+
+    One transaction, so two locations of the same window cannot both conquer.
+    Returns (previous_owner, history) or None without an open window. previous_owner is None for a new tile;
+    history is every conquest [(user_id, cell)] in order, the new one last.
+    """
+    conn = _connect(chat_id)
+    conn.isolation_level = None  # manual transaction control
+    try:
+        conn.execute('BEGIN IMMEDIATE')
+        try:
+            row = conn.execute('SELECT ts FROM last_poop WHERE user_id = ?', (user_id,)).fetchone()
+            if row is None or not 0 <= ts - row[0] <= window:
+                conn.execute('COMMIT')
+                return None
+            conn.execute('DELETE FROM last_poop WHERE user_id = ?', (user_id,))
+            owner = conn.execute('SELECT user_id FROM conquests WHERE cell = ? ORDER BY rowid DESC LIMIT 1',
+                                 (cell,)).fetchone()
+            conn.execute('INSERT INTO conquests (user_id, ts, cell, lat, lon) VALUES (?, ?, ?, ?, ?)',
+                         (user_id, ts, cell, lat, lon))
+            history = _conquests(conn)
+            conn.execute('COMMIT')
+        except Exception:
+            conn.execute('ROLLBACK')
+            raise
+        return (owner[0] if owner else None), history
+    finally:
+        conn.close()
+
+def _conquests(conn):
+    """Every conquest [(user_id, cell)] in the order the bot handled them."""
+    return conn.execute('SELECT user_id, cell FROM conquests ORDER BY rowid').fetchall()
+
+def get_conquests(chat_id):
+    """Every conquest of the chat [(user_id, cell)] in order."""
+    conn = _connect(chat_id)
+    try:
+        return _conquests(conn)
+    finally:
+        conn.close()
 
 
 # Legacy data (counts recorded by username before the user-ID schema)

@@ -7,12 +7,13 @@
   <img src="assets/demo.gif" alt="Caccometro: una 💩 mandata dal telefono, la classifica fa +1 e una medaglia" height="200">
 </p>
 
-Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in un gruppo (o in una chat privata) e sfida gli amici a chi ne fa di più: classifiche mensili e annuali, statistiche con grafici, record personali e di gruppo, trofei, giorni di "costipazione". Parla italiano e inglese.
+Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in un gruppo (o in una chat privata) e sfida gli amici a chi ne fa di più: classifiche mensili e annuali, statistiche con grafici, record personali e di gruppo, trofei, giorni di "costipazione" e un gioco di conquista sulla mappa. Parla italiano e inglese.
 
 - [Come si usa](#-come-si-usa)
 - [Comandi](#-comandi)
 - [Grafici](#-grafici)
 - [Record e trofei](#-record-e-trofei)
+- [Gioco di conquista](#-gioco-di-conquista)
 - [Vecchio storico e supergruppi](#-vecchio-storico-e-supergruppi)
 - [Privacy](#-privacy)
 - [Documentazione](#-documentazione)
@@ -23,8 +24,9 @@ Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in u
 
 1. Aggiungi il bot al gruppo e manda `/start`.
 2. Quando hai fatto il tuo dovere manda un messaggio con 💩 o 🚽 (anche come sticker): il bot risponde con il conto di oggi.
-3. Usa i comandi qui sotto per classifiche, statistiche e record.
-4. Il bot parla italiano; per l'inglese un admin manda `/lingua en` (in privato chiunque).
+3. Entro 15 minuti dalla 💩 manda una posizione (📎 → Posizione) per conquistare la sua zona: vedi [Gioco di conquista](#-gioco-di-conquista).
+4. Usa i comandi qui sotto per classifiche, statistiche e record.
+5. Il bot parla italiano; per l'inglese un admin manda `/lingua en` (in privato chiunque).
 
 ---
 
@@ -39,6 +41,7 @@ Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in u
 | `/statistiche_anno [YYYY]`                     | Le stesse statistiche sull'anno. |
 | `/record [io \| @username]`                    | Senza argomenti i **record del gruppo** (chi detiene ciascun record e chi è in testa adesso). Con `io` i tuoi record, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, ciascuno con il suo **stato attuale**. |
 | `/trofei [io \| @username]`                    | Senza argomenti la **bacheca dei trofei** del gruppo; con `io` i tuoi trofei, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, con quanti giorni mancano al prossimo trofeo di serie. |
+| `/conquiste [io \| @username]`                 | Senza argomenti le **zone tenute** da ogni persona, prima il re della collina 👑; con `io`, `@username` (o rispondendo a un messaggio) le zone tenute e visitate da una persona. |
 | `/conto_giorno [@username] [DD-MM-YYYY]`       | 💩 di una persona in un giorno (oggi se la data manca; anche `ieri`). |
 | `/ultima_cacca [@username]`                    | Giorni passati dall'ultima 💩. |
 | `/aggiungi_cacca [@username] DD-MM-YYYY`       | Aggiunge 1 💩 in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |
@@ -81,6 +84,16 @@ Gli stessi grafici in una chat inglese: [classifica](assets/screenshots/leaderbo
 
 ---
 
+## 🚩 Gioco di conquista
+
+- Il mondo è diviso in zone esagonali di circa 36 km² (celle [H3](https://h3geo.org/) a risoluzione 6, larghe circa 7 km).
+- Ogni 💩 mandata come messaggio o sticker (non `/aggiungi_cacca`) apre una **finestra di 15 minuti**: la prima posizione mandata dentro conquista la zona in cui cade. Una conquista per ogni 💩. Una posizione senza finestra aperta non conquista niente.
+- 🚩 zona nuova, ⚔️ zona rubata a un'altra persona, 🏠 zona propria difesa. Una zona è di chi l'ha conquistata per ultimo.
+- 👑 Il **re della collina** tiene più zone di tutti; a parità il re attuale tiene la corona.
+- Ogni chat ha la sua mappa, mai azzerata; togliere una 💩 con `/togli_cacca` non toglie una conquista.
+
+---
+
 ## 🔄 Vecchio storico e supergruppi
 
 I conteggi sono legati all'**ID utente di Telegram**, non allo username: chi cambia username mantiene i suoi dati, e chi non ha uno username è contato col suo nome.
@@ -97,7 +110,7 @@ I conteggi sono legati all'**ID utente di Telegram**, non allo username: chi cam
 
 ## 🔒 Privacy
 
-Il bot legge i messaggi del gruppo per trovare le 💩: per questo la sua **Group Privacy** è disattivata. Il testo dei messaggi non viene mai salvato né scritto nel log. Il bot salva, per ogni chat, ID utente Telegram, username e nome di chi scrive, e le 💩 per giorno. Il log registra le modifiche fatte a mano: per ogni `/aggiungi_cacca` e `/togli_cacca` chi l'ha mandato, la persona, il giorno e il conteggio prima e dopo; per `/collega_storico` il vecchio username, la persona e i giorni spostati.
+Il bot legge i messaggi del gruppo per trovare le 💩: per questo la sua **Group Privacy** è disattivata. Il testo dei messaggi non viene mai salvato né scritto nel log. Il bot salva, per ogni chat, ID utente Telegram, username e nome di chi scrive, e le 💩 per giorno. Per il gioco di conquista salva l'ora dell'ultima 💩 (finché la sua finestra non è usata) e, per ogni conquista, l'ora, la zona e latitudine e longitudine della posizione; il log non registra mai le coordinate. Il log registra le modifiche fatte a mano: per ogni `/aggiungi_cacca` e `/togli_cacca` chi l'ha mandato, la persona, il giorno e il conteggio prima e dopo; per `/collega_storico` il vecchio username, la persona e i giorni spostati.
 
 ---
 

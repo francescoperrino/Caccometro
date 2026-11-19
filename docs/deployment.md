@@ -20,6 +20,7 @@ statistiche_mese - Media, mediana e varianza del mese, corrente o [MM-YYYY, anch
 statistiche_anno - Media, mediana e varianza dell'anno, corrente o [YYYY o YY].
 record - Record del gruppo; con io o @username quelli di una persona.
 trofei - Trofei del gruppo; con io o @username quelli di una persona.
+conquiste - Zone conquistate con una posizione dopo la 💩; con io o @username quelle di una persona.
 conto_giorno - 💩 di un giorno: [@username] [DD-MM-YYYY, oggi, ieri].
 ultima_cacca - Giorni dall'ultima 💩: [@username].
 aggiungi_cacca - Aggiunge 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
@@ -37,6 +38,7 @@ stats_month - Mean, median and variance of the month, current or [MM-YYYY, also 
 stats_year - Mean, median and variance of the year, current or [YYYY or YY].
 records - Group records; with me or @username those of one person.
 trophies - Group trophies; with me or @username those of one person.
+conquests - Tiles conquered with a location after the 💩; with me or @username those of one person.
 day_count - 💩 of a day: [@username] [DD-MM-YYYY, today, yesterday].
 last_poop - Days since the last 💩: [@username].
 add_poop - Add 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
