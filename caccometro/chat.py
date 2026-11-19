@@ -1,7 +1,7 @@
 """Helpers on Telegram updates shared by the commands and the message handler."""
 import logging
 
-from telegram import Update
+from telegram import InputMediaPhoto, Update
 from telegram.constants import ChatMemberStatus, MessageLimit
 from telegram.ext import ContextTypes
 
@@ -9,6 +9,10 @@ from caccometro import i18n
 from caccometro.database import User, get_language, upsert_user
 
 logger = logging.getLogger(__name__)
+
+# Telegram can take more than the default 5 seconds to answer an upload (an album of maps took 7):
+# a read timeout is not retried, so the reply would count as failed although it arrived
+PHOTO_READ_TIMEOUT = 20
 
 
 def display_name_of(tg_user):
@@ -48,13 +52,35 @@ def escape_md(name):
     return name
 
 
+def fits_caption(message):
+    """True if the message fits a photo caption (Telegram counts UTF-16 units)."""
+    return len(message.encode('utf-16-le')) // 2 <= MessageLimit.CAPTION_LENGTH
+
+
 async def reply_chart(update: Update, chart: bytes, message: str):
     """Send a chart with the message as its caption: one request instead of two, when it fits."""
-    if len(message.encode('utf-16-le')) // 2 <= MessageLimit.CAPTION_LENGTH:  # Telegram counts UTF-16 units
-        await update.message.reply_photo(chart, caption=message, parse_mode='Markdown')
+    if fits_caption(message):
+        await update.message.reply_photo(chart, caption=message, parse_mode='Markdown', read_timeout=PHOTO_READ_TIMEOUT)
         return
-    await update.message.reply_photo(chart)
+    await update.message.reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
     await update.message.reply_text(message, parse_mode='Markdown')
+
+
+async def reply_charts(update: Update, charts, message: str):
+    """Send the charts that could be drawn (None ones are skipped) with the message: an album when there are
+    several, the text alone when there are none."""
+    charts = [chart for chart in charts if chart]
+    if not charts:
+        await update.message.reply_text(message, parse_mode='Markdown')
+    elif len(charts) == 1:
+        await reply_chart(update, charts[0], message)
+    else:
+        caption = fits_caption(message)
+        if not caption:
+            await update.message.reply_text(message, parse_mode='Markdown')
+        await update.message.reply_media_group([
+            InputMediaPhoto(chart, caption=message if caption and i == 0 else None, parse_mode='Markdown')
+            for i, chart in enumerate(charts)], read_timeout=PHOTO_READ_TIMEOUT)
 
 
 async def is_chat_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):

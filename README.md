@@ -23,7 +23,7 @@ Caccometro is an open source Telegram bot that counts the 💩 of every person i
 ## 💬 How to use it
 
 1. Add the bot to the group and send `/start`.
-2. When you have done your duty, send a message with 💩 or 🚽 (also as a sticker): the bot replies with today's count.
+2. When you have done your duty, send a message with 💩 or 🚽 (also as a sticker): the bot replies with today's count and a reminder to send your location.
 3. Within 15 minutes of the 💩, send a location (📎 → Location) to conquer its tile: see [Conquest game](#-conquest-game).
 4. Use the commands below for rankings, statistics and records.
 5. The bot speaks Italian; for English an admin sends `/language en` (in a private chat anybody can).
@@ -92,6 +92,13 @@ The same charts in an Italian chat: [leaderboard](assets/screenshots/leaderboard
 - 🚩 new tile, ⚔️ tile stolen from another person, 🏠 own tile defended. A tile belongs to whoever conquered it last.
 - 👑 The **king of the hill** holds the most tiles; on a tie the current king keeps the crown.
 - Every chat has its own map, never reset; removing a 💩 with `/remove_poop` does not remove a conquest.
+- Every conquest comes with a **map** of the tiles around it; `/conquests` adds Lombardy, Italy and the whole world. There a large hexagon stands for the tiles inside it and takes the colour of whoever holds most of them (on a tie, whoever conquered last). If the map cannot be drawn, the reply comes as text.
+
+| Conquest | `/conquests`: Lombardy |
+| :---: | :---: |
+| <img src="assets/screenshots/conquest_zoom_en.jpg" alt="Map of Milan with the hexagonal tiles in the colours of their owners and the tile just conquered outlined" width="400"> | <img src="assets/screenshots/conquest_region_en.jpg" alt="Map of Lombardy with the hexagons of the conquered areas" width="400"> |
+| **`/conquests`: Italy** | **`/conquests`: world** |
+| <img src="assets/screenshots/conquest_country_en.jpg" alt="Map of Italy with the larger hexagons of the conquered areas" width="400"> | <img src="assets/screenshots/conquest_world_en.jpg" alt="World map with the hexagons of the conquests on several continents" width="400"> |
 
 ---
 
@@ -128,3 +135,5 @@ The bot reads the group messages to find the 💩: this is why its **Group Priva
 ## License
 
 Caccometro is released under the [MIT](LICENSE) license.
+
+The maps use tiles and data from [OpenStreetMap](https://www.openstreetmap.org/copyright), © OpenStreetMap contributors, available under the Open Database License.

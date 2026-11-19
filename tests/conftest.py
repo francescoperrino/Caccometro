@@ -24,6 +24,9 @@ from caccometro import database  # noqa: E402
 from caccometro import charts  # noqa: E402
 from caccometro import webhook  # noqa: E402
 from caccometro import i18n  # noqa: E402
+from caccometro import maps  # noqa: E402
+
+REAL_CACHED_TILE = maps.cached_tile  # replaced by no_network in every test
 
 CHAT_ID = -1001
 
@@ -41,7 +44,13 @@ def isolated_folders(tmp_path, monkeypatch):
     database.init_database(CHAT_ID)
     webhook.SEEN_UPDATE_IDS.clear()   # every test starts like a fresh process
     i18n.use(i18n.DEFAULT_LANGUAGE)   # a test that sets the language outside asyncio.run must not leak it
+    monkeypatch.setattr(maps, "CACHE_DIR", tmp_path / "tiles")
+    monkeypatch.setattr(maps, "cached_tile", no_network)  # the tests never fetch map tiles: replies go out as text
     return tmp_path
+
+
+def no_network(*args):
+    raise OSError("no network in the tests")
 
 
 def uid(name):
@@ -105,6 +114,7 @@ def make_update(text=None, username="mario", user_id=None, chat_id=CHAT_ID,
                           if reply_to is not None else None),
         reply_text=AsyncMock(),
         reply_photo=AsyncMock(),
+        reply_media_group=AsyncMock(),
     )
     return SimpleNamespace(
         message=message,

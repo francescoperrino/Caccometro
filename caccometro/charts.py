@@ -57,8 +57,8 @@ STYLE = {
 }
 
 
-def add_watermark(fig):
-    """'Caccometro vX.Y.Z' in small light text centred in the strip between the last card and the bottom of the image.
+def add_watermark(fig, credit=''):
+    """'Caccometro vX.Y.Z' (and the credit of the map data, if any) in small light text centred in the strip between the last card and the bottom of the image.
 
     png_bytes crops 0.35 inch under the cards (pad_inches); the text is left out of the crop calculation
     (set_in_layout) so that it uses that strip instead of making the image taller.
@@ -68,13 +68,13 @@ def add_watermark(fig):
     pad = 0.015  # the padding add_cards gives the cards
     strip = 0.35 / fig.get_size_inches()[1]  # pad_inches of png_bytes, as a fraction of the height
     text = fig.text(max(b.x1 for b in boxes) + pad, min(b.y0 for b in boxes) - pad - strip / 2,
-                    f'Caccometro v{__version__}', ha='right', va='center', fontsize=8, color=WATERMARK)
+                    f'Caccometro v{__version__}' + (f' · {credit}' if credit else ''), ha='right', va='center', fontsize=8, color=WATERMARK)
     text.set_in_layout(False)
 
 
-def png_bytes(fig):
+def png_bytes(fig, credit=''):
     """Render a figure to PNG in memory and close it."""
-    add_watermark(fig)
+    add_watermark(fig, credit)
     buffer = io.BytesIO()
     fig.savefig(buffer, format='png', dpi=110, bbox_inches='tight', pad_inches=0.35)
     plt.close(fig)

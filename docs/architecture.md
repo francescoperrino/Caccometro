@@ -23,8 +23,9 @@ caccometro/          the bot, as a Python package
   formatting.py      texts of /records, /trophies and the midnight announcement
   announce.py        midnight announcement of the 💩 of the month (scheduled task)
   charts.py          ranking and statistics charts (PNG in memory)
+  maps.py            conquest maps over OpenStreetMap tiles (JPEG in memory, tile cache in tile_cache/)
 scripts/set_webhook.py   registers the webhook on Telegram (once)
-tools/               service scripts: deploy, database backups, log download and summary, bot version, command menus, README charts
+tools/               service scripts: deploy, database backups, log download and summary, bot version, command menus, README charts and maps
 .githooks/           git hooks (pre-commit, commit-msg), enabled with core.hooksPath
 .gitattributes       line endings of the .py files (CRLF) and of the hooks (LF)
 tests/               pytest tests
@@ -35,6 +36,8 @@ assets/              avatar, animation, fonts, medal images of the charts, READM
 ```
 
 `analysis.py`, `trophies.py` and `conquest.py` do not touch the database or Telegram: they receive the counts and return records, statistics and trophies, which makes them the easiest parts to test.
+
+`maps.py` draws the conquest maps: OpenStreetMap raster tiles fetched with `httpx` (User-Agent with the project name and repository, two attempts, 10 seconds for all the tiles of an image), kept 7 days in `tile_cache/` (at most 3000 files, the oldest dropped first), joined with Pillow and drawn with matplotlib in Web Mercator. The zoom around a conquest, the only map that follows the location, shows the real tiles (h3 resolution 6); `/conquests` shows fixed boxes: Lombardy at resolution 5, Italy at resolution 4 and the world at resolution 1, where a hexagon goes to the member holding most tiles inside it, on a tie the latest conqueror. When the tiles cannot be fetched, `maps.render` returns None and the reply goes out as text. `tools/sample_maps.py` draws the README maps (by hand: it needs the network).
 
 ## Path of a message
 
@@ -57,8 +60,8 @@ flowchart TD
     location -->|"no"| silent["No reply"]
     location -->|"yes"| window{"💩 of the sender in the<br/>last 15 minutes, window unused?"}
     window -->|"no"| first["'First the 💩, then the conquest'"]
-    window -->|"yes"| conquer["messages.py: conquers the h3 tile,<br/>window used up, king from conquest.py"]
-    poop -->|"yes"| count["messages.py: +1 💩 on the day the message was sent<br/>(message.date, Italian time), opens the conquest window"]
+    window -->|"yes"| conquer["messages.py: conquers the h3 tile,<br/>window used up, king from conquest.py,<br/>zoom map from maps.py (text only if the tiles fail)"]
+    poop -->|"yes"| count["messages.py: +1 💩 on the day the message was sent<br/>(message.date, Italian time), opens the conquest window,<br/>reminds to send a location"]
     commands --> output["Text or chart in the chat language<br/>(formatting.py, charts.py)"]
     output --> send["RetryingRequest: send to Telegram,<br/>up to 6 attempts if the connection or the proxy fails"]
     count --> send

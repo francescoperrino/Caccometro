@@ -6,10 +6,10 @@ from datetime import datetime, timedelta
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from caccometro import __version__, i18n
+from caccometro import __version__, i18n, maps
 from caccometro.analysis import FORECAST_WINDOW_DAYS, analyze_group, analyze_user, forecast_totals, period_statistics
 from caccometro.charts import generate_rank_chart, generate_statistics_chart
-from caccometro.chat import escape_md, is_chat_admin, register_sender, register_user, reply_chart, where
+from caccometro.chat import escape_md, is_chat_admin, register_sender, register_user, reply_chart, reply_charts, where
 from caccometro.conquest import holdings, mention_of, visited
 from caccometro.config import DISPLAY_FORMAT, MONTH_NAMES, STORING_FORMAT, now_rome, period_bounds
 from caccometro.i18n import MONTHS, tr
@@ -369,6 +369,7 @@ async def conquests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     history = get_conquests(chat_id)
     counts, king = holdings(history)
+    users = get_users(chat_id)
     if target is not None:
         message = tr("🗺️ {name}: {held} zone tenute, {visited} visitate.").format(
             name=escape_md(target.mention), held=counts.get(target.user_id, 0), visited=visited(history, target.user_id))
@@ -377,12 +378,13 @@ async def conquests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif not counts:
         message = tr("Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.")
     else:
-        users = get_users(chat_id)
         ranking = sorted(counts.items(), key=lambda item: (-item[1], item[0] != king))  # on a tie the king first
         message = tr("🗺️ *Conquiste*") + "\n\n" + "".join(
             ranked_line(i, escape_md(mention_of(users, user_id)) + (" 👑" if user_id == king else ""), f"{held} 🚩")
             for i, (user_id, held) in enumerate(ranking, start=1))
-    await update.message.reply_text(message, parse_mode='Markdown')
+    maps_drawn = [maps.render(view, history, users) for view in (maps.region_map, maps.country_map, maps.world_map)
+                  if counts]
+    await reply_charts(update, maps_drawn, message)
     logger.info(f"Command /conquests completed in {where(update)}")
 
 

@@ -8,3 +8,4 @@ db/*.db
 __pycache__/
 .vscode/
 .pytest_cache/
+tile_cache/

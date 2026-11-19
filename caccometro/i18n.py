@@ -57,6 +57,7 @@ EN = {
 
     # conquest game
     "Prima la 💩, poi la conquista 😏": "First the 💩, then the conquest 😏",
+    "📍 Manda la posizione entro 15 minuti per conquistare la zona!": "📍 Send your location within 15 minutes to conquer the tile!",
     "🚩 {name} conquista una nuova zona! Zone: {total}": "🚩 {name} conquers a new tile! Tiles: {total}",
     "🏠 {name} difende la sua zona. Zone: {total}": "🏠 {name} defends their tile. Tiles: {total}",
     "⚔️ {name} ruba una zona a {owner}! Zone: {total}": "⚔️ {name} steals a tile from {owner}! Tiles: {total}",
@@ -67,6 +68,11 @@ EN = {
     "Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.":
         "No tile conquered yet. After the 💩 send a location within 15 minutes.",
     "🗺️ *Conquiste*": "🗺️ *Conquests*",
+    "Zona conquistata": "Tile conquered",
+    "Conquiste nel mondo": "Conquests around the world",
+    "Conquiste in Lombardia": "Conquests in Lombardy",
+    "Conquiste in Italia": "Conquests in Italy",
+    "ultima conquista": "latest conquest",
     "{name} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu.":
         "{name} what the hell are you writing *Run* for? I only work with my own commands, not with the ones you make up.",
 
