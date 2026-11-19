@@ -159,4 +159,4 @@ To try it without sending anything: `python3.10 -m caccometro.announce --date 20
 
 ### Web app expiry
 
-On the free plan the web app **expires every 3 months**: in the Web tab choose "Run until 3 months from today". The scheduled task must be extended too, otherwise the midnight announcement is skipped. There is no API for it: `tools/deploy.py` and `tools/fetch_logs.py` print the days left and warn below 14.
+On the free plan the web app **expires about every month**: in the Web tab choose "Run until 1 month from today". The scheduled task must be extended too, otherwise the midnight announcement is skipped. There is no API for it: `tools/deploy.py` and `tools/fetch_logs.py` print the days left and warn below 14.

@@ -75,7 +75,7 @@ def expiry_warning(client):
     if expiry:
         days = (date.fromisoformat(expiry) - date.today()).days
         mark = "  !!! " if days <= 14 else "  "
-        print(f"{mark}web app expires on {expiry} ({days} days): Web tab, 'Run until 3 months from today'")
+        print(f"{mark}web app expires on {expiry} ({days} days): Web tab, 'Run until 1 month from today'")
 
 
 def download(client, remote, local):
