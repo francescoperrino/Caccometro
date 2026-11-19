@@ -130,17 +130,8 @@ COMMANDS = [
     ('link_history', 'collega_storico', link_history_command),
     ('language', 'lingua', language_command),
 ]
-# Names used before v1.5.0: they still work, but are in no menu
-OLD_NAMES = {
-    'leaderboard_month': ['rank_month'],
-    'leaderboard_year': ['rank_year'],
-    'add_poop': ['aggiungi'],
-    'remove_poop': ['togli'],
-    'last_poop': ['costipazione', 'constipation'],
-    'link_history': ['collega'],
-}
 for english, italian, handler in COMMANDS:
-    application.add_handler(CommandHandler([english, italian, *OLD_NAMES.get(english, [])], handler))
+    application.add_handler(CommandHandler([english, italian], handler))
 
 # Messages (the migration handler comes first: only the first matching handler of a group runs)
 application.add_handler(MessageHandler(filters.StatusUpdate.MIGRATE, handle_migration))
