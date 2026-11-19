@@ -47,11 +47,26 @@ EN = {
     "Da ora parlo italiano 🇮🇹": "From now on I speak English 🇬🇧",
 
     # /start and plain messages
-    "Ciao, sono 🤖 *Caccometro* 🤖.\nManda 💩 quando hai fatto il tuo dovere.\n_Versione {version}_\n\n🇬🇧 English: /language en":
-        "Hi, I am 🤖 *Caccometro* 🤖.\nSend 💩 when you have done your duty.\n_Version {version}_\n\n🇮🇹 Italiano: /lingua it",
+    "Ciao, sono 🤖 *Caccometro* 🤖.\nManda 💩 quando hai fatto il tuo dovere.\n"
+    "Entro 15 minuti manda una posizione per conquistare la sua zona 🚩.\n_Versione {version}_\n\n🇬🇧 English: /language en":
+        "Hi, I am 🤖 *Caccometro* 🤖.\nSend 💩 when you have done your duty.\n"
+        "Within 15 minutes send a location to conquer its tile 🚩.\n_Version {version}_\n\n🇮🇹 Italiano: /lingua it",
     "Complimenti {name}, oggi hai fatto 💩 {count} volta!": "Well done {name}, today you did 💩 {count} time!",
     "Complimenti {name}, oggi hai fatto 💩 {count} volte!": "Well done {name}, today you did 💩 {count} times!",
     "Cosa vuoi dirmi?": "What do you want to tell me?",
+
+    # conquest game
+    "Prima la 💩, poi la conquista 😏": "First the 💩, then the conquest 😏",
+    "🚩 {name} conquista una nuova zona! Zone: {total}": "🚩 {name} conquers a new tile! Tiles: {total}",
+    "🏠 {name} difende la sua zona. Zone: {total}": "🏠 {name} defends their tile. Tiles: {total}",
+    "⚔️ {name} ruba una zona a {owner}! Zone: {total}": "⚔️ {name} steals a tile from {owner}! Tiles: {total}",
+    "👑 {name} è il nuovo re della collina!": "👑 {name} is the new king of the hill!",
+    "/conquiste [@username | io]": "/conquests [@username | me]",
+    "🗺️ {name}: {held} zone tenute, {visited} visitate.": "🗺️ {name}: {held} tiles held, {visited} visited.",
+    "👑 Re della collina!": "👑 King of the hill!",
+    "Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.":
+        "No tile conquered yet. After the 💩 send a location within 15 minutes.",
+    "🗺️ *Conquiste*": "🗺️ *Conquests*",
     "{name} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu.":
         "{name} what the hell are you writing *Run* for? I only work with my own commands, not with the ones you make up.",
 

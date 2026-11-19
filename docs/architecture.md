@@ -12,12 +12,13 @@ caccometro/          the bot, as a Python package
   bot.py             python-telegram-bot Application, logging, send retries, command registration
   webhook.py         Flask app that receives the updates from Telegram (production)
   commands.py        the commands (/leaderboard_month, /records, ...) and the permission checks
-  messages.py        counting the 💩 in messages and stickers
+  messages.py        counting the 💩 in messages and stickers, conquests from locations
   chat.py            shared helpers on Telegram users and messages
   i18n.py            translations: the Italian sentences are the keys, one dictionary per language
   menus.py           command names and menu descriptions in both languages, menu of a chat
   database.py        SQLite database: schema, migration, queries
   analysis.py        records, streaks, statistics and forecasts (pure functions, no database)
+  conquest.py        conquest game: h3 tiles, 15 minute window, ownership and king of the hill (pure functions)
   trophies.py        trophies: 15-day streaks, 💩 of the month and of the year (pure functions)
   formatting.py      texts of /records, /trophies and the midnight announcement
   announce.py        midnight announcement of the 💩 of the month (scheduled task)
@@ -33,7 +34,7 @@ wsgi.py              template of the WSGI file for the hosting
 assets/              avatar, animation, fonts, medal images of the charts, README charts (screenshots/)
 ```
 
-`analysis.py` and `trophies.py` do not touch the database or Telegram: they receive the counts and return records, statistics and trophies, which makes them the easiest parts to test.
+`analysis.py`, `trophies.py` and `conquest.py` do not touch the database or Telegram: they receive the counts and return records, statistics and trophies, which makes them the easiest parts to test.
 
 ## Path of a message
 
@@ -52,11 +53,17 @@ flowchart TD
     sender --> command{"Is it a command?"}
     command -->|"yes"| commands["commands.py: reads the database,<br/>computes with analysis.py and trophies.py"]
     command -->|"no"| poop{"Does it contain 💩 or 🚽?"}
-    poop -->|"no"| silent["No reply"]
-    poop -->|"yes"| count["messages.py: +1 💩 on the day the message was sent<br/>(message.date, Italian time)"]
+    poop -->|"no"| location{"Is it a location?"}
+    location -->|"no"| silent["No reply"]
+    location -->|"yes"| window{"💩 of the sender in the<br/>last 15 minutes, window unused?"}
+    window -->|"no"| first["'First the 💩, then the conquest'"]
+    window -->|"yes"| conquer["messages.py: conquers the h3 tile,<br/>window used up, king from conquest.py"]
+    poop -->|"yes"| count["messages.py: +1 💩 on the day the message was sent<br/>(message.date, Italian time), opens the conquest window"]
     commands --> output["Text or chart in the chat language<br/>(formatting.py, charts.py)"]
     output --> send["RetryingRequest: send to Telegram,<br/>up to 6 attempts if the connection or the proxy fails"]
     count --> send
+    first --> send
+    conquer --> send
     send --> reply["👤 The person sees the reply"]
 ```
 
@@ -72,6 +79,8 @@ One SQLite file per chat, `db/<chat_id>_bot_data.db`:
 ```mermaid
 erDiagram
     users ||--o{ user_count : "does"
+    users ||--o{ conquests : "conquers"
+    users ||--o| last_poop : "has open"
     users {
         INTEGER user_id PK "Telegram user ID"
         TEXT username "without @, may be missing"
@@ -87,16 +96,28 @@ erDiagram
         TEXT date "YYYY-MM-DD"
         INTEGER count "💩 of that day"
     }
+    conquests {
+        INTEGER user_id "who"
+        INTEGER ts "Unix time of the location message"
+        TEXT cell "h3 cell, resolution 6"
+        REAL lat "latitude"
+        REAL lon "longitude"
+    }
+    last_poop {
+        INTEGER user_id PK "who"
+        INTEGER ts "Unix time of the last 💩, deleted when the window is used"
+    }
     settings {
         TEXT key PK "language"
         TEXT value "it or en"
     }
 ```
 
+- `conquests` keeps every conquest: the owner of a tile is its latest row (in the order the bot handled them); holdings and the king are replayed from the history (`conquest.holdings`). Latitude and longitude are kept so the resolution can change later.
 - `settings` is created on the first choice made with `/language`: without the table the chat speaks Italian.
 - `user_count_legacy` exists only in the chats migrated from the first version and empties as `/link_history` moves the history into `user_count`.
-- The schema version is in `PRAGMA user_version` (2 today). The migration starts by itself when the database is opened, inside `BEGIN IMMEDIATE`, after a copy `db/<chat_id>_bot_data.db.v1.bak`.
-- When a group becomes a supergroup, the database is renamed `db/<old>_bot_data.db` → `db/<new>_bot_data.db`. If the migration message arrives late and the new database already has counts, the two are merged (same user and same day are added up) and the old file stays as `<old>_bot_data.db.merged`. The migration also starts from the twin message in the old chat, so it gets two chances.
+- The schema version is in `PRAGMA user_version` (3 today; 3 added `conquests` and `last_poop`). The migration starts by itself when the database is opened, inside `BEGIN IMMEDIATE`, after a copy `db/<chat_id>_bot_data.db.v1.bak`.
+- When a group becomes a supergroup, the database is renamed `db/<old>_bot_data.db` → `db/<new>_bot_data.db`. If the migration message arrives late and the new database already has counts, the two are merged (same user and same day are added up, conquests appended) and the old file stays as `<old>_bot_data.db.merged`. The migration also starts from the twin message in the old chat, so it gets two chances.
 
 ## Translations
 

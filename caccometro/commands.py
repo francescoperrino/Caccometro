@@ -10,13 +10,14 @@ from caccometro import __version__, i18n
 from caccometro.analysis import FORECAST_WINDOW_DAYS, analyze_group, analyze_user, forecast_totals, period_statistics
 from caccometro.charts import generate_rank_chart, generate_statistics_chart
 from caccometro.chat import escape_md, is_chat_admin, register_sender, register_user, reply_chart, where
+from caccometro.conquest import holdings, mention_of, visited
 from caccometro.config import DISPLAY_FORMAT, MONTH_NAMES, STORING_FORMAT, now_rome, period_bounds
 from caccometro.i18n import MONTHS, tr
 from caccometro.database import (init_database, find_user_by_username, add_count, get_count, get_daily_counts,
                                  get_daily_counts_between,
                                  get_rank, get_users, get_record, get_all_user_rows, get_days_since_last_poop,
                                  list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username,
-                                 set_language)
+                                 set_language, get_conquests)
 from caccometro.menus import set_chat_menu
 from caccometro.formatting import bold, format_group_record, format_group_trophies, format_user_record, format_user_trophies
 from caccometro.trophies import trophies_by_user
@@ -171,6 +172,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     init_database(update.message.chat_id)
     await update.message.reply_text(tr("Ciao, sono 🤖 *Caccometro* 🤖.\n"
                                        "Manda 💩 quando hai fatto il tuo dovere.\n"
+                                       "Entro 15 minuti manda una posizione per conquistare la sua zona 🚩.\n"
                                        "_Versione {version}_\n\n"
                                        "🇬🇧 English: /language en").format(version=__version__), parse_mode='Markdown')
     logger.info(f"Command /start completed in {where(update)}")
@@ -353,6 +355,36 @@ async def trophies_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message = format_user_trophies(escape_md(target.mention), trophies.get(target.user_id), current_streak)
     await update.message.reply_text(message, parse_mode='Markdown')
     logger.info(f"Command /trophies completed in {where(update)}")
+
+async def conquests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /conquests command: tiles held by each member, king first; or one person (io, @username or a reply)."""
+    sender = register_sender(update)
+    if sender is None:
+        return
+    logger.info(f"Command received: /conquests from {sender.mention} in {where(update)}")
+    chat_id = update.message.chat_id
+    target, error = resolve_optional_target(update, context, sender, tr("/conquiste [@username | io]"))
+    if error:
+        await update.message.reply_text(error)
+        return
+    history = get_conquests(chat_id)
+    counts, king = holdings(history)
+    if target is not None:
+        message = tr("🗺️ {name}: {held} zone tenute, {visited} visitate.").format(
+            name=escape_md(target.mention), held=counts.get(target.user_id, 0), visited=visited(history, target.user_id))
+        if target.user_id == king:
+            message += "\n" + tr("👑 Re della collina!")
+    elif not counts:
+        message = tr("Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.")
+    else:
+        users = get_users(chat_id)
+        ranking = sorted(counts.items(), key=lambda item: (-item[1], item[0] != king))  # on a tie the king first
+        message = tr("🗺️ *Conquiste*") + "\n\n" + "".join(
+            ranked_line(i, escape_md(mention_of(users, user_id)) + (" 👑" if user_id == king else ""), f"{held} 🚩")
+            for i, (user_id, held) in enumerate(ranking, start=1))
+    await update.message.reply_text(message, parse_mode='Markdown')
+    logger.info(f"Command /conquests completed in {where(update)}")
+
 
 async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE, command, delta):
     """Shared body of /add_poop (delta +1) and /remove_poop (delta -1)."""

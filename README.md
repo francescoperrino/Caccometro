@@ -7,12 +7,13 @@
   <img src="assets/demo.gif" alt="Caccometro: a 💩 sent from the phone, the leaderboard gets +1 and a medal" height="200">
 </p>
 
-Caccometro is an open source Telegram bot that counts the 💩 of every person in a group (or in a private chat) and challenges friends to see who does the most: monthly and yearly rankings, statistics with charts, personal and group records, trophies, days of "constipation". It speaks Italian and English.
+Caccometro is an open source Telegram bot that counts the 💩 of every person in a group (or in a private chat) and challenges friends to see who does the most: monthly and yearly rankings, statistics with charts, personal and group records, trophies, days of "constipation", and a conquest game on the map. It speaks Italian and English.
 
 - [How to use it](#-how-to-use-it)
 - [Commands](#-commands)
 - [Charts](#-charts)
 - [Records and trophies](#-records-and-trophies)
+- [Conquest game](#-conquest-game)
 - [Old history and supergroups](#-old-history-and-supergroups)
 - [Privacy](#-privacy)
 - [Documentation](#-documentation)
@@ -23,8 +24,9 @@ Caccometro is an open source Telegram bot that counts the 💩 of every person i
 
 1. Add the bot to the group and send `/start`.
 2. When you have done your duty, send a message with 💩 or 🚽 (also as a sticker): the bot replies with today's count.
-3. Use the commands below for rankings, statistics and records.
-4. The bot speaks Italian; for English an admin sends `/language en` (in a private chat anybody can).
+3. Within 15 minutes of the 💩, send a location (📎 → Location) to conquer its tile: see [Conquest game](#-conquest-game).
+4. Use the commands below for rankings, statistics and records.
+5. The bot speaks Italian; for English an admin sends `/language en` (in a private chat anybody can).
 
 ---
 
@@ -40,6 +42,7 @@ Caccometro is an open source Telegram bot that counts the 💩 of every person i
 | `/stats_year [YYYY]`                           | The same statistics over the year. |
 | `/records [me \| @username]`                   | Without arguments the **group records** (who holds each record and who leads right now). With `me` (or `io`) your own records, with `@username` (or replying to a message) those of another person, each with its **current state**. |
 | `/trophies [me \| @username]`                  | Without arguments the **trophy board** of the group; with `me` (or `io`) your trophies, with `@username` (or replying to a message) those of another person, with how many days are left to the next streak trophy. |
+| `/conquests [me \| @username]`                 | Without arguments the **tiles held** by each person, the king of the hill 👑 first; with `me` (or `io`), `@username` (or replying to a message) the tiles held and visited by one person. |
 | `/day_count [@username] [DD-MM-YYYY]`          | 💩 of a person on a day (today if the date is missing; also `yesterday`). |
 | `/last_poop [@username]`                       | Days since the last 💩. |
 | `/add_poop [@username] DD-MM-YYYY`             | Adds 1 💩 on a past day or today (also `today`, `yesterday`). On someone else's count: admins only. |
@@ -82,6 +85,16 @@ The same charts in an Italian chat: [leaderboard](assets/screenshots/leaderboard
 
 ---
 
+## 🚩 Conquest game
+
+- The world is split into hexagonal tiles of about 36 km² ([H3](https://h3geo.org/) cells at resolution 6, about 7 km wide).
+- Every 💩 sent as a message or sticker (not `/add_poop`) opens a **15 minute window**: the first location sent in it conquers the tile it falls in. One conquest per 💩. A location without an open window conquers nothing.
+- 🚩 new tile, ⚔️ tile stolen from another person, 🏠 own tile defended. A tile belongs to whoever conquered it last.
+- 👑 The **king of the hill** holds the most tiles; on a tie the current king keeps the crown.
+- Every chat has its own map, never reset; removing a 💩 with `/remove_poop` does not remove a conquest.
+
+---
+
 ## 🔄 Old history and supergroups
 
 The counts are tied to the **Telegram user ID**, not to the username: whoever changes username keeps their data, and people without a username are counted under their name.
@@ -98,7 +111,7 @@ The counts are tied to the **Telegram user ID**, not to the username: whoever ch
 
 ## 🔒 Privacy
 
-The bot reads the group messages to find the 💩: this is why its **Group Privacy** is disabled. The text of the messages is never stored or written to the log. The bot stores, for each chat, the Telegram user ID, username and name of whoever writes, and the 💩 per day. The log records the changes made by hand: for every `/add_poop` and `/remove_poop`, who sent it, the person, the day and the count before and after; for `/link_history`, the old username, the person and the days moved.
+The bot reads the group messages to find the 💩: this is why its **Group Privacy** is disabled. The text of the messages is never stored or written to the log. The bot stores, for each chat, the Telegram user ID, username and name of whoever writes, and the 💩 per day. For the conquest game it stores the time of the last 💩 (until its window is used) and, for every conquest, the time, the tile and the latitude and longitude of the location; the log never records the coordinates. The log records the changes made by hand: for every `/add_poop` and `/remove_poop`, who sent it, the person, the day and the count before and after; for `/link_history`, the old username, the person and the days moved.
 
 ---
 
