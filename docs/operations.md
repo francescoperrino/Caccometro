@@ -91,4 +91,4 @@ The charts in the README carry the version too: the commit of the bump redraws t
 
 ## Web app expiry
 
-The free plan web app and the scheduled task expire every 3 months and must be extended by hand ([deployment.md](deployment.md#web-app-expiry)). `tools/deploy.py` and `tools/fetch_logs.py` print the days left and warn below 14.
+The free plan web app and the scheduled task expire about every month and must be extended by hand ([deployment.md](deployment.md#web-app-expiry)). `tools/deploy.py` and `tools/fetch_logs.py` print the days left and warn below 14.
