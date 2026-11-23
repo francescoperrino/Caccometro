@@ -49,7 +49,7 @@ def test_defending_changes_nothing_and_a_member_with_no_tiles_is_dropped():
 
 def test_cells_are_resolution_6():
     import h3
-    assert h3.get_resolution(conquest.cell_of(*MILAN)) == 6
+    assert h3.get_resolution(conquest.cell_of(*MILAN)) == 7
     assert conquest.cell_of(*MILAN) != conquest.cell_of(*ROME)
 
 
@@ -129,6 +129,23 @@ def test_a_version_2_database_gets_the_conquest_tables(tmp_path):
     conn.close()
     assert database.get_count(1, "2026-11-01", -4004) == 2
     assert database.get_conquests(-4004) == []
+    assert sqlite3.connect(path).execute("PRAGMA user_version").fetchone()[0] == database.SCHEMA_VERSION
+
+
+def test_a_version_3_database_gets_its_conquests_recalculated_at_the_new_resolution(tmp_path):
+    import h3
+    path = str(tmp_path / "db" / "-4005_bot_data.db")
+    database._connect(-4005).close()  # current schema, then turned back into a version 3 one with resolution 6 tiles
+    database._schema_ready.clear()
+    conn = sqlite3.connect(path)
+    rows = [(1, 100, *MILAN), (2, 200, *ROME), (3, 300, 45.4780, 9.23)]
+    conn.executemany("INSERT INTO conquests VALUES (?, ?, ?, ?, ?)",
+                     [(u, ts, h3.latlng_to_cell(lat, lon, 6), lat, lon) for u, ts, lat, lon in rows])
+    conn.execute("PRAGMA user_version = 3")
+    conn.commit()
+    conn.close()
+    assert database.get_conquests(-4005) == [(u, conquest.cell_of(lat, lon)) for u, _, lat, lon in rows]  # same order
+    assert {h3.get_resolution(cell) for _, cell in database.get_conquests(-4005)} == {conquest.RESOLUTION}
     assert sqlite3.connect(path).execute("PRAGMA user_version").fetchone()[0] == database.SCHEMA_VERSION
 
 

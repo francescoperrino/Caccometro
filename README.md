@@ -87,7 +87,7 @@ The same charts in an Italian chat: [leaderboard](assets/screenshots/leaderboard
 
 ## 🚩 Conquest game
 
-- The world is split into hexagonal tiles of about 36 km² ([H3](https://h3geo.org/) cells at resolution 6, about 7 km wide).
+- The world is split into hexagonal tiles of about 5 km² ([H3](https://h3geo.org/) cells at resolution 7, about 2.6 km wide).
 - Every 💩 sent as a message or sticker (not `/add_poop`) opens a **15 minute window**: the first location sent in it conquers the tile it falls in. One conquest per 💩. A location without an open window conquers nothing.
 - 🚩 new tile, ⚔️ tile stolen from another person, 🏠 own tile defended. A tile belongs to whoever conquered it last.
 - 👑 The **king of the hill** holds the most tiles; on a tie the current king keeps the crown.

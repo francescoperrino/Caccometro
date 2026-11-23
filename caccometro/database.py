@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import NamedTuple, Optional
 
 from caccometro.config import PROJECT_DIR, now_rome, period_bounds
+from caccometro.conquest import cell_of
 
 # Configurations
 DB_FOLDER = str(PROJECT_DIR / 'db')
@@ -14,7 +15,8 @@ DB_FOLDER = str(PROJECT_DIR / 'db')
 #   0/1 = legacy: counts keyed by Telegram username
 #   2   = counts keyed by Telegram user ID, plus a users table
 #   3   = conquest game: conquests and last_poop tables (#156)
-SCHEMA_VERSION = 3
+#   4   = conquest tiles at h3 resolution 7: every saved conquest recalculated from its location (#174)
+SCHEMA_VERSION = 4
 
 class User(NamedTuple):
     """A Telegram user known to a chat."""
@@ -109,6 +111,9 @@ def _ensure_schema(path):
                 conn.execute('CREATE INDEX IF NOT EXISTS idx_conquests_cell ON conquests (cell)')
                 # Time of the last 💩 of each user while its conquest window is unused
                 conn.execute('CREATE TABLE IF NOT EXISTS last_poop (user_id INTEGER PRIMARY KEY, ts INTEGER NOT NULL)')
+                # The tile of every conquest again from its location, at the resolution of the game (rows keep their order)
+                conn.create_function('cell_of', 2, cell_of, deterministic=True)
+                conn.execute('UPDATE conquests SET cell = cell_of(lat, lon)')
                 conn.execute(f'PRAGMA user_version = {SCHEMA_VERSION}')
             conn.execute('COMMIT')
         except Exception:
