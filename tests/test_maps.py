@@ -180,3 +180,52 @@ def test_conquests_sends_the_region_country_and_world_maps_as_an_album(chat_id, 
 def test_a_poop_reminds_to_send_a_location():
     from test_conquest import send
     assert send("mario", "💩").endswith("📍 Manda la posizione entro 15 minuti per conquistare la zona!")
+
+
+def test_with_a_person_each_hexagon_is_lighter_the_more_tiles_were_lost_inside(drawn):
+    near = (45.50, 9.25)  # same Italy hexagon as Milan, another tile
+    history = [(1, cell_of(*MILAN)), (1, cell_of(*near)), (1, cell_of(*ROME)), (2, cell_of(*ROME)), (2, cell_of(*near))]
+    maps.country_map(history, USERS, 1)
+    (title, z, box, hexagons, colors, legend, latest), kwargs = drawn[0]
+    milan4, rome4 = h3.cell_to_parent(cell_of(*MILAN), 4), h3.cell_to_parent(cell_of(*ROME), 4)
+    assert hexagons == {}  # nobody else on the map
+    assert kwargs["shares"] == (1, {milan4: 0.5, rome4: 0.0}, 2)  # Milan: 1 of 2 still held; Rome: taken by Marco
+    assert legend == [(1, "@giulia: 1")] and latest is None
+
+
+def test_a_person_who_lost_every_tile_still_gets_a_legend(drawn):
+    history = [(1, cell_of(*ROME)), (2, cell_of(*ROME))]
+    maps.world_map(history, USERS, 1)
+    (args, kwargs), = drawn
+    assert args[5] == [(1, "@giulia: 0")] and list(kwargs["shares"][1].values()) == [0.0] and kwargs["shares"][2] == 1
+
+
+def test_conquests_of_a_person_draw_only_that_person_and_none_for_someone_without_tiles(chat_id, monkeypatch):
+    poop_and_conquer("giulia", MILAN)
+    poop_and_conquer("marco", ROME, at=T0 + timedelta(minutes=1))
+    drawn = []
+    monkeypatch.setattr(maps, "draw", lambda *args, **kwargs: drawn.append((args, kwargs)) or b"png")
+    upd = make_update(text="/conquiste io", username="giulia", user_id=uid("giulia"))
+    asyncio.run(commands.conquests_command(upd, make_context("io")))
+    assert len(drawn) == 4 and all(kwargs["shares"][0] == uid("giulia") for _, kwargs in drawn)  # + her tiles map
+    drawn.clear()
+    upd = make_update(text="/conquiste io", username="anna", user_id=uid("anna"))
+    asyncio.run(commands.conquests_command(upd, make_context("io")))
+    assert drawn == []
+
+
+def test_the_person_maps_are_drawn(tiles):
+    history = [(1, cell_of(*MILAN)), (2, cell_of(*ROME)), (1, cell_of(*ROME))]
+    assert maps.region_map(history, USERS, 2)[:2] == b"\xff\xd8"  # a JPEG
+
+
+def test_the_tiles_map_of_a_person_shows_held_tiles_full_and_lost_ones_empty_around_the_latest(drawn):
+    near = (45.50, 9.25)
+    history = [(1, cell_of(*MILAN)), (1, cell_of(*near)), (2, cell_of(*near)), (2, cell_of(*ROME)), (1, cell_of(*PARIS))]
+    maps.person_zoom_map(history, USERS, 1)
+    (title, z, box, hexagons, colors, legend, latest), kwargs = drawn[0]
+    assert title == "Zona di @giulia" and legend == [(1, "@giulia: 2")]
+    assert kwargs["shares"] == (1, {cell_of(*MILAN): 1.0, cell_of(*near): 0.0, cell_of(*PARIS): 1.0}, 1)
+    x, y = maps.tile_xy(*PARIS, z)
+    assert box[0] < x < box[2] and box[1] < y < box[3]  # around the latest conquest of the person
+    assert cell_of(*PARIS) not in kwargs["grid"]
