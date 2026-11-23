@@ -158,6 +158,7 @@ EN = {
     "Conquiste in Lombardia": "Conquests in Lombardy",
     "Conquiste in Italia": "Conquests in Italy",
     "ultima conquista": "latest conquest",
+    "zone perse": "tiles lost",
     "{name} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu.":
         "{name} what the hell are you writing *Run* for? I only work with my own commands, not with the ones you make up.",
 
