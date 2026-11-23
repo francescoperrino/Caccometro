@@ -160,6 +160,7 @@ EN = {
     "ultima conquista": "latest conquest",
     "zone perse: {n}": "tiles lost: {n}",
     "Zona di {name}": "Tiles of {name}",
+    "Zone del gruppo": "Tiles of the group",
     "{name} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu.":
         "{name} what the hell are you writing *Run* for? I only work with my own commands, not with the ones you make up.",
 
