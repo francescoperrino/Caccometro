@@ -41,7 +41,7 @@ Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in u
 | `/statistiche_anno [YYYY]`                     | Le stesse statistiche sull'anno. |
 | `/record [io \| @username]`                    | Senza argomenti i **record del gruppo** (chi detiene ciascun record e chi è in testa adesso). Con `io` i tuoi record, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, ciascuno con il suo **stato attuale**. |
 | `/trofei [io \| @username]`                    | Senza argomenti la **bacheca dei trofei** del gruppo; con `io` i tuoi trofei, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, con quanti giorni mancano al prossimo trofeo di serie. |
-| `/conquiste [io \| @username]`                 | Senza argomenti le **zone tenute** da ogni persona, prima il re della collina 👑; con `io`, `@username` (o rispondendo a un messaggio) le zone tenute e visitate da una persona, e mappe solo sue (le zone perse in un colore più chiaro). |
+| `/conquiste [io \| @username]`                 | Senza argomenti le **zone tenute** da ogni persona, prima il re della collina 👑; con `io`, `@username` (o rispondendo a un messaggio) le zone tenute e visitate da una persona, e mappe solo sue: Lombardia, Italia e mondo, più chiare dove ha perso zone, e una quarta mappa con le zone vere intorno all'ultima conquista (quelle perse tratteggiate). |
 | `/conto_giorno [@username] [DD-MM-YYYY]`       | 💩 di una persona in un giorno (oggi se la data manca; anche `ieri`). |
 | `/ultima_cacca [@username]`                    | Giorni passati dall'ultima 💩. |
 | `/aggiungi_cacca [@username] DD-MM-YYYY`       | Aggiunge 1 💩 in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin. |

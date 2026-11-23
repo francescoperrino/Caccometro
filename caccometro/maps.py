@@ -38,6 +38,7 @@ FETCH_BUDGET = 10              # seconds for all the tiles of an image; then the
 TILE_SIZE = 256
 MAX_LAT = 85.0511              # Web Mercator ends here
 
+HELD_ALPHA, LOST_ALPHA = 0.6, 0.12  # a person's hexagon: every tile inside still held, or every one lost
 ZOOM_LEVEL, ZOOM_SPAN = 11, 2.5          # conquest reply: about 9 map tiles around the new tile
 # /conquests: (h3 resolution, map zoom, (south, north, west, east)). shortcut: fixed on Lombardy and Italy,
 # where the bot is played today; a group elsewhere needs its own boxes
@@ -130,10 +131,11 @@ def basemap(z, x0, y0, x1, y1):
     return image, (xs[0], ys[0], xs[-1] + 1, ys[-1] + 1)
 
 
-def draw(title, z, box, hexagons, colors, legend, latest, grid=(), lost=None):
+def draw(title, z, box, hexagons, colors, legend, latest, grid=(), shares=None):
     """The map image: hexagons {cell: user_id} in the colours of their members over the map tiles of the box,
     the hexagon `latest` outlined, the cells of `grid` as a faint grid. legend: [(user_id, label)].
-    lost: (user_id, cells) drawn in a light shade of that member's colour, with a legend entry."""
+    shares: (user_id, {cell: share of its tiles still held}, tiles lost): that member's hexagons, the lighter the more
+    tiles were lost inside (dashed when all of them), with a legend entry for the tiles lost."""
     image, (ix0, iy0, ix1, iy1) = basemap(z, *box)
     x0, y0, x1, y1 = box
     n = 2 ** z
@@ -155,9 +157,13 @@ def draw(title, z, box, hexagons, colors, legend, latest, grid=(), lost=None):
                                          edgecolors='white', linewidths=0.6, alpha=0.8))
         for cell, user_id in hexagons.items():
             hexagon(cell, facecolor=colors[user_id], edgecolor=colors[user_id], alpha=0.5, linewidth=0.9)
-        if lost:
-            for cell in lost[1]:
-                hexagon(cell, facecolor=colors[lost[0]], edgecolor=colors[lost[0]], alpha=0.18, linewidth=0.9)
+        if shares:
+            color = colors[shares[0]]
+            for cell, share in shares[1].items():
+                hexagon(cell, facecolor=color, edgecolor=color, alpha=LOST_ALPHA + (HELD_ALPHA - LOST_ALPHA) * share,
+                        linewidth=0.9)
+                if not share:  # a light fill alone disappears on the grey of a city
+                    hexagon(cell, fill=False, edgecolor=color, linestyle='--', linewidth=1.8)
         if latest is not None:
             hexagon(latest, fill=False, edgecolor=TEXT, linewidth=2)
         ax.set_xlim(x0, x1)
@@ -170,9 +176,9 @@ def draw(title, z, box, hexagons, colors, legend, latest, grid=(), lost=None):
         ax.set_title(title)
         handles = [Line2D([], [], marker='h', linestyle='', markersize=13, color=colors[user_id], alpha=0.8, label=label)
                    for user_id, label in legend]
-        if lost:
-            handles.append(Line2D([], [], marker='h', linestyle='', markersize=13, color=colors[lost[0]], alpha=0.25,
-                                  label=tr('zone perse')))
+        if shares and shares[2]:
+            handles.append(Line2D([], [], marker='h', linestyle='', markersize=13, color=colors[shares[0]], alpha=LOST_ALPHA,
+                                  label=tr('zone perse: {n}').format(n=shares[2])))
         if latest is not None:
             handles.append(Line2D([], [], marker='h', linestyle='', markersize=13, markerfacecolor='none',
                                   markeredgecolor=TEXT, label=tr('ultima conquista')))
@@ -233,8 +239,8 @@ def overview(history, users, title, res, z, bounds, user_id=None):
     """A map of every held tile grouped at resolution res over the bounds (south, north, west, east),
     the parent of the latest conquest outlined.
 
-    With user_id only that member: a hexagon is full where the member holds a tile inside, light where the member
-    only lost tiles; no outline.
+    With user_id only that member: each hexagon the member ever conquered in, full when every tile conquered inside
+    is still held, lighter the more of them were lost; no outline.
     """
     south, north, west, east = bounds
     x0, y1 = tile_xy(south, west, z)
@@ -244,11 +250,38 @@ def overview(history, users, title, res, z, bounds, user_id=None):
     if user_id is None:
         return draw(title, z, box, grouped(owners(history), res), colors, legend,
                     h3.cell_to_parent(history[-1][1], res), grid=grid)
-    held = {h3.cell_to_parent(cell, res) for cell, (owner, _) in owners(history).items() if owner == user_id}
-    lost = {h3.cell_to_parent(cell, res) for owner, cell in history if owner == user_id} - held
-    label = next((entry for entry in legend if entry[0] == user_id),
-                 (user_id, f'{chart_label(short_name(mention_of(users, user_id)))}: 0'))  # lost every tile
-    return draw(title, z, box, dict.fromkeys(held, user_id), colors, [label], None, grid=grid, lost=(user_id, lost))
+    return draw(title, z, box, {}, colors, [person_label(legend, users, user_id)], None, grid=grid,
+                shares=person_shares(history, user_id, res))
+
+
+def person_shares(history, user_id, res):
+    """(user_id, {cell at res: share of the member's tiles inside still held}, tiles lost) over every tile ever conquered."""
+    tiles = owners(history)
+    inside = {}  # parent -> [tiles still held, tiles conquered]
+    for cell in {cell for owner, cell in history if owner == user_id}:
+        counts = inside.setdefault(h3.cell_to_parent(cell, res), [0, 0])
+        counts[0] += tiles[cell][0] == user_id
+        counts[1] += 1
+    lost = sum(total - held for held, total in inside.values())
+    return user_id, {cell: held / total for cell, (held, total) in inside.items()}, lost
+
+
+def person_label(legend, users, user_id):
+    """The legend entry of one member: 'name: tiles held', also for a member who lost every tile."""
+    return next((entry for entry in legend if entry[0] == user_id),
+                (user_id, f'{chart_label(short_name(mention_of(users, user_id)))}: 0'))
+
+
+def person_zoom_map(history, users, user_id):
+    """/conquests of one person: the real tiles around the member's latest conquest, held ones full, lost ones dashed."""
+    center = next(cell for owner, cell in reversed(history) if owner == user_id)
+    x, y = tile_xy(*h3.cell_to_latlng(center), ZOOM_LEVEL)
+    half = ZOOM_SPAN / 2
+    shares = person_shares(history, user_id, h3.get_resolution(center))
+    legend, colors = legend_and_colors(history, users)
+    return draw(tr('Zona di {name}').format(name=mention_of(users, user_id)), ZOOM_LEVEL,
+                (x - half, y - half, x + half, y + half), {}, colors, [person_label(legend, users, user_id)], None,
+                grid=[cell for cell in h3.grid_disk(center, 10) if cell not in shares[1]], shares=shares)
 
 
 def grid_cells(res, bounds, margin=0.3):
