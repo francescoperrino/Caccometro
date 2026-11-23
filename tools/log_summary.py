@@ -86,7 +86,7 @@ def summarize(bot_lines, access_lines, since, until, seen=(), error_lines=(), se
         when = utc_to_rome(datetime.strptime(m[1], "%d/%b/%Y:%H:%M:%S"))
         if not since <= when <= until:
             continue
-        method, path, status = m[2], m[3], m[4]
+        method, path, status = m[2], m[3].split("?")[0], m[4]  # one line per page, whatever the chat asked (Mini App)
         if (method, path) != ("POST", "/webhook"):
             if UPTIME_CHECK not in line:
                 other_requests[f"{method} {path} {status}"] += 1

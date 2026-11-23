@@ -35,7 +35,7 @@ def test_signed_init_data_gives_the_user():
     init_data(token="999:OTHER"),                         # signed by another bot
     init_data(auth_date=time.time() - 2 * 24 * 3600),     # two days old
     init_data().replace("Mario", "Luigi"),                # changed after signing
-    "", "hash=abc",
+    "", "hash=abc", "hash=%C3%A8",                        # empty, wrong, non-ASCII
 ])
 def test_bad_init_data_gives_no_user(data):
     assert miniapp.user_of(data, TOKEN) is None

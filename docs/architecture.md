@@ -78,6 +78,16 @@ flowchart TD
 - `RetryingRequest` waits 1, 2, 4, 8 and 16 seconds between the attempts. It does not retry timeouts and read errors, because the message may have already arrived.
 - The webhook starts and stops the Application at every request: each Flask request has its own event loop.
 
+## Mini App
+
+The Mini App (#79) is one static page, `assets/webapp/index.html`, served by Flask at `/app`, with its libraries from a CDN and no build step. It opens from the menu button of the private chat (group picker) or from the button of `/app` in a chat (direct link `t.me/<bot>/app?startapp=<chat_id>`, already on that chat: groups accept only plain URL buttons). The page asks the JSON API of `webhook.py` for the data:
+
+- every call carries the signed `initData` in `Authorization: tma <initData>`; `miniapp.user_of` checks the signature with the bot token and refuses it after 24 hours (401);
+- `/api/chats` lists the chats whose database knows the user, with the group titles from `getChat` (groups the bot left are skipped);
+- `/api/chat?chat=<id>` answers only for a chat with a database (404 otherwise: the API never creates one) and only to its members: `getChatMember`, trusted for 5 minutes, refuses who left or was kicked (403); the private chat needs no check.
+
+Each call holds the single worker of the web app like an update, and its calls to Telegram go through `RetryingRequest`.
+
 ## Database
 
 One SQLite file per chat, `db/<chat_id>_bot_data.db`:

@@ -31,7 +31,8 @@ def user_of(init_data, token, now=None):
     received = fields.pop('hash', '')
     check = '\n'.join(f"{key}={value}" for key, value in sorted(fields.items()))
     secret = hmac.new(b'WebAppData', token.encode(), hashlib.sha256).digest()
-    if not hmac.compare_digest(hmac.new(secret, check.encode(), hashlib.sha256).hexdigest(), received):
+    # compared as bytes: two str with non-ASCII characters make compare_digest raise
+    if not hmac.compare_digest(hmac.new(secret, check.encode(), hashlib.sha256).hexdigest().encode(), received.encode()):
         return None
     try:
         fresh = (now or time.time()) - int(fields['auth_date']) < MAX_AGE_SECONDS
