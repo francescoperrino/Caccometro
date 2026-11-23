@@ -1,4 +1,4 @@
-"""Midnight announcement of the 💩 of the month (and, on January 1st, of the year) in every chat.
+"""Midnight announcement of the 💩 of the month (on January 1st also of the year, on a quarter's first day the season) in every chat.
 
 Run by a daily scheduled task on the hosting, from the folder that holds `db/`:
     python3.10 -m caccometro.announce
@@ -21,7 +21,7 @@ from caccometro.bot import application
 from caccometro.chat import escape_md
 from caccometro.config import now_rome
 from caccometro.formatting import format_new_period
-from caccometro.trophies import monthly_winners, yearly_winners
+from caccometro.trophies import monthly_winners, season_of, season_results, yearly_winners
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,12 @@ def announcement(chat_id, today: date):
     month = monthly_winners(rows_by_user, today).get((ended.year, ended.month))
     year = yearly_winners(rows_by_user, today).get(ended.year) if today.month == 1 else None
     names = {user_id: escape_md(user.mention) for user_id, user in users.items()}
-    return format_new_period(today, month, year, names)
+    season = None
+    if today.month % 3 == 1:   # first day of a quarter: the season that just ended
+        key = season_of(ended)
+        result = season_results(database.get_timed_conquests(chat_id)).get(key)
+        season = (key, result) if result else None
+    return format_new_period(today, month, year, names, season)
 
 
 async def announce(today: date, dry_run=False):

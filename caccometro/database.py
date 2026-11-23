@@ -448,6 +448,14 @@ def _conquests(conn):
     """Every conquest [(user_id, cell)] in the order the bot handled them."""
     return conn.execute('SELECT user_id, cell FROM conquests ORDER BY rowid').fetchall()
 
+def get_timed_conquests(chat_id):
+    """Every conquest of the chat [(user_id, ts, cell)] in order, for the seasons."""
+    conn = _connect(chat_id)
+    try:
+        return conn.execute('SELECT user_id, ts, cell FROM conquests ORDER BY rowid').fetchall()
+    finally:
+        conn.close()
+
 def get_conquests(chat_id):
     """Every conquest of the chat [(user_id, cell)] in order."""
     conn = _connect(chat_id)

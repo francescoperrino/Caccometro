@@ -1,12 +1,12 @@
 """Trophies (#6): streaks every 15 days, 💩 of the month and of the year, /trophies and the midnight announcement."""
 import asyncio
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
-from caccometro import announce, commands, messages
+from caccometro import announce, commands, database, messages
 from caccometro.analysis import Period
 from caccometro.formatting import format_group_trophies, format_new_period, format_user_trophies
-from caccometro.trophies import (UserTrophies, Winners, monthly_winners, new_streak_trophy, streak_runs,
-                                 trophies_by_user, yearly_winners)
+from caccometro.trophies import (SeasonResult, UserTrophies, Winners, monthly_winners, new_streak_trophy, season_results,
+                                 streak_runs, trophies_by_user, yearly_winners)
 from conftest import make_context, make_update, uid
 
 
@@ -249,3 +249,64 @@ def test_send_failures_do_not_stop_the_other_chats(seed, chat_id, monkeypatch, i
     monkeypatch.setattr(announce, "application", type("App", (), {"bot": FakeBot()})())
     run(announce.announce(date(2026, 11, 1)))
     assert sent == [chat_id]
+
+
+# ---------------------------------------------------------------- conquest seasons (#129)
+
+def ts(year, month, day):
+    return int(datetime(year, month, day, 12).timestamp())
+
+
+# Users are plain IDs (1 and 2), tiles are made-up names ("a", "b", ...).
+# Q3 (Jul-Sep): user 1 takes a, b, c. Q4 (Oct-Dec): user 2 steals a and takes d, user 1 takes e
+HISTORY = [(1, ts(2026, 8, 1), "a"), (1, ts(2026, 8, 2), "b"), (1, ts(2026, 8, 3), "c"),
+           (2, ts(2026, 10, 1), "a"), (2, ts(2026, 10, 2), "d"), (1, ts(2026, 10, 3), "e")]
+
+
+def test_season_results_conqueror_counts_stolen_tiles_and_king_is_the_one_holding_most_at_the_end():
+    results = season_results(HISTORY)
+    assert results[(2026, 3)] == SeasonResult(3, [1], 1)
+    assert results[(2026, 4)] == SeasonResult(2, [2], 1)   # 2 made 2 conquests, but 1 holds b, c, e at the end
+
+
+def test_season_results_tie_gives_the_title_to_everyone_and_repeating_a_tile_does_not_count():
+    history = [(1, ts(2026, 5, 1), "a"), (1, ts(2026, 5, 2), "a"), (2, ts(2026, 5, 3), "b")]
+    assert season_results(history)[(2026, 2)] == SeasonResult(1, [1, 2], 1)
+
+
+def test_season_boundaries_follow_italian_time():
+    new_year = int(datetime(2026, 12, 31, 23, 30, tzinfo=timezone.utc).timestamp())   # 00:30 of Jan 1st in Italy
+    assert list(season_results([(1, new_year, "a")])) == [(2027, 1)]
+
+
+def test_season_trophies_only_for_completed_seasons():
+    trophies = trophies_by_user({}, date(2026, 10, 1), HISTORY)
+    assert trophies[1] == UserTrophies([], [], [], [(2026, 3)], [(2026, 3)])   # Q4 is still running
+    trophies = trophies_by_user({}, date(2027, 1, 1), HISTORY)
+    assert trophies[1].king == [(2026, 3), (2026, 4)] and trophies[2].conqueror == [(2026, 4)]
+
+
+def test_season_trophies_in_messages():
+    trophies = {1: UserTrophies([], [], [], [(2026, 3)], [(2026, 3), (2026, 4)])}
+    assert "🚩 1 · ⛰️ 2" in format_group_trophies(trophies, {1: "@mario"})
+    text = format_user_trophies("@mario", trophies[1], current_streak=0)
+    assert "luglio–settembre 2026" in text and "ottobre–dicembre 2026" in text
+
+
+def test_new_quarter_message_names_conqueror_and_king():
+    season = ((2026, 3), SeasonResult(5, [1, 2], 2))
+    text = format_new_period(date(2026, 10, 1), None, None, {1: "@mario", 2: "@luigi"}, season)
+    assert "luglio–settembre 2026" in text and "*@mario* e *@luigi* con 5 conquiste a testa" in text
+    assert "Re della collina: *@luigi*" in text
+
+
+def test_announcement_on_the_first_day_of_a_quarter_includes_the_season(seed, chat_id):
+    seed({"mario": {"2026-09-03": 1}})
+    users = database.get_users(chat_id)
+    conn = database._connect(chat_id)
+    conn.execute("INSERT INTO conquests (user_id, ts, cell, lat, lon) VALUES (?, ?, 'a', 0, 0)",
+                 (next(iter(users)), ts(2026, 9, 10)))
+    conn.commit()
+    conn.close()
+    assert "Stagione luglio–settembre 2026 finita" in announce.announcement(chat_id, date(2026, 10, 1))
+    assert "Stagione" not in (announce.announcement(chat_id, date(2026, 11, 1)) or "")

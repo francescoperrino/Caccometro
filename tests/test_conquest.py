@@ -99,12 +99,15 @@ def test_new_stolen_and_defended_tiles_and_the_king(chat_id):
     assert row == MILAN
 
 
-def test_conquests_command(chat_id):
+def test_conquests_command(chat_id, monkeypatch):
+    monkeypatch.setattr(commands, "now_rome", lambda: datetime(2026, 11, 20, 12))
     poop_and_conquer("mario", MILAN)
     poop_and_conquer("luigi", ROME, T0 + timedelta(hours=1))
     upd = make_update(username="mario", user_id=uid("mario"))
     asyncio.run(commands.conquests_command(upd, make_context()))
-    assert upd.message.reply_text.call_args.args[0] == "🗺️ *Conquiste*\n\n🥇 *@mario 👑*: 1 🚩\n🥈 *@luigi*: 1 🚩\n"
+    assert upd.message.reply_text.call_args.args[0] == (
+        "🗺️ *Conquiste*\n\n🥇 *@mario 👑*: 1 🚩\n🥈 *@luigi*: 1 🚩\n"
+        "\n🚩 Stagione ottobre–dicembre 2026: conquistatore *@mario* e *@luigi* (1), re *@mario*")
     upd = make_update(username="luigi", user_id=uid("luigi"))
     asyncio.run(commands.conquests_command(upd, make_context("io")))
     assert upd.message.reply_text.call_args.args[0] == "🗺️ @luigi: 1 zone tenute, 1 visitate."

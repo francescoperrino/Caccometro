@@ -17,10 +17,11 @@ from caccometro.database import (init_database, find_user_by_username, add_count
                                  get_daily_counts_between,
                                  get_rank, get_users, get_record, get_all_user_rows, get_days_since_last_poop,
                                  list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username,
-                                 set_language, get_conquests)
+                                 set_language, get_timed_conquests)
 from caccometro.menus import set_chat_menu
-from caccometro.formatting import bold, format_group_record, format_group_trophies, format_user_record, format_user_trophies
-from caccometro.trophies import trophies_by_user
+from caccometro.formatting import (bold, format_group_record, format_group_trophies, format_season_line, format_user_record,
+                                   format_user_trophies)
+from caccometro.trophies import season_of, season_results, trophies_by_user
 
 logger = logging.getLogger(__name__)
 
@@ -333,7 +334,7 @@ async def trophies_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     rows_by_user, users = get_all_user_rows(chat_id)
     today = now_rome().date()
-    trophies = trophies_by_user(rows_by_user, today)
+    trophies = trophies_by_user(rows_by_user, today, get_timed_conquests(chat_id))
     if target is None:
         names = {user_id: escape_md(user.mention) for user_id, user in users.items()}
         message = format_group_trophies(trophies, names)
@@ -353,7 +354,8 @@ async def conquests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if error:
         await update.message.reply_text(error)
         return
-    history = get_conquests(chat_id)
+    timed = get_timed_conquests(chat_id)
+    history = [(user_id, cell) for user_id, _, cell in timed]
     counts, king = holdings(history)
     users = get_users(chat_id)
     if target is not None:
@@ -368,6 +370,9 @@ async def conquests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message = tr("🗺️ *Conquiste*") + "\n\n" + "".join(
             ranked_line(i, escape_md(mention_of(users, user_id)) + (" 👑" if user_id == king else ""), f"{held} 🚩")
             for i, (user_id, held) in enumerate(ranking, start=1))
+        season = season_of(now_rome().date())
+        if season in (results := season_results(timed)):
+            message += "\n" + format_season_line(season, results[season], {u: escape_md(mention_of(users, u)) for u in users})
     # With a person: only that person's tiles, and no maps for someone who never conquered one
     shown = target.user_id if target is not None else None
     drawable = visited(history, target.user_id) if target is not None else counts

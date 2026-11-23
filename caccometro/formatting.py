@@ -230,9 +230,29 @@ def _month_name(month):
 
 
 def _names(user_ids, names):
-    """'*@mario*', '*@mario* e *@luigi*', '*@anna*, *@mario* e *@luigi*'."""
+    """Bold names of the users, joined as a sentence: "A", "A and B", "A, B and C" ("and" in the chat language).
+
+    user_ids: IDs of the users to name; names: {user ID: name already escaped for Markdown}.
+    A user missing from `names` is shown by ID. Example with made-up names: "*@anna*, *@bob* and *@carl*".
+    """
     parts = [bold(names.get(user_id, str(user_id))) for user_id in user_ids]
     return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + tr(" e ") + parts[-1]
+
+
+def _season_name(season):
+    """Label of a season (year, quarter) in the chat language: (2026, 4) -> "ottobre–dicembre 2026" (Italian)."""
+    year, quarter = season
+    return f"{month_name(3 * quarter - 2)}–{month_name(3 * quarter)} {year}"
+
+
+def format_season_line(season, result, names):
+    """One line of /conquests: who leads the current season so far.
+
+    season: (year, quarter); result: SeasonResult of that season; names: {user ID: name escaped for Markdown}.
+    """
+    return tr("🚩 Stagione {season}: conquistatore {conquerors} ({n}), re {king}").format(
+        season=_season_name(season), conquerors=_names(result.conquerors, names), n=result.conquests,
+        king=_names([result.king], names))
 
 
 def format_streak_trophy(days):
@@ -251,11 +271,15 @@ def format_group_trophies(trophies, names):
                         "oppure vincere un mese.").format(days=STREAK_STEP))
     else:
         ranked = sorted(trophies.items(), key=lambda item: (-len(item[1].years), -len(item[1].months),
-                                                            -item[1].streak_trophies, names.get(item[0], "")))
+                                                            -item[1].streak_trophies, -len(item[1].conqueror),
+                                                            -len(item[1].king), names.get(item[0], "")))
         for key, user in ranked:
-            counts = (("👑", len(user.years)), ("🏅", len(user.months)), ("🔥", user.streak_trophies))
+            counts = (("👑", len(user.years)), ("🏅", len(user.months)), ("🔥", user.streak_trophies),
+                      ("🚩", len(user.conqueror)), ("⛰️", len(user.king)))
             lines.append(f"{bold(names.get(key, str(key)))}: " + " · ".join(f"{emoji} {n}" for emoji, n in counts if n))
         lines.append("\n" + tr("👑 💩 dell'anno · 🏅 💩 del mese · 🔥 {days} giorni di fila").format(days=STREAK_STEP))
+        if any(user.conqueror or user.king for user in trophies.values()):
+            lines.append(tr("🚩 conquistatore della stagione · ⛰️ re della stagione"))
     lines.append(("" if trophies else "\n")
                  + tr("I tuoi: /trofei io — di un altro: /trofei @username (o rispondi a un suo messaggio)"))
     return "\n".join(lines)
@@ -275,6 +299,12 @@ def format_user_trophies(name, trophies, current_streak):
         if trophies.months:
             lines.append(tr("🏅 💩 del mese ({count}): {months}").format(
                 count=len(trophies.months), months=_recent(trophies.months, _month_name, MAX_LISTED)))
+        if trophies.conqueror:
+            lines.append(tr("🚩 Conquistatore della stagione: {seasons}").format(
+                seasons=_recent(trophies.conqueror, _season_name, MAX_LISTED)))
+        if trophies.king:
+            lines.append(tr("⛰️ Re della stagione: {seasons}").format(
+                seasons=_recent(trophies.king, _season_name, MAX_LISTED)))
         if trophies.streaks:
             n = trophies.streak_trophies
             lines.append((tr("🔥 Serie: {n} trofeo") if n == 1 else tr("🔥 Serie: {n} trofei")).format(n=n))
@@ -293,13 +323,14 @@ def format_user_trophies(name, trophies, current_streak):
     return "\n".join(lines)
 
 
-def format_new_period(today, month_winners, year_winners, names):
+def format_new_period(today, month_winners, year_winners, names, season=None):
     """Midnight message on the first day of a month: the 💩 of the month just ended and, on January 1st, of the year.
 
-    month_winners / year_winners: Winners or None; names: {user key: name already escaped for Markdown}.
+    month_winners / year_winners: Winners or None; names: {user key: name already escaped for Markdown};
+    season: ((year, quarter), SeasonResult) of the season that just ended, on the first day of a quarter, or None.
     Returns None when there is nobody to celebrate.
     """
-    if month_winners is None and year_winners is None:
+    if month_winners is None and year_winners is None and season is None:
         return None
 
     def winner(label, winners):
@@ -313,12 +344,21 @@ def format_new_period(today, month_winners, year_winners, names):
             lines.append(winner(tr("🏅 💩 di dicembre"), month_winners))
         if year_winners is not None:
             lines.append(winner(tr("👑 💩 dell'anno {year}").format(year=today.year - 1), year_winners))
-        lines.append("\n" + tr("Complimenti! Che il {year} sia regolare come un orologio svizzero 🎉").format(year=today.year))
+        closing = tr("Complimenti! Che il {year} sia regolare come un orologio svizzero 🎉").format(year=today.year)
     else:
         ended = (today.year, today.month - 1)
-        lines = [tr("🌙 *Mezzanotte: {month} è finito!*").format(month=_month_name(ended)) + "\n",
-                 winner(tr("🏅 💩 del mese"), month_winners),
-                 "\n" + tr("Complimenti! Si riparte da zero: buon {month} e buone 💩 🧻").format(month=month_name(today.month))]
+        lines = [tr("🌙 *Mezzanotte: {month} è finito!*").format(month=_month_name(ended)) + "\n"]
+        if month_winners is not None:
+            lines.append(winner(tr("🏅 💩 del mese"), month_winners))
+        closing = tr("Complimenti! Si riparte da zero: buon {month} e buone 💩 🧻").format(month=month_name(today.month))
+    if season is not None:
+        key, result = season
+        each = tr(" a testa") if len(result.conquerors) > 1 else ""
+        lines += ["\n" + tr("🗺️ *Stagione {season} finita!*").format(season=_season_name(key)),
+                  tr("🚩 Conquistatore: {names} con {n} conquiste").format(
+                      names=_names(result.conquerors, names), n=result.conquests) + each,
+                  tr("⛰️ Re della collina: {names}").format(names=_names([result.king], names))]
+    lines.append("\n" + closing)
     return "\n".join(lines)
 
 
