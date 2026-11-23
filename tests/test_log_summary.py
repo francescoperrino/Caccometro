@@ -83,3 +83,13 @@ def test_a_quiet_night_has_no_reasons():
     text, new, reasons = ls.summarize(BOT[6:9], [], SINCE, UNTIL)
     assert (new, reasons) == ([], [])
     assert "Eccezioni: nessuna" in text and "Riavvii dell'app: 0" in text
+
+
+def test_the_logs_are_archived_and_only_the_last_copies_kept(tmp_path):
+    import tarfile
+    (tmp_path / "a.log").write_text("x")
+    for day in range(1, 5):
+        ls.archive(tmp_path, ["a.log"], datetime(2026, 11, day), keep=2)
+    assert sorted(p.name for p in tmp_path.glob("logs_*")) == ["logs_20261103.tar.gz", "logs_20261104.tar.gz"]
+    with tarfile.open(tmp_path / "logs_20261104.tar.gz") as tar:
+        assert tar.getnames() == ["a.log"]

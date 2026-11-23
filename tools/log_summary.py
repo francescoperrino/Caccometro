@@ -1,7 +1,8 @@
 """Download the logs, print a summary of the last 24 hours and send an alert when something needs a look.
 
 Usage: python tools/log_summary.py (settings: see deploy.py)
-Meant for the nightly cron job, after backup_db.py. The summary is also kept in logs/summary_<date>.txt (the last 30).
+Meant for the nightly cron job, after backup_db.py. The summary is also kept in logs/summary_<date>.txt and the
+downloaded logs in logs/logs_<date>.tar.gz (the last 30 of each).
 Reads the bot log (caccometro.log, mostly the "Update N done" line of every update) and the web server logs
 (access, error and server log). One private Telegram message, like a failed backup (see backup_db.alert), lists the
 reasons to look: a lost reply, a kind of error never seen (logs/seen_kinds.txt) or repeated, a slow update, lines in
@@ -10,6 +11,7 @@ the web server error log.
 import re
 import statistics
 import sys
+import tarfile
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -145,6 +147,15 @@ def summarize(bot_lines, access_lines, since, until, seen=(), error_lines=(), se
     return "\n".join(lines), new, reasons
 
 
+def archive(logs, names, day, keep=KEEP):
+    """Keep a compressed copy of the downloaded logs in logs/logs_<day>.tar.gz, the last `keep` of them."""
+    with tarfile.open(logs / f"logs_{day:%Y%m%d}.tar.gz", "w:gz") as tar:
+        for name in names:
+            tar.add(logs / name, arcname=name)
+    for old in sorted(logs.glob("logs_*.tar.gz"))[:-keep]:
+        old.unlink()
+
+
 def main():
     from backup_db import alert
     from deploy import REPO
@@ -156,9 +167,10 @@ def main():
         message = f"download of {', '.join(failed)} failed"
         alert(f"⚠️ Caccometro: riassunto dei log non riuscito\n\n{message}")
         sys.exit(f"log summary FAILED: {message}")
+    now = datetime.now(ROME).replace(tzinfo=None)
+    archive(logs, fetch_logs.LOGS, now)
     seen_file = logs / "seen_kinds.txt"
     seen = set(seen_file.read_text(encoding="utf-8").splitlines()) if seen_file.exists() else set()
-    now = datetime.now(ROME).replace(tzinfo=None)
     read = lambda name: (logs / name).read_text(encoding="utf-8", errors="replace").splitlines()
     text, new, reasons = summarize(read("caccometro.log"), read("access.log"), now - timedelta(hours=24), now, seen,
                                    read("error.log"), read("server.log"))
