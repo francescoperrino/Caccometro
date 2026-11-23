@@ -91,7 +91,7 @@ Gli stessi grafici in una chat inglese: [classifica](assets/screenshots/leaderbo
 - 🚩 zona nuova, ⚔️ zona rubata a un'altra persona, 🏠 zona propria difesa. Una zona è di chi l'ha conquistata per ultimo.
 - 👑 Il **re della collina** tiene più zone di tutti; a parità il re attuale tiene la corona.
 - Ogni chat ha la sua mappa, mai azzerata; togliere una 💩 con `/togli_cacca` non toglie una conquista.
-- Ogni conquista arriva con una **mappa** delle zone intorno; `/conquiste` aggiunge la Lombardia, l'Italia e il mondo intero. Lì un esagono grande vale per le zone che contiene e prende il colore di chi ne tiene di più (a parità, di chi ha conquistato per ultimo). Se la mappa non si riesce a disegnare, la risposta arriva solo come testo.
+- Ogni conquista arriva con una **mappa** delle zone intorno; `/conquiste` manda le zone del gruppo intorno alla sua ultima conquista, poi la Lombardia, l'Italia e il mondo intero. In queste ultime tre un esagono grande vale per le zone che contiene e prende il colore di chi ne tiene di più (a parità, di chi ha conquistato per ultimo). Se la mappa non si riesce a disegnare, la risposta arriva solo come testo.
 
 | Conquista | `/conquiste`: Lombardia |
 | :---: | :---: |

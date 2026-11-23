@@ -207,7 +207,7 @@ def legend_and_colors(history, users):
     return legend, colors
 
 
-def zoom_map(history, users):
+def zoom_map(history, users, title=None):
     """Reply to a conquest: the real tiles around the tile just conquered, the last of `history`."""
     tiles = owners(history)
     new_cell = history[-1][1]
@@ -215,9 +215,14 @@ def zoom_map(history, users):
     half = ZOOM_SPAN / 2
     around = h3.grid_disk(new_cell, 10)  # wider than the image: hexagons are 2.6 km, the image about 30 km
     legend, colors = legend_and_colors(history, users)
-    return draw(tr('Zona conquistata'), ZOOM_LEVEL, (x - half, y - half, x + half, y + half),
+    return draw(title or tr('Zona conquistata'), ZOOM_LEVEL, (x - half, y - half, x + half, y + half),
                 {cell: tiles[cell][0] for cell in around if cell in tiles}, colors, legend, new_cell,
                 grid=[cell for cell in around if cell not in tiles])
+
+
+def group_zoom_map(history, users, user_id=None):
+    """/conquests: the real tiles of every member around the latest conquest of the group."""
+    return zoom_map(history, users, tr('Zone del gruppo'))
 
 
 def world_map(history, users, user_id=None):

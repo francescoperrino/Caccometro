@@ -371,7 +371,9 @@ async def conquests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # With a person: only that person's tiles, and no maps for someone who never conquered one
     shown = target.user_id if target is not None else None
     drawable = visited(history, target.user_id) if target is not None else counts
-    views = (maps.region_map, maps.country_map, maps.world_map) + ((maps.person_zoom_map,) if target is not None else ())
+    # From the closest view to the widest: the real tiles first (the person's own, or the group's), then the regions
+    views = (maps.person_zoom_map if target is not None else maps.group_zoom_map, maps.region_map, maps.country_map,
+             maps.world_map)
     maps_drawn = [maps.render(view, history, users, shown) for view in views if drawable]
     await reply_charts(update, maps_drawn, message)
 
