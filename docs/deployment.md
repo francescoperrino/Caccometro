@@ -57,9 +57,9 @@ language - Language of the bot in this chat: it or en (in groups admins only).
 Once per bot (development and production):
 
 1. On BotFather, by hand (there is no API for it): `/newapp`, choose the bot, short name `app` (the `/app` command builds the link `t.me/<bot>/app?startapp=<chat_id>` with it), URL `https://<web app domain>/app`.
-2. The menu button, set by `python tools/register_menus.py prod` (dev: `python tools/register_menus.py dev <URL>`). In private chats the button next to the text field then opens the Mini App with the group picker; typing `/` still shows the commands.
+2. The menu button, set by `python tools/register_menus.py prod` (dev: `python tools/register_menus.py dev <URL>`). In private chats the button next to the text field then opens the Mini App on the private chat with the bot (a group opens only from its `/app` button); typing `/` still shows the commands.
 
-The page calls `/api/chats` and `/api/chat` with the signed `initData` in the `Authorization: tma <initData>` header: the server checks the signature with the bot token (at most 24 hours old) and, for a group, that the user is still a member (`getChatMember`, trusted for 5 minutes). For a test with the development bot, a temporary HTTPS tunnel to the local Flask app is enough; its URL goes to `/editapp` on BotFather and to `register_menus.py dev <URL>`.
+The page calls `/api/chat` with the signed `initData` in the `Authorization: tma <initData>` header: the server checks the signature with the bot token (at most 24 hours old) and, for a group, that the user is still a member (`getChatMember`, trusted for 5 minutes). For a test with the development bot, a temporary HTTPS tunnel to the local Flask app is enough; its URL goes to `/editapp` on BotFather and to `register_menus.py dev <URL>`.
 
 ### Descriptions
 

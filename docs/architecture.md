@@ -80,11 +80,10 @@ flowchart TD
 
 ## Mini App
 
-The Mini App (#79) is one static page, `assets/webapp/index.html`, served by Flask at `/app`, with its libraries from a CDN and no build step. It opens from the menu button of the private chat (group picker) or from the button of `/app` in a chat (direct link `t.me/<bot>/app?startapp=<chat_id>`, already on that chat: groups accept only plain URL buttons). The page asks the JSON API of `webhook.py` for the data:
+The Mini App (#79) is one static page, `assets/webapp/index.html`, served by Flask at `/app`, with its libraries from a CDN and no build step. It opens from the menu button of the private chat or from the button of `/app` in a chat (direct link `t.me/<bot>/app?startapp=<chat_id>`, already on that chat: groups accept only plain URL buttons). The page asks the JSON API of `webhook.py` for the data:
 
 - every call carries the signed `initData` in `Authorization: tma <initData>`; `miniapp.user_of` checks the signature with the bot token and refuses it after 24 hours (401);
-- `/api/chats` lists the chats whose database knows the user, with the group titles from `getChat` (groups the bot left are skipped);
-- `/api/chat?chat=<id>` answers only for a chat with a database (404 otherwise: the API never creates one) and only to its members: `getChatMember`, trusted for 5 minutes, refuses who left or was kicked (403); the private chat needs no check.
+- `/api/chat?chat=<id>` answers only for a chat with a database (404 otherwise: the API never creates one) and only to its members: `getChatMember`, trusted for 5 minutes, refuses who left or was kicked (403); the private chat needs no check. The answer carries the conquest map (`miniapp.conquest_data`): for each h3 resolution from 7 (the tiles) to 1 (the world) the hexagons with their owner (most tiles inside, like `/conquests`), the tiles each member holds and ever conquered inside, and the outline computed with `h3`, plus names, ranking, king and current season; the saved locations never leave the server. The page draws it with Leaflet and OpenStreetMap tiles loaded by the device: the zoom picks the resolution, so the hexagons merge when zooming out. Chips over the map choose everyone, me or another member (tiles held, lighter the more were lost, dashed when all lost); a bottom bar switches to the ranking, where a tap on a member opens the map on them.
 
 Each call holds the single worker of the web app like an update, and its calls to Telegram go through `RetryingRequest`.
 

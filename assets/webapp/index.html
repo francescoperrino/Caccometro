@@ -4,15 +4,40 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Caccometro</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  body { margin: 0; padding: 16px; font-family: system-ui, sans-serif;
-         background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #222); }
-  h1 { font-size: 1.3em; margin: 0 0 12px; }
-  .hint { color: var(--tg-theme-hint-color, #888); }
-  button.chat { display: block; width: 100%; margin: 6px 0; padding: 12px; border: 0; border-radius: 10px;
-                font-size: 1em; text-align: left; cursor: pointer;
-                background: var(--tg-theme-secondary-bg-color, #f0f0f0); color: inherit; }
+  :root { --bg: #17171a; --card: #222226; --chip: #26262b; --text: #f4f1ec; --hint: #a7a29a; --accent: #f2b84b; --on-accent: #1d1710; }
+  html, body { height: 100%; }
+  body { margin: 0; font-family: Nunito, system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  #main { height: 100%; }
+  .hint { color: var(--hint); padding: 16px; }
+  .app { height: 100%; display: flex; flex-direction: column; }
+  .pane { flex: 1; min-height: 0; padding: 20px 16px 0; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+  h1 { font-size: 26px; font-weight: 800; line-height: 1.1; margin: 0; }
+  button { font-family: inherit; color: inherit; }
+  .pane[hidden] { display: none; }
+  .pane.map { padding: 0; gap: 0; overflow: hidden; }
+  .pane.map h1 { padding: 20px 16px 12px; }
+  .mapwrap { position: relative; flex: 1; min-height: 0; }
+  .chips { position: absolute; z-index: 1000; left: 0; right: 0; top: 0; display: flex; gap: 8px; padding: 12px; overflow-x: auto; pointer-events: none; }
+  .chips button { pointer-events: auto; }
+  .chips button { flex: none; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--bg); font-size: 15px;
+                  font-weight: 700; box-shadow: 0 2px 8px rgba(0, 0, 0, .4); cursor: pointer; }
+  .chips button.on { background: var(--accent); color: var(--on-accent); font-weight: 800; }
+  #map { position: absolute; inset: 0; }
+  .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
+  .row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 14px; border: 0; border-radius: 16px;
+         background: var(--card); font-size: 16px; font-weight: 700; text-align: left; cursor: pointer; }
+  .row .n { width: 24px; font-size: 18px; font-weight: 800; color: #c9c5bd; }
+  .row .grow { flex: 1; } .row .count { font-weight: 800; }
+  .season { background: #2a2417; color: #e9d8b4; border-radius: 16px; padding: 12px 14px; font-size: 14px; line-height: 1.4; }
+  nav { display: flex; border-top: 1px solid #2c2c31; background: #1d1d21; padding: 6px 8px 12px; }
+  nav button { flex: 1; min-height: 56px; border: 0; background: transparent; color: var(--hint); font-size: 13px; font-weight: 700;
+               display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; }
+  nav button.on { color: var(--accent); font-weight: 800; }
 </style>
 </head>
 <body>
@@ -23,12 +48,21 @@ tg.ready();
 
 // The page follows the language of the chat, like the bot (/language); Italian sentences are the keys
 const EN = {
-  'Scegli il gruppo': 'Choose the group',
-  'Chat privata': 'Private chat',
-  'Nessun gruppo: manda una 💩 in un gruppo con il bot.': 'No groups: send a 💩 in a group with the bot.',
   'Non fai parte di questo gruppo.': 'You are not a member of this group.',
   'Apri la Mini App dal bot.': 'Open the Mini App from the bot.',
   'Qualcosa è andato storto, riprova.': 'Something went wrong, try again.',
+  'Mappa': 'Map',
+  'Classifica': 'Leaderboard',
+  'Conquiste': 'Conquests',
+  'Tutti': 'Everyone',
+  'Io': 'Me',
+  'zone': 'tiles',
+  'Stagione': 'Season',
+  'conquiste': 'conquests',
+  'Re': 'King',
+  'tenute': 'held',
+  'perse': 'lost',
+  'Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.': 'No tiles conquered. After a 💩 send a location within 15 minutes.',
 };
 let language = 'it';
 const tr = text => (language === 'en' && EN[text]) || text;
@@ -53,29 +87,107 @@ function failed(status) {
     : status === 401 ? 'Apri la Mini App dal bot.' : 'Qualcosa è andato storto, riprova.')));
 }
 
-async function picker() {
-  try {
-    const data = await api('/api/chats');
-    language = data.language;
-    const buttons = data.chats.map(chat => el('button', { className: 'chat', onclick: () => openChat(chat.id) },
-      chat.title || tr('Chat privata')));
-    show(el('h1', {}, tr('Scegli il gruppo')),
-      ...(buttons.length ? buttons : [el('p', { className: 'hint' }, tr('Nessun gruppo: manda una 💩 in un gruppo con il bot.'))]));
-  } catch (status) { failed(status); }
+const PALETTE = ['#e5484d', '#3e63dd', '#30a46c', '#f58231', '#911eb4', '#12a594', '#9a6324', '#d6409f'];
+const ICONS = {
+  map: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
+  rank: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
+};
+
+function icon(name) {
+  const svg = el('span');
+  svg.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${ICONS[name]}</svg>`;  // fixed markup, no user text
+  return svg;
 }
 
 async function openChat(chatId) {
   try {
     const data = await api('/api/chat?chat=' + encodeURIComponent(chatId));
     language = data.language;
-    // shortcut: only the header for now, the content comes with #189 (map) and #190 (leaderboards)
-    show(el('h1', {}, '💩 Caccometro'));
+    showConquests(data.conquests);
   } catch (status) { failed(status); }
 }
 
-// Opened with a direct link from a group (/app): already on that chat; from the private menu button: the picker
-const start = tg.initDataUnsafe.start_param;
-start ? openChat(start) : picker();
+function showConquests(c) {
+  const me = tg.initDataUnsafe.user.id;
+  const ids = Object.keys(c.names).map(Number);
+  const color = id => PALETTE[Math.max(ids.indexOf(id), 0) % PALETTE.length];
+  const name = id => c.names[id] + (id === c.king ? ' 👑' : '');
+  const tiles = c.levels[7];
+  if (!tiles.length) return show(el('p', { className: 'hint' }, tr('Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.')));
+
+  let person = null, map = null, layer = null;
+  const mapPane = el('div', { className: 'pane map' });
+  const rankPane = el('div', { className: 'pane' });
+  const nav = el('nav');
+  const mapDiv = el('div', { id: 'map' });
+  const chips = el('div', { className: 'chips' });
+
+  function go(tab) {
+    mapPane.hidden = tab !== 'map';
+    rankPane.hidden = tab !== 'rank';
+    nav.replaceChildren(...[['map', 'Mappa'], ['rank', 'Classifica']].map(([id, label]) =>
+      el('button', { className: id === tab ? 'on' : '', onclick: () => go(id) }, icon(id), tr(label))));
+    if (tab === 'map') { map ? map.invalidateSize() : startMap(); }
+  }
+
+  function pick(id) { person = id; drawChips(); fit(); draw(); }
+  // The names float over the map: everyone, me, then the other members
+  function drawChips() {
+    const chip = (id, label) => el('button', { className: person === id ? 'on' : '', onclick: () => pick(id) },
+      ...(id ? [el('span', { className: 'dot', style: 'background:' + color(id) })] : []), label);
+    chips.replaceChildren(chip(null, tr('Tutti')), chip(me, tr('Io')), ...ids.filter(id => id !== me).map(id => chip(id, c.names[id])));
+  }
+
+  // The hexagons grow with the zoom out like the maps of /conquests: zoom 10 shows the tiles, each step out the next resolution
+  function draw() {
+    layer.clearLayers();
+    const res = Math.max(1, Math.min(7, Math.round(map.getZoom()) - 3));
+    for (const tile of c.levels[res]) {
+      let style;
+      if (!person) style = { color: color(tile.owner), fillColor: color(tile.owner), fillOpacity: 0.5, weight: 1 };
+      else {
+        const seen = tile.seen[person];
+        if (!seen) continue;
+        const share = (tile.held[person] || 0) / seen;  // how much of what the member conquered inside is still held
+        style = share ? { color: color(person), fillColor: color(person), fillOpacity: 0.15 + 0.45 * share, weight: 1 }
+          : { color: color(person), fillOpacity: 0.05, weight: 1, dashArray: '4' };
+      }
+      // an element, not a string: Leaflet writes strings as HTML and names are chosen by users
+      L.polygon(tile.outline, style).bindTooltip(el('span', {}, name(tile.owner))).addTo(layer);
+    }
+  }
+
+  function fit() {
+    const corners = tiles.filter(tile => !person || tile.seen[person]).flatMap(tile => tile.outline);
+    if (corners.length) map.fitBounds(L.latLngBounds(corners), { maxZoom: 13, padding: [20, 20] });
+  }
+
+  function startMap() {
+    // one copy of the world only: the hexagons are drawn once, so a repeated world would show them on one copy
+    map = L.map(mapDiv, { zoomControl: false, minZoom: 2, maxBounds: [[-85, -180], [85, 180]], maxBoundsViscosity: 1 });
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, noWrap: true, attribution: '© OpenStreetMap contributors' }).addTo(map);
+    layer = L.layerGroup().addTo(map);
+    map.on('zoomend', draw);
+    fit();
+    draw();
+  }
+
+  const season = c.season && el('div', { className: 'season' }, `${tr('Stagione')} ${c.season.year} Q${c.season.quarter}: `
+    + `${c.season.conquests} ${tr('conquiste')} (${c.season.conquerors.map(id => c.names[id]).join(', ')}). ${tr('Re')}: ${c.names[c.season.king]}`);
+  mapPane.append(el('h1', {}, tr('Mappa')), el('div', { className: 'mapwrap' }, mapDiv, chips));
+  rankPane.append(el('h1', {}, tr('Conquiste')),
+    ...c.ranking.map((r, i) => el('button', { className: 'row', onclick: () => { pick(r.user); go('map'); } },
+      el('span', { className: 'n' }, String(i + 1)), el('span', { className: 'dot', style: 'background:' + color(r.user) }),
+      el('span', { className: 'grow' }, name(r.user)), el('span', { className: 'count' }, `${r.held} ${tr('zone')}`))),
+    ...(season ? [season] : []));
+  drawChips();
+  show(el('div', { className: 'app' }, mapPane, rankPane, nav));
+  go('map');
+}
+
+// Opened with a direct link from a group (/app): that group; from the private menu button: the private chat with the bot
+openChat(tg.initDataUnsafe.start_param || tg.initDataUnsafe.user.id);
 </script>
 </body>
 </html>

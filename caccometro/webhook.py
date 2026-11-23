@@ -77,27 +77,6 @@ def language_of(chat_id, known):
     return (database.get_language(chat_id) if chat_id in known else None) or i18n.DEFAULT_LANGUAGE
 
 
-@app.route('/api/chats')
-async def api_chats():
-    """Group picker: the chats whose database knows the user, with the group titles from Telegram."""
-    user = mini_app_user()
-    if user is None:
-        return Response('unauthorized', status=401)
-    known = miniapp.known_chats()
-    chats = []
-    async with application:
-        for chat_id in miniapp.chats_of(user['id']):
-            if chat_id == user['id']:
-                chats.append({'id': chat_id, 'title': None})  # the private chat: the page names it
-                continue
-            try:
-                chats.append({'id': chat_id, 'title': (await application.bot.get_chat(chat_id)).title})
-            except (BadRequest, Forbidden):
-                pass  # the bot left the group, or the group is gone
-    logger.info(f"Mini App: {len(chats)} chats listed")
-    return {'language': language_of(user['id'], known), 'chats': chats}
-
-
 @app.route('/api/chat')
 async def api_chat():
     """Data of one chat, only for its members (left or kicked users get 403)."""
@@ -120,7 +99,8 @@ async def api_chat():
         logger.info("Mini App: chat refused to a non-member")
         return Response('forbidden', status=403)
     logger.info("Mini App: chat opened")
-    return {'chat': chat_id, 'language': language_of(chat_id, known)}
+    return {'chat': chat_id, 'language': language_of(chat_id, known),
+            'conquests': miniapp.conquest_data(database.get_timed_conquests(chat_id), database.get_users(chat_id))}
 
 
 @app.route('/')

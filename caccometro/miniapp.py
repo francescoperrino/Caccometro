@@ -6,9 +6,13 @@ import os
 import time
 from urllib.parse import parse_qsl
 
+import h3
 from telegram.constants import ChatMemberStatus
 
-from caccometro import database
+from caccometro import database, maps
+from caccometro.config import now_rome
+from caccometro.conquest import holdings, mention_of
+from caccometro.trophies import season_of, season_results
 
 SHORT_NAME = 'app'          # short name given to /newapp on BotFather, the same on both bots
 MAX_AGE_SECONDS = 24 * 3600  # older initData is refused: a copied link stops working after a day
@@ -49,11 +53,6 @@ def known_chats():
     return [int(name[:-len(suffix)]) for name in names if name.endswith(suffix) and name[:-len(suffix)].lstrip('-').isdigit()]
 
 
-def chats_of(user_id):
-    """Chats whose database knows the user, for the group picker."""
-    return [chat_id for chat_id in known_chats() if user_id in database.get_users(chat_id)]
-
-
 async def is_member(bot, chat_id, user_id):
     """Whether the user is still in the chat; the private chat with the bot is always theirs."""
     if chat_id == user_id:
@@ -66,3 +65,39 @@ async def is_member(bot, chat_id, user_id):
     if ok:
         _members[(user_id, chat_id)] = time.time()
     return ok
+
+
+LEVELS = range(7, 0, -1)  # h3 resolutions sent: the page picks one by zoom, 7 = the tiles of the game
+
+
+def conquest_data(timed, users):
+    """The conquest map of a chat for the page (#189). timed: [(user_id, ts, cell)] in order; users: {user_id: User}.
+
+    One list of hexagons per resolution, like the maps of /conquests: each hexagon has its owner (who holds most
+    tiles inside), how many tiles each member holds ('held') and ever conquered ('seen') inside, and its outline
+    computed here; the saved locations never leave the server.
+    """
+    history = [(user_id, cell) for user_id, _, cell in timed]
+    counts, king = holdings(history)
+    tiles = maps.owners(history)
+    levels = {}
+    for res in LEVELS:
+        owner_of = maps.grouped(tiles, res)
+        held, seen = {}, {}  # parent hexagon -> {user_id: tiles inside held now / ever conquered}
+        for user_id, cell in set(history):
+            inside = seen.setdefault(h3.cell_to_parent(cell, res), {})
+            inside[user_id] = inside.get(user_id, 0) + 1
+        for cell, (user_id, _) in tiles.items():
+            inside = held.setdefault(h3.cell_to_parent(cell, res), {})
+            inside[user_id] = inside.get(user_id, 0) + 1
+        levels[res] = [{'owner': owner, 'held': held[parent], 'seen': seen[parent],
+                        'outline': [list(corner) for corner in h3.cell_to_boundary(parent)]}
+                       for parent, owner in owner_of.items()]
+    names = {user_id: mention_of(users, user_id) for user_id in {user_id for user_id, _ in history} | set(users)}
+    season = season_of(now_rome().date())
+    result = season_results(timed).get(season)
+    return {'levels': levels, 'names': names, 'king': king,
+            'ranking': [{'user': user_id, 'held': held} for user_id, held in
+                        sorted(counts.items(), key=lambda item: (-item[1], item[0] != king))],
+            'season': None if result is None else {'year': season[0], 'quarter': season[1], 'conquests': result.conquests,
+                                                   'conquerors': result.conquerors, 'king': result.king}}
