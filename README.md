@@ -92,7 +92,7 @@ The same charts in an Italian chat: [leaderboard](assets/screenshots/leaderboard
 - 🚩 new tile, ⚔️ tile stolen from another person, 🏠 own tile defended. A tile belongs to whoever conquered it last.
 - 👑 The **king of the hill** holds the most tiles; on a tie the current king keeps the crown.
 - Every chat has its own map, never reset; removing a 💩 with `/remove_poop` does not remove a conquest.
-- Every conquest comes with a **map** of the tiles around it; `/conquests` adds Lombardy, Italy and the whole world. There a large hexagon stands for the tiles inside it and takes the colour of whoever holds most of them (on a tie, whoever conquered last). If the map cannot be drawn, the reply comes as text.
+- Every conquest comes with a **map** of the tiles around it; `/conquests` sends the tiles of the group around its latest conquest, then Lombardy, Italy and the whole world. On these last three a large hexagon stands for the tiles inside it and takes the colour of whoever holds most of them (on a tie, whoever conquered last). If the map cannot be drawn, the reply comes as text.
 
 | Conquest | `/conquests`: Lombardy |
 | :---: | :---: |
