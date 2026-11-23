@@ -24,6 +24,8 @@ caccometro/          the bot, as a Python package
   announce.py        midnight announcement of the 💩 of the month (scheduled task)
   charts.py          ranking and statistics charts (PNG in memory)
   maps.py            conquest maps over OpenStreetMap tiles (JPEG in memory, tile cache in tile_cache/)
+  miniapp.py         Mini App: signed initData, the chats of a user, membership checks, direct link
+assets/webapp/       the Mini App page (static HTML and JavaScript, libraries from a CDN)
 scripts/set_webhook.py   registers the webhook on Telegram (once)
 tools/               service scripts: deploy, database backups, log download and summary, bot version, command menus, README charts and maps
 .githooks/           git hooks (pre-commit, commit-msg), enabled with core.hooksPath

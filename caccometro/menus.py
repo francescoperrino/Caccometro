@@ -24,6 +24,8 @@ MENU = [
      "Trofei del gruppo; con io o @username quelli di una persona."),
     ('conquests', 'conquiste', "Tiles conquered with a location after the 💩; with me or @username those of one person.",
      "Zone conquistate con una posizione dopo la 💩; con io o @username quelle di una persona."),
+    ('app', 'app', "Open the Mini App: leaderboards, statistics and conquest map.",
+     "Apre la Mini App: classifiche, statistiche e mappa delle conquiste."),
     ('day_count', 'conto_giorno', "💩 of a day: [@username] [DD-MM-YYYY, today, yesterday].",
      "💩 di un giorno: [@username] [DD-MM-YYYY, oggi, ieri]."),
     ('last_poop', 'ultima_cacca', "Days since the last 💩: [@username].",

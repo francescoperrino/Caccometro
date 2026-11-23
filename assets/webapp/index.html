@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caccometro</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  body { margin: 0; padding: 16px; font-family: system-ui, sans-serif;
+         background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #222); }
+  h1 { font-size: 1.3em; margin: 0 0 12px; }
+  .hint { color: var(--tg-theme-hint-color, #888); }
+  button.chat { display: block; width: 100%; margin: 6px 0; padding: 12px; border: 0; border-radius: 10px;
+                font-size: 1em; text-align: left; cursor: pointer;
+                background: var(--tg-theme-secondary-bg-color, #f0f0f0); color: inherit; }
+</style>
+</head>
+<body>
+<main id="main"><p class="hint">…</p></main>
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready();
+
+// The page follows the language of the chat, like the bot (/language); Italian sentences are the keys
+const EN = {
+  'Scegli il gruppo': 'Choose the group',
+  'Chat privata': 'Private chat',
+  'Nessun gruppo: manda una 💩 in un gruppo con il bot.': 'No groups: send a 💩 in a group with the bot.',
+  'Non fai parte di questo gruppo.': 'You are not a member of this group.',
+  'Apri la Mini App dal bot.': 'Open the Mini App from the bot.',
+  'Qualcosa è andato storto, riprova.': 'Something went wrong, try again.',
+};
+let language = 'it';
+const tr = text => (language === 'en' && EN[text]) || text;
+
+const main = document.getElementById('main');
+function show(...nodes) { main.replaceChildren(...nodes); }
+function el(tag, props = {}, ...children) {
+  const node = Object.assign(document.createElement(tag), props);
+  node.append(...children);
+  return node;
+}
+
+// Every call carries the signed initData: the server checks it and the membership before sending any data
+async function api(path) {
+  const response = await fetch(path, { headers: { Authorization: 'tma ' + tg.initData } });
+  if (!response.ok) throw response.status;
+  return response.json();
+}
+
+function failed(status) {
+  show(el('p', { className: 'hint' }, tr(status === 403 ? 'Non fai parte di questo gruppo.'
+    : status === 401 ? 'Apri la Mini App dal bot.' : 'Qualcosa è andato storto, riprova.')));
+}
+
+async function picker() {
+  try {
+    const data = await api('/api/chats');
+    language = data.language;
+    const buttons = data.chats.map(chat => el('button', { className: 'chat', onclick: () => openChat(chat.id) },
+      chat.title || tr('Chat privata')));
+    show(el('h1', {}, tr('Scegli il gruppo')),
+      ...(buttons.length ? buttons : [el('p', { className: 'hint' }, tr('Nessun gruppo: manda una 💩 in un gruppo con il bot.'))]));
+  } catch (status) { failed(status); }
+}
+
+async function openChat(chatId) {
+  try {
+    const data = await api('/api/chat?chat=' + encodeURIComponent(chatId));
+    language = data.language;
+    // shortcut: only the header for now, the content comes with #189 (map) and #190 (leaderboards)
+    show(el('h1', {}, '💩 Caccometro'));
+  } catch (status) { failed(status); }
+}
+
+// Opened with a direct link from a group (/app): already on that chat; from the private menu button: the picker
+const start = tg.initDataUnsafe.start_param;
+start ? openChat(start) : picker();
+</script>
+</body>
+</html>

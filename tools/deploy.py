@@ -7,8 +7,8 @@ Usage (from the repository root, with the virtual environment active):
     python tools/deploy.py assets/fonts/* assets/emoji/* caccometro/*.py --yes   # with the chart assets
     python tools/deploy.py --rollback backups/<stamp> --yes
 
-Allowed: top-level .py, caccometro/*.py, scripts/*.py, any file in assets/fonts/ and assets/emoji/ (uploaded
-first: charts.py loads them at import), and the WSGI file (--wsgi, uploaded to WSGI below).
+Allowed: top-level .py, caccometro/*.py, scripts/*.py, any file in assets/fonts/, assets/emoji/ and assets/webapp/
+(uploaded first: charts.py loads them at import; the Mini App page), and the WSGI file (--wsgi, uploaded to WSGI below).
 A rollback restores the .py files of the backup; it does not delete files the deploy created.
 
 Settings: HOSTING_USERNAME in the .env of the repository; the API token in the environment variable
@@ -37,7 +37,7 @@ FILES = f"{HOST}/api/v0/user/{USER}/files/path{REMOTE_HOME}"
 ROOT = f"{HOST}/api/v0/user/{USER}/files/path"
 WSGI = f"/var/www/{DOMAIN.replace('.', '_')}_wsgi.py"
 FOLDERS = ("caccometro", "scripts")
-ASSET_FOLDERS = ("assets/fonts", "assets/emoji")
+ASSET_FOLDERS = ("assets/fonts", "assets/emoji", "assets/webapp")
 
 
 def url(remote):

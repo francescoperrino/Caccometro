@@ -3,10 +3,10 @@ import logging
 import re
 from datetime import datetime, timedelta
 
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from caccometro import __version__, i18n, maps
+from caccometro import __version__, i18n, maps, miniapp
 from caccometro.analysis import FORECAST_WINDOW_DAYS, analyze_group, analyze_user, forecast_totals, period_statistics
 from caccometro.charts import generate_rank_chart, generate_statistics_chart
 from caccometro.chat import escape_md, is_chat_admin, register_sender, register_user, reply_chart, reply_charts, where
@@ -381,6 +381,19 @@ async def conquests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
              maps.world_map)
     maps_drawn = [maps.render(view, history, users, shown) for view in views if drawable]
     await reply_charts(update, maps_drawn, message)
+
+
+async def app_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /app command: a button that opens the Mini App on this chat.
+
+    A plain URL button with the direct link: groups refuse web_app buttons.
+    """
+    sender = register_sender(update)
+    if sender is None:
+        return
+    link = miniapp.direct_link(context.bot.username, update.message.chat_id)
+    await update.message.reply_text(tr("📱 Classifiche, statistiche e mappa delle conquiste nella Mini App."),
+                                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(tr("Apri"), url=link)]]))
 
 
 async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE, command, delta):

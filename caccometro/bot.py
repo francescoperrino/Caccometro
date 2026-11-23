@@ -17,7 +17,7 @@ from telegram.request import HTTPXRequest
 from caccometro.commands import (start_command, leaderboard_month_command, leaderboard_year_command,
                                  stats_month_command, stats_year_command, records_command, add_poop_command,
                                  remove_poop_command, day_count_command, last_poop_command, link_history_command,
-                                 trophies_command, language_command, conquests_command)
+                                 trophies_command, language_command, conquests_command, app_command)
 from caccometro.config import BOT_TOKEN, PROJECT_DIR, ROME_TZ, RUN_MODE
 from caccometro.menus import MENU
 from caccometro.messages import handle_message, handle_migration
@@ -205,6 +205,7 @@ HANDLERS = {
     'records': records_command,
     'trophies': trophies_command,
     'conquests': conquests_command,
+    'app': app_command,
     'add_poop': add_poop_command,
     'remove_poop': remove_poop_command,
     'day_count': day_count_command,
