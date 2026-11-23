@@ -70,9 +70,9 @@ flowchart TD
     send --> reply["👤 The person sees the reply"]
 ```
 
-- When an update is done, `bot.py` (`LoggingApplication`) writes one line: `Update <id> done: command=<English command, or message, sticker, location> chat=<private|group> ms=<duration> attempts=<requests to Telegram, retries included> outcome=<ok|lost|error>`. `lost` means the network gave up after all the attempts, `error` any other exception. No names, no text: the nightly summary is built on this line.
+- When an update is done, `bot.py` (`LoggingApplication`) writes one line: `Update <id> done: command=<English command, or message, sticker, location> chat=<private|group> ms=<duration> attempts=<requests to Telegram, retries included> outcome=<ok|lost|error>`. `lost` means the network gave up after all the attempts, `error` any other exception. In webhook mode the line covers the whole request, also the start of the Application (its `getMe` after a reload, with the retries), and is written even when the start fails. No names, no text: the nightly summary is built on this line.
 - An error inside a command or the counting goes to the error handler of `bot.py` (logged with the traceback and the command): the webhook still answers 200, so Telegram does not send the update again. A 💩 is counted before the reply is sent, so a lost reply never loses the count.
-- An error outside the handlers (for example the bot cannot start) makes the webhook answer 500. Telegram sends the update again later; the `update_id` is already remembered, so a 💩 is never counted twice.
+- An error outside the handlers (for example the bot cannot start) makes the webhook answer 500. Telegram sends the update again later. The `update_id` is remembered once the Application has started, so a 💩 is never counted twice, and an update refused because the start failed is processed when it comes again.
 - `RetryingRequest` waits 1, 2, 4, 8 and 16 seconds between the attempts. It does not retry timeouts and read errors, because the message may have already arrived.
 - The webhook starts and stops the Application at every request: each Flask request has its own event loop.
 

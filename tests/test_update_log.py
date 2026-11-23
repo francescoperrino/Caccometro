@@ -42,11 +42,14 @@ def test_an_italian_command_is_logged_with_its_english_name(telegram_calls, capl
 
 @pytest.fixture
 def flaky_telegram(monkeypatch):
-    """sendMessage fails with a proxy 503 `flaky_telegram.failures` times, then works; getMe always works."""
-    state = type("State", (), {"failures": 0, "calls": 0})()
+    """sendMessage fails with a proxy 503 `failures` times, getMe `me_failures` times, then they work (fresh process)."""
+    state = type("State", (), {"failures": 0, "calls": 0, "me_failures": 0, "me_calls": 0})()
 
     async def fake_do_request(self, url, method, *args, **kwargs):
         if url.endswith("getMe"):
+            state.me_calls += 1
+            if state.me_calls <= state.me_failures:
+                raise network_error(httpx.ProxyError("503 Service Unavailable"))
             return 200, json.dumps({"ok": True, "result": BOT_USER}).encode()
         state.calls += 1
         if state.calls <= state.failures:
@@ -64,12 +67,12 @@ def flaky_telegram(monkeypatch):
 
 def test_retries_are_counted_in_the_attempts(flaky_telegram, caplog):
     flaky_telegram.failures = 2
-    assert post(telegram_update(update_id=303), caplog)[0][4:] == ("3", "ok")
+    assert post(telegram_update(update_id=303), caplog)[0][4:] == ("4", "ok")  # getMe of the fresh process + 3
 
 
 def test_a_reply_lost_after_all_the_attempts_is_marked_lost(flaky_telegram, caplog):
     flaky_telegram.failures = 6
-    assert post(telegram_update(update_id=304), caplog)[0][4:] == ("6", "lost")
+    assert post(telegram_update(update_id=304), caplog)[0][4:] == ("7", "lost")  # getMe + 6
     assert 'Update "304" caused error' in caplog.text and caplog.text.count(" in message") == 1
 
 
@@ -79,3 +82,31 @@ def test_kinds_of_update():
     upd = make_update(text="/classifica_mese 3-2026")
     assert bot.update_kind(upd) == "/leaderboard_month"
     assert bot.update_kind(make_update(text="/nonexistent")) == "message"
+
+
+def test_the_startup_getme_and_its_retries_are_in_the_line(flaky_telegram, caplog):
+    flaky_telegram.me_failures = 2
+    assert post(telegram_update(update_id=305), caplog)[0][4:] == ("4", "ok")  # getMe 3 times + the reply
+
+
+def test_an_update_lost_on_the_startup_getme_still_has_its_line(flaky_telegram, caplog):
+    pytest.importorskip("asgiref")
+    flaky_telegram.me_failures = 6
+    with caplog.at_level(logging.INFO, logger="caccometro"):
+        response = webhook.app.test_client().post("/webhook", headers=SECRET, json=telegram_update(update_id=306))
+    assert response.status_code == 500
+    assert "Update 306 done: command=message chat=group" in caplog.text
+    assert "attempts=6 outcome=lost" in caplog.text
+
+
+def test_an_update_refused_because_the_start_failed_is_processed_when_sent_again(flaky_telegram, caplog):
+    flaky_telegram.me_failures = 6
+    post_status = lambda: webhook.app.test_client().post("/webhook", headers=SECRET, json=telegram_update(update_id=308)).status_code
+    pytest.importorskip("asgiref")
+    assert post_status() == 500
+    assert post(telegram_update(update_id=308), caplog)[-1][5] == "ok"  # counted, not ignored as already processed
+
+
+def test_an_update_sent_again_writes_no_second_line(telegram_calls, caplog):  # noqa: F811
+    post(telegram_update(update_id=307), caplog)
+    assert len(post(telegram_update(update_id=307), caplog)) == 1  # caplog keeps the line of the first one

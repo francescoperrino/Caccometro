@@ -3,6 +3,7 @@ import asyncio
 import logging
 import os
 import time
+from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
@@ -93,22 +94,42 @@ def update_line(update, attempts, outcome, ms):
             f"attempts={attempts} outcome={outcome}")
 
 
+def outcome_of(error):
+    """'lost' when the network gave up (the reply did not arrive), 'error' for any other exception."""
+    return 'lost' if isinstance(error, NetworkError) and not isinstance(error, BadRequest) else 'error'
+
+
+@contextmanager
+def update_log():
+    """Time what runs inside and count its requests to Telegram; then log the line of info['update'], when set.
+
+    The webhook wraps the whole request with it, so the getMe of the first update after a start is counted too.
+    """
+    info = {'attempts': 0, 'outcome': 'ok', 'update': None}
+    token = CURRENT_UPDATE.set(info)
+    start = time.monotonic()
+    try:
+        yield info
+    except Exception as e:
+        info['outcome'] = outcome_of(e)
+        raise
+    finally:
+        CURRENT_UPDATE.reset(token)
+        if info['update'] is not None:
+            ms = round((time.monotonic() - start) * 1000)
+            logger.info(update_line(info['update'], info['attempts'], info['outcome'], ms))
+
+
 class LoggingApplication(Application):
     """Application that writes one line per update when its processing ends (see update_line)."""
 
     async def process_update(self, update):
-        """Process the update as usual, timing it and counting its requests to Telegram."""
-        info = {'attempts': 0, 'outcome': 'ok'}
-        CURRENT_UPDATE.set(info)
-        start = time.monotonic()
-        try:
+        """Process the update as usual, timing it and counting its requests to Telegram (polling mode)."""
+        if CURRENT_UPDATE.get() is not None:  # the webhook already times the whole request
+            return await super().process_update(update)
+        with update_log() as info:
+            info['update'] = update
             await super().process_update(update)
-        except Exception:
-            info['outcome'] = 'error'
-            raise
-        finally:
-            ms = round((time.monotonic() - start) * 1000)
-            logger.info(update_line(update, info['attempts'], info['outcome'], ms))
 
 
 # Error handler
@@ -116,8 +137,7 @@ async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for logging errors; marks the update as lost (network gave up) or failed."""
     info = CURRENT_UPDATE.get()
     if info is not None:
-        lost = isinstance(context.error, NetworkError) and not isinstance(context.error, BadRequest)
-        info['outcome'] = 'lost' if lost else 'error'
+        info['outcome'] = outcome_of(context.error)
     if update:
         logger.error(f'Update "{getattr(update, "update_id", "-")}" caused error "{context.error}" in {update_kind(update)}',
                      exc_info=context.error)
