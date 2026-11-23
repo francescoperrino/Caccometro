@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 import pytest
 from telegram.error import Forbidden
 
-from caccometro import bot, database, miniapp, webhook
+from caccometro import bot, conquest, database, miniapp, webhook
 from conftest import CHAT_ID
 
 TOKEN = os.environ["BOT_TOKEN"]
@@ -39,12 +39,6 @@ def test_signed_init_data_gives_the_user():
 ])
 def test_bad_init_data_gives_no_user(data):
     assert miniapp.user_of(data, TOKEN) is None
-
-
-def test_chats_of_lists_only_chats_whose_database_knows_the_user():
-    database.upsert_user(CHAT_ID, USER_ID, "mario", "Mario")
-    database.upsert_user(-2002, 99, "luigi", "Luigi")
-    assert miniapp.chats_of(USER_ID) == [CHAT_ID]
 
 
 def test_direct_link_opens_the_mini_app_on_the_chat():
@@ -85,24 +79,8 @@ def get(client, path, data=None):
 
 
 def test_api_refuses_unsigned_calls(client, telegram):
-    assert get(client, "/api/chats", "").status_code == 401
     assert get(client, f"/api/chat?chat={CHAT_ID}", "x").status_code == 401
     assert telegram["calls"] == []
-
-
-def test_api_chats_lists_groups_with_titles_and_the_private_chat(client, telegram):
-    database.upsert_user(CHAT_ID, USER_ID, "mario", "Mario")
-    database.upsert_user(USER_ID, USER_ID, "mario", "Mario")
-    body = get(client, "/api/chats").get_json()
-    assert sorted(body["chats"], key=lambda c: c["id"]) == [{"id": CHAT_ID, "title": "Amici"},
-                                                            {"id": USER_ID, "title": None}]
-    assert body["language"] == "it"
-
-
-def test_api_chats_skips_groups_the_bot_left(client, telegram):
-    database.upsert_user(CHAT_ID, USER_ID, "mario", "Mario")
-    telegram["status"] = "gone"
-    assert get(client, "/api/chats").get_json()["chats"] == []
 
 
 @pytest.mark.parametrize("status, code", [("member", 200), ("creator", 200), ("left", 403), ("kicked", 403)])
@@ -121,7 +99,7 @@ def test_api_chat_never_creates_a_database(client, telegram):
 def test_api_chat_private_chat_needs_no_membership_check(client, telegram):
     database.init_database(USER_ID)
     database.set_language(USER_ID, "en")
-    assert get(client, f"/api/chat?chat={USER_ID}").get_json() == {"chat": USER_ID, "language": "en"}
+    assert get(client, f"/api/chat?chat={USER_ID}").get_json()["language"] == "en"
     assert "getChatMember" not in telegram["calls"]
 
 
@@ -135,3 +113,23 @@ def test_mini_app_page_is_served(client):
     response = client.get("/app")
     assert response.status_code == 200 and b"telegram-web-app.js" in response.data
     response.close()
+
+
+def test_conquest_data_sends_outlines_and_owners_at_every_zoom_but_no_locations():
+    users = {1: database.User(1, "anna", "Anna"), 2: database.User(2, None, "Bruno")}
+    cell = conquest.cell_of(45.46, 9.19)
+    other = conquest.cell_of(45.60, 9.40)
+    data = miniapp.conquest_data([(1, 1_700_000_000, cell), (2, 1_700_000_100, cell), (1, 1_700_000_200, other),
+                                  (2, int(time.time()), conquest.cell_of(45.0, 9.0))], users)
+    tiles = data["levels"][7]
+    assert sorted(tile["owner"] for tile in tiles) == [1, 2, 2] and all(len(tile["outline"]) == 6 for tile in tiles)
+    assert any(tile["seen"] == {1: 1, 2: 1} and tile["held"] == {2: 1} for tile in tiles)  # taken from member 1
+    assert len(data["levels"][1]) == 1 and data["levels"][1][0]["held"] == {1: 1, 2: 2}  # the whole world in one hexagon
+    assert data["names"] == {1: "@anna", 2: "Bruno"} and sorted(r["user"] for r in data["ranking"]) == [1, 2]
+    assert data["season"]["conquests"] == 1 and data["season"]["conquerors"] == [2]
+    assert "lat" not in str(data) and "ts" not in data
+
+
+def test_conquest_data_of_an_empty_chat():
+    data = miniapp.conquest_data([], {})
+    assert data["levels"][7] == [] and data["king"] is None and data["season"] is None
