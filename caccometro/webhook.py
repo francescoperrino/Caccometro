@@ -7,7 +7,7 @@ from flask import Flask, request, Response
 from telegram import Update
 
 from caccometro import __version__
-from caccometro.bot import application
+from caccometro.bot import application, outcome_of, update_log
 from caccometro.config import WEBHOOK_SECRET
 
 logger = logging.getLogger(__name__)
@@ -27,30 +27,35 @@ async def webhook():
         logger.warning("Webhook call without the right secret token: refused.")
         return Response('forbidden', status=403)
     logger.info("Webhook received...")
-    try:
-        # 1. Start the application
-        await application.initialize()
+    # The line of the update covers the whole request: also the getMe of initialize() after a start, and its retries
+    with update_log() as info:
+        try:
+            # 1. Read the update first: one already processed needs no start of the application at all
+            update = Update.de_json(request.get_json(force=True), application.bot)
+            if update.update_id in SEEN_UPDATE_IDS:
+                logger.warning(f'Update "{update.update_id}" already processed: ignored.')
+                return Response('ok', status=200)
+            info['update'] = update
 
-        # 2. Process the update as before
-        update = Update.de_json(request.get_json(force=True), application.bot)
-        if update.update_id in SEEN_UPDATE_IDS:
-            logger.warning(f'Update "{update.update_id}" already processed: ignored.')
+            # 2. Start the application and process the update; remembered only once started, so that an update
+            # refused with a 500 because the start failed (getMe) is processed when Telegram sends it again
+            await application.initialize()
+            SEEN_UPDATE_IDS.append(update.update_id)
+            await application.process_update(update)
+
+            # Respond to Telegram that everything is ok
             return Response('ok', status=200)
-        SEEN_UPDATE_IDS.append(update.update_id)
-        await application.process_update(update)
 
-        # Respond to Telegram that everything is ok
-        return Response('ok', status=200)
-    
-    except Exception as e:
-        logger.exception(f"Error in webhook: {e}")
-        return Response('error', status=500)
-    
-    finally:
-        # 3. Terminate the application
-        # This "turns off" the bot and cleans up resources,
-        # both in case of success (try) and in case of error (except).
-        await application.shutdown()
+        except Exception as e:
+            info['outcome'] = outcome_of(e)
+            logger.exception(f"Error in webhook: {e}")
+            return Response('error', status=500)
+
+        finally:
+            # 3. Terminate the application
+            # This "turns off" the bot and cleans up resources,
+            # both in case of success (try) and in case of error (except).
+            await application.shutdown()
 
 @app.route('/')
 def index():
