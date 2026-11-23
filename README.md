@@ -118,7 +118,7 @@ The counts are tied to the **Telegram user ID**, not to the username: whoever ch
 
 ## 🔒 Privacy
 
-The bot reads the group messages to find the 💩: this is why its **Group Privacy** is disabled. The text of the messages is never stored or written to the log. The bot stores, for each chat, the Telegram user ID, username and name of whoever writes, and the 💩 per day. For the conquest game it stores the time of the last 💩 (until its window is used) and, for every conquest, the time, the tile and the latitude and longitude of the location; the log never records the coordinates. The log records the changes made by hand: for every `/add_poop` and `/remove_poop`, who sent it, the person, the day and the count before and after; for `/link_history`, the old username, the person and the days moved.
+The bot reads the group messages to find the 💩: this is why its **Group Privacy** is disabled. The text of the messages is never stored or written to the log. The bot stores, for each chat, the Telegram user ID, username and name of whoever writes, and the 💩 per day. For the conquest game it stores the time of the last 💩 (until its window is used) and, for every conquest, the time, the tile and the latitude and longitude of the location; the log never records the coordinates. For every update the log writes only the command, the kind of chat (private or group), the time taken and the outcome, without names or text. The log records the changes made by hand: for every `/add_poop` and `/remove_poop`, who sent it, the person, the day and the count before and after; for `/link_history`, the old username, the person and the days moved.
 
 ---
 

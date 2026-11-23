@@ -7,7 +7,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from caccometro import config, maps
-from caccometro.chat import escape_md, register_sender, reply_charts, where
+from caccometro.chat import escape_md, register_sender, reply_charts
 from caccometro.config import ROME_TZ, STORING_FORMAT, now_rome
 from caccometro.conquest import WINDOW_SECONDS, cell_of, holdings, mention_of
 from caccometro.database import (add_count, conquer, get_language, get_record, get_users, migrate_chat,
@@ -108,17 +108,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 name=escape_md(sender.mention))
         if response:
             await update.message.reply_text(response, parse_mode='Markdown')
-            # Only answered messages are logged, never their text: the bot reads every group message
-            logger.info(f"{sender.mention} in {where(update)}: Risposta: {response}")
     elif update.message.sticker:
         emoji = update.message.sticker.emoji # Get the emoji from sticker
         if emoji == "💩" or emoji == "🚽":
             response = record_poop(sender, chat_id, update.message.date)
             await update.message.reply_text(response, parse_mode='Markdown')
-            logger.info(f"{sender.mention} in {where(update)}: Sticker | Risposta: {response}")
     elif update.message.location:
         response, history, users = record_conquest(sender, chat_id, update.message.location, update.message.date)
         await reply_charts(update, [history and maps.render(maps.zoom_map, history, users)], response)
-        logger.info(f"{sender.mention} in {where(update)}: Posizione | Risposta: {response}")  # never the coordinates
     else:
         logger.info("Update type not managed")

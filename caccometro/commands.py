@@ -168,14 +168,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /start from {sender.mention} in {where(update)}")
     init_database(update.message.chat_id)
     await update.message.reply_text(tr("Ciao, sono 🤖 *Caccometro* 🤖.\n"
                                        "Manda 💩 quando hai fatto il tuo dovere.\n"
                                        "Entro 15 minuti manda una posizione per conquistare la sua zona 🚩.\n"
                                        "_Versione {version}_\n\n"
                                        "🇬🇧 English: /language en").format(version=__version__), parse_mode='Markdown')
-    logger.info(f"Command /start completed in {where(update)}")
 
 # The two kinds of period of the rank and statistics commands; their sentences are chosen with `month and ... or ...`
 PERIODS = {
@@ -213,8 +211,6 @@ async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     sender = register_sender(update)
     if sender is None:
         return
-    command = f"leaderboard_{time_period}"
-    logger.info(f"Command received: /{command} from {sender.mention} in {where(update)}")
     date = await period_from_args(update, context.args, time_period)
     if date is None:
         return
@@ -245,15 +241,12 @@ async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     daily_counts = get_daily_counts(update.message.chat_id, time_period, date)
     await reply_chart(update, generate_rank_chart(rank, daily_counts, time_period, date, forecast), message)
-    logger.info(f"Command /{command} completed in {where(update)}")
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
     """/stats_month and /stats_year: mean, median and variance per person, with a chart."""
     sender = register_sender(update)
     if sender is None:
         return
-    command = f"stats_{time_period}"
-    logger.info(f"Command received: /{command} from {sender.mention} in {where(update)}")
     date = await period_from_args(update, context.args, time_period)
     if date is None:
         return
@@ -276,7 +269,6 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time
                        for i, s in enumerate(statistics, start=1))
 
     await reply_chart(update, generate_statistics_chart(statistics, daily_counts, time_period, date), message)
-    logger.info(f"Command /{command} completed in {where(update)}")
 
 async def leaderboard_month_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /leaderboard_month command."""
@@ -299,7 +291,6 @@ async def records_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /records from {sender.mention} in {where(update)}")
     usage = tr("/record [@username | io]")
     chat_id = update.message.chat_id
     target, error = resolve_optional_target(update, context, sender, usage)
@@ -316,7 +307,6 @@ async def records_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         board = analyze_group(rows_by_user, now_rome().date())
         names = {user_id: escape_md(user.mention) for user_id, user in users.items()}
         await update.message.reply_text(format_group_record(board, names), parse_mode='Markdown')
-        logger.info(f"Command /records (group) completed in {where(update)}")
         return
 
     rows = get_record(target.user_id, chat_id)
@@ -328,14 +318,12 @@ async def records_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = format_user_record(escape_md(target.mention), records)
 
     await update.message.reply_text(message, parse_mode='Markdown')
-    logger.info(f"Command /records completed in {where(update)}")
 
 async def trophies_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /trophies command: the trophies of the group, or of one person (io, @username or a reply)."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /trophies from {sender.mention} in {where(update)}")
     usage = tr("/trofei [@username | io]")
     chat_id = update.message.chat_id
     target, error = resolve_optional_target(update, context, sender, usage)
@@ -354,14 +342,12 @@ async def trophies_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         current_streak = analyze_user(rows, today).status.streak_days if rows and any(c > 0 for _, c in rows) else 0
         message = format_user_trophies(escape_md(target.mention), trophies.get(target.user_id), current_streak)
     await update.message.reply_text(message, parse_mode='Markdown')
-    logger.info(f"Command /trophies completed in {where(update)}")
 
 async def conquests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /conquests command: tiles held by each member, king first; or one person (io, @username or a reply)."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /conquests from {sender.mention} in {where(update)}")
     chat_id = update.message.chat_id
     target, error = resolve_optional_target(update, context, sender, tr("/conquiste [@username | io]"))
     if error:
@@ -385,7 +371,6 @@ async def conquests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     maps_drawn = [maps.render(view, history, users) for view in (maps.region_map, maps.country_map, maps.world_map)
                   if counts]
     await reply_charts(update, maps_drawn, message)
-    logger.info(f"Command /conquests completed in {where(update)}")
 
 
 async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE, command, delta):
@@ -393,7 +378,6 @@ async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYP
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /{command} from {sender.mention} in {where(update)}")
     usage = tr("/aggiungi_cacca @username DD-MM-YYYY") if delta > 0 else tr("/togli_cacca @username DD-MM-YYYY")
     target, args, error = resolve_target(update, context.args, sender, usage)
     if error is None and len(args) != 1:
@@ -420,7 +404,6 @@ async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text(
             tr("Il conteggio di {name} nel giorno {date} è stato aggiornato a {count} 💩.")
             .format(name=target.mention, date=date, count=new_count))
-    logger.info(f"Command /{command} completed in {where(update)}")
 
 async def add_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /add_poop command."""
@@ -435,7 +418,6 @@ async def day_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /day_count from {sender.mention} in {where(update)}")
     usage = tr("/conto_giorno @username DD-MM-YYYY")
     target, args, error = resolve_target(update, context.args, sender, usage)
     if error is None and len(args) > 1:
@@ -460,14 +442,12 @@ async def day_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         reply = tr("{name} {day} hai fatto 💩 {count} volte.") if count > 1 else tr("{name} {day} hai fatto 💩 {count} volta.")
     await update.message.reply_text(reply.format(name=target.mention, day=day, count=count))
-    logger.info(f"Command /day_count completed in {where(update)}")
 
 async def last_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /last_poop command."""
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /last_poop from {sender.mention} in {where(update)}")
     usage = tr("/ultima_cacca @username")
     target, args, error = resolve_target(update, context.args, sender, usage)
     if error is None and args:
@@ -483,7 +463,6 @@ async def last_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         reply = tr("{name} non fai 💩 da {days} giorni.") if days > 1 else tr("{name} non fai 💩 da {days} giorno.")
     await update.message.reply_text(reply.format(name=target.mention, days=days))
-    logger.info(f"Command /last_poop completed in {where(update)}")
 
 async def link_history_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /link_history command: link the old username-based history to Telegram users.
@@ -495,7 +474,6 @@ async def link_history_command(update: Update, context: ContextTypes.DEFAULT_TYP
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /link_history from {sender.mention} in {where(update)}")
     chat_id = update.message.chat_id
     args = context.args
 
@@ -559,7 +537,6 @@ async def link_history_command(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         await update.message.reply_text(tr("Collegati {days} giorni di dati storici di «{username}» a {name}.")
                                         .format(days=days, username=legacy_username, name=target.mention))
-    logger.info(f"Command /link_history completed in {where(update)}")
 
 
 async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -567,7 +544,6 @@ async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender = register_sender(update)
     if sender is None:
         return
-    logger.info(f"Command received: /language from {sender.mention} in {where(update)}")
     language = context.args[0].lower() if len(context.args) == 1 else None
     if language not in i18n.LANGUAGES:
         await update.message.reply_text(tr("La lingua di questa chat è {name}. Per cambiarla: /lingua it oppure /lingua en.")
@@ -581,4 +557,3 @@ async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"Language changed by {sender.mention} in {where(update)}: {language}")
     await update.message.reply_text(tr("Da ora parlo italiano 🇮🇹"))
     await set_chat_menu(context.bot, update.message.chat_id, language, update.message.chat.type != 'private')
-    logger.info(f"Command /language completed in {where(update)}")
