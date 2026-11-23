@@ -19,7 +19,7 @@ caccometro/          the bot, as a Python package
   database.py        SQLite database: schema, migration, queries
   analysis.py        records, streaks, statistics and forecasts (pure functions, no database)
   conquest.py        conquest game: h3 tiles, 15 minute window, ownership and king of the hill (pure functions)
-  trophies.py        trophies: 15-day streaks, 💩 of the month and of the year (pure functions)
+  trophies.py        trophies: 15-day streaks, 💩 of the month and of the year, conquest seasons (pure functions)
   formatting.py      texts of /records, /trophies and the midnight announcement
   announce.py        midnight announcement of the 💩 of the month (scheduled task)
   charts.py          ranking and statistics charts (PNG in memory)

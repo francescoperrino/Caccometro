@@ -305,6 +305,11 @@ EN = {
         "👑 💩 of the year · 🏅 💩 of the month · 🔥 {days} days in a row",
     "I tuoi: /trofei io — di un altro: /trofei @username (o rispondi a un suo messaggio)":
         "Yours: /trophies me — somebody else's: /trophies @username (or reply to one of their messages)",
+    "🚩 conquistatore della stagione · ⛰️ re della stagione": "🚩 season conqueror · ⛰️ season king",
+    "🚩 Conquistatore della stagione: {seasons}": "🚩 Season conqueror: {seasons}",
+    "⛰️ Re della stagione: {seasons}": "⛰️ Season king: {seasons}",
+    "🚩 Stagione {season}: conquistatore {conquerors} ({n}), re {king}":
+        "🚩 Season {season}: conqueror {conquerors} ({n}), king {king}",
     "Trofei di {name}": "Trophies of {name}",
     "Ancora nessun trofeo.": "No trophy yet.",
     "👑 💩 dell'anno: {years}": "👑 💩 of the year: {years}",
@@ -322,6 +327,9 @@ EN = {
 
     # midnight announcement
     " a testa": " each",
+    "🗺️ *Stagione {season} finita!*": "🗺️ *Season {season} is over!*",
+    "🚩 Conquistatore: {names} con {n} conquiste": "🚩 Conqueror: {names} with {n} conquests",
+    "⛰️ Re della collina: {names}": "⛰️ King of the hill: {names}",
     "{label}: {names} con {total} 💩": "{label}: {names} with {total} 💩",
     "🎆 *Buon anno! Benvenuto {year}!* 🥂": "🎆 *Happy new year! Welcome {year}!* 🥂",
     "🏅 💩 di dicembre": "🏅 💩 of December",
