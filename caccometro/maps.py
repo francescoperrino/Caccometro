@@ -1,8 +1,8 @@
 """Conquest maps (#157): the tiles of a chat drawn over OpenStreetMap raster tiles, JPEG bytes in memory.
 
-Four views, each a level of the h3 grid: the zoom around a conquest (resolution 6, the real tiles), and for
+Four views, each a level of the h3 grid: the zoom around a conquest (resolution 7, the real tiles), and for
 /conquests Lombardy (resolution 5), Italy (resolution 4) and the world (resolution 1), on fixed boxes. At the larger levels a hexagon stands for the
-tiles it contains: ownership, counts and the king stay at resolution 6.
+tiles it contains: ownership, counts and the king stay at resolution 7.
 """
 import io
 import logging
@@ -200,7 +200,7 @@ def zoom_map(history, users):
     new_cell = history[-1][1]
     x, y = tile_xy(*h3.cell_to_latlng(new_cell), ZOOM_LEVEL)
     half = ZOOM_SPAN / 2
-    around = h3.grid_disk(new_cell, 4)  # wider than the image: hexagons are 7 km, the image about 30 km
+    around = h3.grid_disk(new_cell, 10)  # wider than the image: hexagons are 2.6 km, the image about 30 km
     legend, colors = legend_and_colors(history, users)
     return draw(tr('Zona conquistata'), ZOOM_LEVEL, (x - half, y - half, x + half, y + half),
                 {cell: tiles[cell][0] for cell in around if cell in tiles}, colors, legend, new_cell,

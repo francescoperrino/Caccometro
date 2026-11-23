@@ -103,7 +103,7 @@ erDiagram
     conquests {
         INTEGER user_id "who"
         INTEGER ts "Unix time of the location message"
-        TEXT cell "h3 cell, resolution 6"
+        TEXT cell "h3 cell, resolution 7"
         REAL lat "latitude"
         REAL lon "longitude"
     }
@@ -120,7 +120,7 @@ erDiagram
 - `conquests` keeps every conquest: the owner of a tile is its latest row (in the order the bot handled them); holdings and the king are replayed from the history (`conquest.holdings`). Latitude and longitude are kept so the resolution can change later.
 - `settings` is created on the first choice made with `/language`: without the table the chat speaks Italian.
 - `user_count_legacy` exists only in the chats migrated from the first version and empties as `/link_history` moves the history into `user_count`.
-- The schema version is in `PRAGMA user_version` (3 today; 3 added `conquests` and `last_poop`). The migration starts by itself when the database is opened, inside `BEGIN IMMEDIATE`, after a copy `db/<chat_id>_bot_data.db.v1.bak`.
+- The schema version is in `PRAGMA user_version` (4 today; 3 added `conquests` and `last_poop`, 4 recalculated every conquest at h3 resolution 7 from its latitude and longitude). The migration starts by itself when the database is opened, inside `BEGIN IMMEDIATE`, after a copy `db/<chat_id>_bot_data.db.v1.bak`.
 - When a group becomes a supergroup, the database is renamed `db/<old>_bot_data.db` → `db/<new>_bot_data.db`. If the migration message arrives late and the new database already has counts, the two are merged (same user and same day are added up, conquests appended) and the old file stays as `<old>_bot_data.db.merged`. The migration also starts from the twin message in the old chat, so it gets two chances.
 
 ## Translations

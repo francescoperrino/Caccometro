@@ -86,7 +86,7 @@ Gli stessi grafici in una chat inglese: [classifica](assets/screenshots/leaderbo
 
 ## 🚩 Gioco di conquista
 
-- Il mondo è diviso in zone esagonali di circa 36 km² (celle [H3](https://h3geo.org/) a risoluzione 6, larghe circa 7 km).
+- Il mondo è diviso in zone esagonali di circa 5 km² (celle [H3](https://h3geo.org/) a risoluzione 7, larghe circa 2,6 km).
 - Ogni 💩 mandata come messaggio o sticker (non `/aggiungi_cacca`) apre una **finestra di 15 minuti**: la prima posizione mandata dentro conquista la zona in cui cade. Una conquista per ogni 💩. Una posizione senza finestra aperta non conquista niente.
 - 🚩 zona nuova, ⚔️ zona rubata a un'altra persona, 🏠 zona propria difesa. Una zona è di chi l'ha conquistata per ultimo.
 - 👑 Il **re della collina** tiene più zone di tutti; a parità il re attuale tiene la corona.

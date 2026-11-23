@@ -1,7 +1,7 @@
 """Conquest game (#128): after a 💩 a location conquers the h3 hexagon it falls in; most tiles held = king of the hill."""
 import h3
 
-RESOLUTION = 6               # hexagons of about 36 km², 7 km wide
+RESOLUTION = 7               # hexagons of about 5 km², 2.6 km wide
 WINDOW_SECONDS = 15 * 60     # a location conquers only within 15 minutes of the 💩
 
 

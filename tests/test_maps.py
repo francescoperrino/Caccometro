@@ -64,7 +64,7 @@ def test_each_view_draws_its_own_resolution_and_outlines_the_latest_conquest(dra
     for view in (maps.zoom_map, maps.region_map, maps.country_map, maps.world_map):
         view(history, USERS)
     assert len(drawn) == 4
-    for (args, kwargs), res, z in zip(drawn, (6, 5, 4, 1), (11, 8, 6, 2)):
+    for (args, kwargs), res, z in zip(drawn, (7, 5, 4, 1), (11, 8, 6, 2)):
         title, level, box, hexagons, colors, legend, latest = args
         assert level == z and {h3.get_resolution(cell) for cell in hexagons} == {res}
         assert latest == h3.cell_to_parent(cell_of(*ROME), res)
