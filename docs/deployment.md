@@ -21,6 +21,7 @@ statistiche_anno - Media, mediana e varianza dell'anno, corrente o [YYYY o YY].
 record - Record del gruppo; con io o @username quelli di una persona.
 trofei - Trofei del gruppo; con io o @username quelli di una persona.
 conquiste - Zone conquistate con una posizione dopo la 💩; con io o @username quelle di una persona.
+app - Apre la Mini App: classifiche, statistiche e mappa delle conquiste.
 conto_giorno - 💩 di un giorno: [@username] [DD-MM-YYYY, oggi, ieri].
 ultima_cacca - Giorni dall'ultima 💩: [@username].
 aggiungi_cacca - Aggiunge 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
@@ -39,6 +40,7 @@ stats_year - Mean, median and variance of the year, current or [YYYY or YY].
 records - Group records; with me or @username those of one person.
 trophies - Group trophies; with me or @username those of one person.
 conquests - Tiles conquered with a location after the 💩; with me or @username those of one person.
+app - Open the Mini App: leaderboards, statistics and conquest map.
 day_count - 💩 of a day: [@username] [DD-MM-YYYY, today, yesterday].
 last_poop - Days since the last 💩: [@username].
 add_poop - Add 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
@@ -49,6 +51,15 @@ language - Language of the bot in this chat: it or en (in groups admins only).
 `/link_history` (`/collega_storico`) is for admins only: it goes in the administrators' list (`setMyCommands` with scope `all_chat_administrators`), together with the other commands, in both languages. The menus are set for four scopes: default, private chats, groups, group administrators. `python tools/register_menus.py dev|prod` registers them all from the code and reads them back with `getMyCommands`.
 
 **Menu of a chat.** `/language it|en` also sets the menu of that chat in the chosen language, without `language_code`, so it wins over the menus above whatever the app language: scope `chat` in private chats; in groups scope `chat` and scope `chat_administrators` (with `/link_history`: for the admins Telegram looks at the chat scope before `all_chat_administrators`). A group that becomes a supergroup gets it again. Chats that never chose a language keep the menus above. If Telegram refuses the menu, the language is kept anyway and the log has a warning: sending `/language` again repairs it.
+
+### Mini App
+
+Once per bot (development and production):
+
+1. On BotFather, by hand (there is no API for it): `/newapp`, choose the bot, short name `app` (the `/app` command builds the link `t.me/<bot>/app?startapp=<chat_id>` with it), URL `https://<web app domain>/app`.
+2. The menu button, set by `python tools/register_menus.py prod` (dev: `python tools/register_menus.py dev <URL>`). In private chats the button next to the text field then opens the Mini App with the group picker; typing `/` still shows the commands.
+
+The page calls `/api/chats` and `/api/chat` with the signed `initData` in the `Authorization: tma <initData>` header: the server checks the signature with the bot token (at most 24 hours old) and, for a group, that the user is still a member (`getChatMember`, trusted for 5 minutes). For a test with the development bot, a temporary HTTPS tunnel to the local Flask app is enough; its URL goes to `/editapp` on BotFather and to `register_menus.py dev <URL>`.
 
 ### Descriptions
 

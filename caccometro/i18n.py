@@ -45,6 +45,8 @@ EN = {
         "The language of this chat is {name}. To change it: /language en or /language it.",
     "Solo gli admin del gruppo possono cambiare la lingua.": "Only the group admins can change the language.",
     "Da ora parlo italiano 🇮🇹": "From now on I speak English 🇬🇧",
+    "📱 Classifiche, statistiche e mappa delle conquiste nella Mini App.": "📱 Leaderboards, statistics and conquest map in the Mini App.",
+    "Apri": "Open",
 
     # /start and plain messages
     "Ciao, sono 🤖 *Caccometro* 🤖.\nManda 💩 quando hai fatto il tuo dovere.\n"
