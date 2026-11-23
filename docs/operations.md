@@ -58,14 +58,15 @@ flowchart TD
     check -->|"yes"| keep["Keep the last 14 copies;<br/>the first copy of each month also goes to backups/db_monthly/"]
     check -->|"no"| failed["FAILED on stderr, exit code 1,<br/>Telegram alert to the maintainer<br/>(the copy is kept, never monthly)"]
     keep --> summary
-    failed --> summary["log_summary.py: download the logs,<br/>summary of the last 24 hours<br/>to logs/, the last 30 kept"]
-    summary --> new{"A kind of error never seen,<br/>or a log not downloaded?"}
-    new -->|"yes"| alert["Telegram alert to the maintainer<br/>(once per kind of error)"]
+    failed --> summary["log_summary.py: download the logs,<br/>summary of the last 24 hours<br/>to logs/ with a copy of the logs,<br/>the last 30 of each kept"]
+    summary --> new{"A lost reply, a new or repeated error,<br/>a slow update, lines in the error log,<br/>or a log not downloaded?"}
+    new -->|"yes"| alert["One Telegram alert to the maintainer<br/>with all the reasons"]
     new -->|"no"| done["Nothing sent"]
 ```
 
 - **Backup** (`tools/backup_db.py [--keep N]`): the alerts are sent by the development bot (`BOT_TOKEN` of the local `.env`) to the `ALERT_CHAT_ID` chat; without that variable nothing is sent. When the backup works nothing arrives.
-- **Log summary** (`tools/log_summary.py`): updates received, retries towards Telegram, lost replies, calls refused by the webhook (403), slowest update and errors grouped by kind. The expected kinds are listed in `KNOWN` in the script; the kinds already reported are in `logs/seen_kinds.txt`.
+- **Log summary** (`tools/log_summary.py`): built mostly on the line the bot writes for every update ([architecture.md](architecture.md)). It shows the updates received (private and group), retries towards Telegram, lost replies, updates ended by an error, calls refused by the webhook (403), slowest webhook call, every command with how many times it was used and its median and worst time, errors grouped by kind, exceptions with their time, restarts of the app (server log), lines of the web server error log and the other requests to the server, without the uptime checks. The expected kinds of error are listed in `KNOWN` in the script; the kinds already reported are in `logs/seen_kinds.txt`. The downloaded logs are kept compressed in `logs/logs_<date>.tar.gz`, the last 30 nights, like the summaries.
+- **Alerts of the summary**: one Telegram message lists every reason to look: a lost reply, a kind of error never seen, an error (not a warning) outside `KNOWN` seen at least twice, a message (💩, sticker, location) slower than 5 s or a command slower than 15 s (`SLOW_MS`), any line in the web server error log.
 - **Logs** (`tools/fetch_logs.py`): downloads the bot log and the web server logs into `logs/`, to look for errors by hand. The logs contain usernames: never publish them.
 
 ## Restoring a database

@@ -17,7 +17,7 @@ def test_messages_the_bot_does_not_answer_are_not_logged(caplog):
     assert caplog.records == []
 
 
-def test_answered_messages_are_logged_without_their_text(caplog):
+def test_answered_messages_are_logged_without_their_text_or_the_reply(caplog):
     log = handle("💩 dopo il pranzo segreto", caplog)
-    assert "💩 oggi" in log
     assert "segreto" not in log
+    assert "💩 oggi" not in log  # nor the reply: the "done" line of the update is enough (#168)

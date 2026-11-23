@@ -117,7 +117,7 @@ I conteggi sono legati all'**ID utente di Telegram**, non allo username: chi cam
 
 ## 🔒 Privacy
 
-Il bot legge i messaggi del gruppo per trovare le 💩: per questo la sua **Group Privacy** è disattivata. Il testo dei messaggi non viene mai salvato né scritto nel log. Il bot salva, per ogni chat, ID utente Telegram, username e nome di chi scrive, e le 💩 per giorno. Per il gioco di conquista salva l'ora dell'ultima 💩 (finché la sua finestra non è usata) e, per ogni conquista, l'ora, la zona e latitudine e longitudine della posizione; il log non registra mai le coordinate. Il log registra le modifiche fatte a mano: per ogni `/aggiungi_cacca` e `/togli_cacca` chi l'ha mandato, la persona, il giorno e il conteggio prima e dopo; per `/collega_storico` il vecchio username, la persona e i giorni spostati.
+Il bot legge i messaggi del gruppo per trovare le 💩: per questo la sua **Group Privacy** è disattivata. Il testo dei messaggi non viene mai salvato né scritto nel log. Il bot salva, per ogni chat, ID utente Telegram, username e nome di chi scrive, e le 💩 per giorno. Per il gioco di conquista salva l'ora dell'ultima 💩 (finché la sua finestra non è usata) e, per ogni conquista, l'ora, la zona e latitudine e longitudine della posizione; il log non registra mai le coordinate. Per ogni update il log scrive solo il comando, il tipo di chat (privata o gruppo), il tempo impiegato e l'esito, senza nomi né testo. Il log registra le modifiche fatte a mano: per ogni `/aggiungi_cacca` e `/togli_cacca` chi l'ha mandato, la persona, il giorno e il conteggio prima e dopo; per `/collega_storico` il vecchio username, la persona e i giorni spostati.
 
 ---
 

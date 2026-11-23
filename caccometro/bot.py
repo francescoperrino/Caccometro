@@ -2,12 +2,14 @@
 import asyncio
 import logging
 import os
+import time
+from contextvars import ContextVar
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
 import httpx
 from telegram import Update
-from telegram.error import NetworkError
+from telegram.error import BadRequest, NetworkError
 from telegram.ext import Application, CommandHandler, ExtBot, MessageHandler, filters, ContextTypes
 from telegram.request import HTTPXRequest
 
@@ -61,11 +63,64 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
+# Requests to Telegram and outcome of the update being processed, for its "done" line (see LoggingApplication)
+CURRENT_UPDATE = ContextVar('current_update', default=None)
+
+
+def update_kind(update):
+    """'/<English command name>', 'sticker', 'location' or 'message': what the update asked the bot, for the log."""
+    message = getattr(update, 'message', None)
+    if message is None:
+        return 'other'
+    if message.text and message.text.startswith('/'):
+        name = message.text.split()[0][1:].split('@')[0].lower()
+        english = next((english for english, italian, _ in COMMANDS if name in (english, italian)), None)
+        if english:
+            return f'/{english}'
+    if message.sticker:
+        return 'sticker'
+    if message.location:
+        return 'location'
+    return 'message'
+
+
+def update_line(update, attempts, outcome, ms):
+    """The line written when an update is done: no names, no text, only what the nightly summary needs."""
+    chat = getattr(update, 'effective_chat', None)
+    chat_type = '-' if chat is None else 'private' if chat.type == 'private' else 'group'
+    update_id = getattr(update, 'update_id', '-')
+    return (f"Update {update_id} done: command={update_kind(update)} chat={chat_type} ms={ms} "
+            f"attempts={attempts} outcome={outcome}")
+
+
+class LoggingApplication(Application):
+    """Application that writes one line per update when its processing ends (see update_line)."""
+
+    async def process_update(self, update):
+        """Process the update as usual, timing it and counting its requests to Telegram."""
+        info = {'attempts': 0, 'outcome': 'ok'}
+        CURRENT_UPDATE.set(info)
+        start = time.monotonic()
+        try:
+            await super().process_update(update)
+        except Exception:
+            info['outcome'] = 'error'
+            raise
+        finally:
+            ms = round((time.monotonic() - start) * 1000)
+            logger.info(update_line(update, info['attempts'], info['outcome'], ms))
+
+
 # Error handler
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for logging errors."""
+    """Handler for logging errors; marks the update as lost (network gave up) or failed."""
+    info = CURRENT_UPDATE.get()
+    if info is not None:
+        lost = isinstance(context.error, NetworkError) and not isinstance(context.error, BadRequest)
+        info['outcome'] = 'lost' if lost else 'error'
     if update:
-        logger.error(f'Update "{update.update_id}" caused error "{context.error}"', exc_info=context.error)
+        logger.error(f'Update "{getattr(update, "update_id", "-")}" caused error "{context.error}" in {update_kind(update)}',
+                     exc_info=context.error)
     else:
         logger.error(f'Error: "{context.error}"', exc_info=context.error)
 
@@ -97,7 +152,10 @@ class RetryingRequest(HTTPXRequest):
 
     async def do_request(self, *args, **kwargs):
         """Send the request, retrying with RETRY_DELAYS when the connection or the proxy fails."""
+        info = CURRENT_UPDATE.get()
         for delay in self.RETRY_DELAYS:
+            if info is not None:
+                info['attempts'] += 1
             try:
                 return await super().do_request(*args, **kwargs)
             except NetworkError as e:
@@ -105,11 +163,13 @@ class RetryingRequest(HTTPXRequest):
                     raise
                 logger.warning(f"Telegram request failed ({e}), new attempt in {delay} s")
                 await asyncio.sleep(delay)
+        if info is not None:
+            info['attempts'] += 1
         return await super().do_request(*args, **kwargs)
 
 
 # Create the Application instance (same connection pools as Application.builder().token(...) would use)
-application = Application.builder().bot(CachedMeBot(
+application = Application.builder().application_class(LoggingApplication).bot(CachedMeBot(
     BOT_TOKEN,
     request=RetryingRequest(connection_pool_size=256),
     get_updates_request=HTTPXRequest(connection_pool_size=1),
