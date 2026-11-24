@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 import pytest
 from telegram.error import Forbidden
 
-from caccometro import bot, conquest, database, miniapp, trophies, webhook
+from caccometro import __version__, bot, conquest, database, miniapp, trophies, webhook
 from conftest import CHAT_ID, uid
 
 TOKEN = os.environ["BOT_TOKEN"]
@@ -101,6 +101,7 @@ def test_api_chat_private_chat_needs_no_membership_check(client, telegram):
     database.init_database(USER_ID)
     database.set_language(USER_ID, "en")
     assert get(client, f"/api/chat?chat={USER_ID}").get_json()["language"] == "en"
+    assert get(client, f"/api/chat?chat={USER_ID}").get_json()["version"] == __version__
     assert "getChatMember" not in telegram["calls"]
 
 

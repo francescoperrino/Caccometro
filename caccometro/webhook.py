@@ -105,7 +105,7 @@ async def api_chat():
     rows_by_user, users = database.get_all_user_rows(chat_id)
     timed = database.get_timed_conquests(chat_id)
     today = now_rome().date()
-    return {'chat': chat_id, 'today': today.isoformat(), 'language': database.get_language(chat_id) or i18n.DEFAULT_LANGUAGE,
+    return {'chat': chat_id, 'version': __version__, 'today': today.isoformat(), 'language': database.get_language(chat_id) or i18n.DEFAULT_LANGUAGE,
             'conquests': miniapp.conquest_data(timed, users),
             'records': miniapp.records_data(rows_by_user, today, timed)}
 

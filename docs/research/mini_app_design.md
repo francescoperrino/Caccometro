@@ -14,6 +14,8 @@ How the Mini App (#79, #189, #190) shows a group's leaderboards, statistics, rec
 
 **Leaderboards among friends.** Leaderboards raise short-term effort but can hurt those at the bottom; relative boards (your neighbours, the gap to the person above) work better than a bare ranking ([Na & Han 2023](https://www.emerald.com/insight/content/doi/10.1108/intr-12-2021-0897/full/html); [Jia 2018](https://scholarworks.iupui.edu/bitstream/1805/17645/1/Jia_2018_designing.pdf); [HKU study](https://hub.hku.hk/bitstream/10722/368255/1/content.pdf)). Frequent resets and more than one way to win keep everyone in the game (Duolingo leagues; Strava Local Legend, [BikeRadar](https://www.bikeradar.com/news/strava-local-legend/)). Show trophies in progress with how much is left, above the ones already won (Apple Fitness awards).
 
+**Patterns of well-known apps.** Their patterns are borrowed, never their look. Strava places you among everyone on a segment (Local Legend shows where your efforts fall against the leader's) and words a result as "your 5th fastest of 12" ([BikeRadar](https://www.bikeradar.com/news/strava-local-legend/); [Strava, Best Efforts](https://support.strava.com/hc/articles/19685360245005-Best-Efforts-Overview)). Chat apps show a streak as a flame and a number next to a friend, with a warning when it is about to end ([TikTok, Streaks](https://support.tiktok.com/en/using-tiktok/messaging-and-notifications/streaks)). Duolingo keeps your row highlighted in a long league ([Duolingo](https://blog.duolingo.com/duolingo-leagues-leaderboards/)). Habit trackers draw the days as a grid of squares, darker on busier days ([Heatbit](https://apps.apple.com/app/id6755353964)).
+
 **Glass only on controls.** Apple's Liquid Glass belongs to the navigation and control layer, never to the content layer, and must stay legible ([Apple, adopting Liquid Glass](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass.md)); critics measured contrast as low as 1.5:1 on glass ([NN/g, Liquid Glass](https://nngroup.com/articles/liquid-glass); [Infinum](https://infinum.com/blog/apples-ios-26-liquid-glass-sleek-shiny-and-questionably-accessible/)). On the web: a solid fallback without `backdrop-filter` and with reduced transparency.
 
 **Telegram.** Behave like Telegram: follow light or dark mode, use the native back button, respect safe areas, light haptics only on selection changes, disable vertical swipes while dragging a map ([Telegram Web Apps](https://core.telegram.org/bots/webapps)).
@@ -34,11 +36,11 @@ flowchart TD
     subgraph tabs["Dock: four tabs, Map opens first"]
         map("🗺️ <b>Map</b><br/>hexagons of the conquests")
         rank("🏆 <b>Leaderboard</b><br/>sentence, podium, list")
-        stats("📊 <b>Statistics</b><br/>sentence, my numbers,<br/>sorted bars")
+        stats("📊 <b>Statistics</b><br/>sentence, my numbers,<br/>my days, sorted bars")
         trophies("🥇 <b>Trophies</b><br/>in progress, board, records")
     end
     chooser("Chooser sheet<br/>everyone, me, each member")
-    person("Person sheet<br/>today, month, streak, records,<br/>trophies, tiles on the map")
+    person("Person sheet<br/>today, month, streak, records<br/>among the group, trophies, tiles")
     chart("Chart<br/>in the style of the bot images")
     details("Details<br/>mean, median, variance,<br/>normal curves, box plot")
     open --> map
@@ -106,6 +108,11 @@ flowchart TD
 | Records stay with Trophies (two sections: Trophies and Records) | Records and trophies are achievements; Statistics shows the chosen period only | Records in Statistics: they do not change with the period above them |
 | Trophies: "In progress" first (streak with a bar and the days left, the race of the month, the season), then the board with a small legend | Goals within reach first (Apple Fitness) | Board only |
 | Conquests by season with arrows to the past seasons, or in total (tiles held now, as on the map) | The game titles are per season; two different numbers kept apart | One all-time list |
+| Records of a person among the group's: every member's record a grey dot on one line, the person's in colour, where they are now as a ring, then "9th of 12, 1 day behind Anna" | Place and the next friend to beat (Strava); answers "how good is my record" | A bar with now, my record and the group record (tried side by side: says nothing about the friends in between) |
+| The streak in progress next to the names of the current leaderboard, from 3 days: 🔥6, grey with ⏳ while today's 💩 is missing | The streak of chat apps; makes the 15-day trophy visible where people look | An evening reminder from the bot (messages in the group) and restoring a lost day (counts must be real days) |
+| My row stays at the bottom of the screen while a long leaderboard scrolls | Where am I, without searching (Duolingo) | |
+| Statistics show my days as a calendar, darker with more 💩 (a month by weeks, a year by months) | "How you go" visible at a glance | The label alone |
+| The bot version at the bottom of every tab and in the map credits | As under the bot images: which version made the numbers | |
 | Glass only on the dock, switches, chooser, map buttons and sheets; content on solid surfaces | Apple's rule and legibility | Glass everywhere (tried, harder to read) |
 | The bot's palette (avatar colours, Nunito, denim) with a dark variant when Telegram is dark | Brand of the chart images; no bright page in a dark app | Telegram theme colours only |
 | Flat background, radius by rank (podium 24, lists 18, small parts 12), the four personal numbers in one block with hairlines | Avoid the generated look | Decorative gradients and identical cards |

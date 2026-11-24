@@ -124,11 +124,33 @@
   .podium .p0 .big { font-size: 30px; }
   .podium .note { font-size: 12px; color: var(--hint); font-weight: 700; text-align: center; }
   /* ---- the compact list: position, name, one number */
-  .ranks { display: flex; flex-direction: column; padding: 4px 0; flex: none; overflow: hidden; }
+  .ranks { display: flex; flex-direction: column; padding: 4px 0; flex: none; overflow: clip; }  /* clip, not hidden: my row can stick */
   .rank, .record { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 6px 16px; border: 0;
                    border-top: 1px solid var(--grid); background: none; font: inherit; color: var(--text); text-align: left; cursor: pointer; }
   .ranks > :first-child { border-top: 0; }
   .rank { box-shadow: inset 4px 0 0 var(--tint, transparent); }
+  .pane .ranks .rank.me { position: sticky; bottom: 0; z-index: 3;  /* the pane's padding already keeps it above the dock */
+                           box-shadow: inset 4px 0 0 var(--tint, transparent), 0 0 0 1px var(--grid); }
+  .flame { flex: none; margin-left: 6px; color: #b4531a; font-size: 13px; font-weight: 800; white-space: nowrap; }
+  .flame.risk { color: var(--hint); }
+  html.dark .flame { color: #f0a050; } html.dark .flame.risk { color: var(--hint); }
+  .cal.month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; flex: none; }
+  .cal .wd { text-align: center; color: var(--hint); font-size: 12px; font-weight: 700; }
+  .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--track);
+         color: var(--hint); font-size: 12px; font-weight: 700; }
+  .day.l1 { background: color-mix(in srgb, var(--accent) 30%, var(--card)); color: var(--text); }
+  .day.l2 { background: color-mix(in srgb, var(--accent) 62%, var(--card)); color: var(--on-accent); }
+  .day.l3 { background: var(--accent); color: var(--on-accent); }
+  .day.lx { background: none; box-shadow: inset 0 0 0 1px var(--grid); }
+  .day.today { box-shadow: 0 0 0 2px var(--text); }
+  .cal.year { display: flex; flex-direction: column; gap: 2px; flex: none; }
+  .calrow { display: grid; grid-template-columns: 14px repeat(31, 1fr); gap: 2px; align-items: center; }
+  .calrow .day { border-radius: 2px; }
+  .calrow .day.today { box-shadow: 0 0 0 1px var(--text); }
+  .calrow .mn { color: var(--hint); font-size: 10px; font-weight: 700; }
+  .calkey { display: flex; align-items: center; justify-content: flex-end; gap: 4px; color: var(--hint); font-size: 12px; font-weight: 700; }
+  .calkey .day { width: 12px; height: 12px; aspect-ratio: auto; border-radius: 3px; }
+  .version { margin: 8px 0 0; color: var(--hint); font-size: 12px; text-align: center; }
   .rank.on { background: color-mix(in srgb, var(--accent) 12%, var(--card)); }
   .rank .pos { width: 22px; flex: none; color: var(--hint); font-weight: 800; text-align: center; }
   .rank .name, .record .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 700; }
@@ -157,6 +179,13 @@
          font-size: 11px; font-weight: 800; vertical-align: 2px; }
   .tie { margin-left: 6px; color: var(--hint); font-size: 12px; font-weight: 700; }
   .progress { height: 8px; margin-top: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
+  .strip { position: relative; height: 18px; margin-top: 8px; }
+  .strip::before { content: ''; position: absolute; left: 0; right: 0; top: 8px; height: 2px; border-radius: 1px; background: var(--grid); }
+  .strip span { position: absolute; top: 9px; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--others); }
+  .strip .mine { width: 14px; height: 14px; margin: -7px 0 0 -7px; background: var(--accent); border: 2px solid var(--card); z-index: 2; }
+  .strip .now { width: 12px; height: 12px; margin: -6px 0 0 -6px; background: var(--card); border: 2px solid var(--accent); z-index: 1; }
+  .place { margin-top: 4px; font-size: 14px; font-weight: 700; }
+  .note { margin: -4px 0 0; color: var(--hint); font-size: 13px; line-height: 1.4; }
   .progress span { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
   .item .answer { font-size: 16px; margin-top: 2px; }
   .overmap { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -306,6 +335,15 @@ const EN = {
   '💩 finora → previsione a fine periodo': '💩 so far → forecast at the end of the period',
   '💩 al giorno: media · mediana · varianza': '💩 per day: mean · median · variance',
   'Record del gruppo': 'Group records',
+  'Il record del gruppo': 'The group record',
+  'I tuoi giorni': 'Your days',
+  'meno': 'less',
+  'più': 'more',
+  'giorni di fila': 'days in a row',
+  'serie a rischio: manca la 💩 di oggi': 'streak at risk: today\'s 💩 is missing',
+  'su': 'of',
+  'pari con': 'tied with',
+  'Pallino pieno: il record. Cerchio: adesso. Grigi: gli altri.': 'Full dot: the record. Ring: now. Grey: the others.',
   'Record': 'Records',
   'Adesso': 'Right now',
   'Più 💩 in un giorno': 'Most 💩 in a day',
@@ -479,6 +517,7 @@ async function openChat(chatId) {
 
 function showApp(chatId, data) {
   const c = data.conquests, records = data.records;
+  const version = () => el('p', { className: 'version' }, `Caccometro v${data.version}`);  // as under the bot charts
   const me = tg.initDataUnsafe.user.id;
   const ids = Object.keys(c.names).map(Number)
     .sort((a, b) => c.names[a].replace('@', '').toLowerCase().localeCompare(c.names[b].replace('@', '').toLowerCase()) || a - b);
@@ -565,7 +604,7 @@ function showApp(chatId, data) {
     // one copy of the world only: the hexagons are drawn once, so a repeated world would show them on one copy
     map = L.map(mapDiv, { zoomControl: false, minZoom: 2, maxBounds: [[-85, -180], [85, 180]], maxBoundsViscosity: 1 });
     L.control.zoom({ position: 'bottomright' }).addTo(map);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, noWrap: true, attribution: '© OpenStreetMap contributors' }).addTo(map);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, noWrap: true, attribution: `© OpenStreetMap contributors | Caccometro v${data.version}` }).addTo(map);
     layer = L.layerGroup().addTo(map);
     map.on('zoomend', draw);
     fit();
@@ -728,17 +767,27 @@ function showApp(chatId, data) {
   // ---- the main answer first: a podium for the first three, one number for everyone else, the rest on demand
 
   // entries: [{ id, value, note, label }] best first, value = what the list ranks by; ties share the position
+  // The streak in progress next to a name, like the streaks of chat apps: from 3 days on, grey with ⏳ while today's 💩 is missing
+  function flame(id) {
+    const s = records.people[id]?.status;
+    if (!s || s.streak_days < 3) return [];
+    const risk = !s.streak_active_today;
+    return [el('span', { className: 'flame' + (risk ? ' risk' : ''), title: tr(risk ? 'serie a rischio: manca la 💩 di oggi' : 'giorni di fila') },
+      `${risk ? '⏳' : '🔥'}${s.streak_days}`)];
+  }
+
   function podium(entries) {
     const positions = entries.map(e => entries.findIndex(o => o.value === e.value));
     const tied = i => positions.filter(x => x === positions[i]).length > 1;
     const you = e => e.id === me ? [el('span', { className: 'you' }, tr('tu'))] : [];
     const step = (e, i) => el('button', { className: `step p${positions[i]}${e.id === me ? ' me' : ''}`, style: `--tint:${color(e.id)}`, onclick: () => openPerson(e.id) },
       el('span', { className: 'medal' }, MEDALS[positions[i]] || ''), el('span', { className: 'name' }, e.label || plainName(e.id)), ...you(e),
+      ...(e.streak ? flame(e.id) : []),
       el('span', { className: 'big' }, e.text ?? String(e.value)), ...(e.note ? [el('span', { className: 'note' }, e.note)] : []));
     const top = entries.slice(0, 3).map(step);
     const rest = entries.slice(3).map((e, k) => el('button', { className: 'rank' + (e.id === me ? ' me' : ''), style: `--tint:${color(e.id)}`, onclick: () => openPerson(e.id) },
       el('span', { className: 'pos' }, String(positions[k + 3] + 1)), el('span', { className: 'name' }, e.label || plainName(e.id), ...you(e),
-        ...(tied(k + 3) ? [el('span', { className: 'tie' }, tr('pari'))] : [])),
+        ...(tied(k + 3) ? [el('span', { className: 'tie' }, tr('pari'))] : [])), ...(e.streak ? flame(e.id) : []),
       el('span', { className: 'num' }, e.text ?? String(e.value))));
     // second, first, third: the leader in the middle and higher
     return [el('div', { className: 'podium' }, ...[top[1], top[0], top[2]].filter(Boolean)), ...(rest.length ? [el('div', { className: 'ranks' }, ...rest)] : [])];
@@ -804,7 +853,7 @@ function showApp(chatId, data) {
     const finish = mine && mine.forecast !== null ? 1 + p.leaderboard.filter(r => r.forecast > mine.forecast).length : 0;
     return [answer(p.leaderboard, r => r.total, n => `${n} 💩`),
       ...(finish ? [el('p', { className: 'hint' }, `${tr('A questo ritmo finisci')} ${ordinal(finish)} ${tr('con circa')} ${mine.forecast} 💩.`)] : []),
-      ...podium(p.leaderboard.map(r => ({ id: r.user, value: r.total, text: `${r.total} 💩`,
+      ...podium(p.leaderboard.map(r => ({ id: r.user, value: r.total, text: `${r.total} 💩`, streak: p.start <= p.today && p.today <= p.end,
       note: r.forecast === null ? '' : `${tr(period.month === null ? 'a fine anno' : 'a fine mese')} ~${r.forecast}` }))),
       more(tr('Mostra grafico'), () => [leaderboardChart(p), ...(p.leaderboard.some(r => r.forecast !== null)
         ? [el('p', { className: 'hint' }, tr('Previsione: a fine periodo, al ritmo degli ultimi 30 giorni.'))] : [])])];
@@ -812,6 +861,28 @@ function showApp(chatId, data) {
 
   // How steady someone is, computed by the server (analysis.regularity); null: still too few days
   const steadiness = s => tr(s.regularity || 'ancora pochi dati');
+
+  // My days of the period as squares, darker with more 💩, like a habit calendar: "how you go" at a glance
+  function calendar(p) {
+    const start = dayNumber(p.start), end = dayNumber(p.end), today = dayNumber(p.today);
+    const cell = (d, label) => {
+      const n = p.daily[me]?.[isoOf(d)] || 0;
+      return el('span', { className: `day l${d > today ? 'x' : Math.min(n, 3)}${d === today ? ' today' : ''}`, title: `${dateText(isoOf(d))}: ${n} 💩` }, label);
+    };
+    const key = el('div', { className: 'calkey' }, tr('meno'), ...[0, 1, 2, 3].map(l => el('span', { className: `day l${l}` })), tr('più'));
+    const utc = (y, m, d, options) => new Date(Date.UTC(y, m, d)).toLocaleString(language, { ...options, timeZone: 'UTC' });
+    if (period.month !== null) {  // a month: a calendar from Monday, with the day numbers
+      const weekdays = [...Array(7).keys()].map(i => el('span', { className: 'wd' }, utc(2024, 0, 1 + i, { weekday: 'narrow' })));
+      const blanks = [...Array((start + 3) % 7)].map(() => el('span'));  // day 0, 1 January 1970, was a Thursday
+      return [el('div', { className: 'cal month' }, ...weekdays, ...blanks, ...[...Array(end - start + 1).keys()].map(i => cell(start + i, String(i + 1)))), key];
+    }
+    const year = +p.start.slice(0, 4);  // a year: one row per month
+    return [el('div', { className: 'cal year' }, ...[...Array(12).keys()].map(m => {
+      const first = Date.UTC(year, m, 1) / DAY_MS, last = Date.UTC(year, m + 1, 1) / DAY_MS - 1;
+      return el('div', { className: 'calrow' }, el('span', { className: 'mn' }, utc(year, m, 1, { month: 'narrow' })),
+        ...[...Array(last - first + 1).keys()].map(i => cell(first + i, '')));
+    })), key];
+  }
 
   function statisticsBoard(p) {
     const mine = p.statistics.find(s => s.user === me);
@@ -821,7 +892,7 @@ function showApp(chatId, data) {
     return [
       answer(p.statistics, row => row.mean, n => `${number(n, 2)} ${tr('al giorno')}`),
       ...(mine ? [el('div', { className: 'tiles' }, tile(number(mine.mean, 2), tr('al giorno, in media')), tile(ordinal(place), tr('nel gruppo')),
-        tile(number(mine.median, 0), tr('in un giorno tipico')), tile(steadiness(mine), tr('come vai')))] : []),
+        tile(number(mine.median, 0), tr('in un giorno tipico')), tile(steadiness(mine), tr('come vai'))), el('h2', {}, tr('I tuoi giorni')), ...calendar(p)] : []),
       // one sorted bar per person, the names written on the bars: me in colour, the others in grey
       el('div', { className: 'bars' }, ...p.statistics.map(s => el('button', { className: 'bar' + (s.user === me ? ' me' : ''), onclick: () => openPerson(s.user) },
         el('span', { className: 'name' }, plainName(s.user) + (s.user === me ? ` (${tr('tu')})` : '')),
@@ -851,8 +922,8 @@ function showApp(chatId, data) {
     charts.forEach(chart => chart.destroy());
     charts = [];
     const empty = () => el('p', { className: 'hint' }, tr('Nessuna 💩 in questo periodo. Manda 💩 nel gruppo per entrare in classifica.'));
-    rankPane.replaceChildren(...head(), ...(board === 'conquests' ? conquestBoard() : !p.leaderboard.length ? [empty()] : leaderboardBoard(p)));
-    statsPane.replaceChildren(el('h1', {}, tr('Statistiche')), periodBar(), ...(!p.statistics.length ? [empty()] : statisticsBoard(p)));
+    rankPane.replaceChildren(...head(), ...(board === 'conquests' ? conquestBoard() : !p.leaderboard.length ? [empty()] : leaderboardBoard(p)), version());
+    statsPane.replaceChildren(el('h1', {}, tr('Statistiche')), periodBar(), ...(!p.statistics.length ? [empty()] : statisticsBoard(p)), version());
     if (key === `${current.year}-${current.month}`) drawTrophies();
   }
 
@@ -905,8 +976,29 @@ function showApp(chatId, data) {
     const tile = (label, value) => el('div', { className: 'tile' }, el('div', { className: 'value' }, value), el('div', { className: 'what' }, tr(label)));
     return [el('div', { className: 'tiles' }, tile('Oggi', poops(s.today_count)), tile('Questo mese', poops(s.month_count)),
         tile('Serie in corso', days(s.streak_days)), tile('Giorni senza 💩', days(s.gap_days))),
-      el('h2', {}, tr('Record')), ...sheet(METRICS.filter(([key]) => r[key]).map(([key, emoji, label, unit]) =>
-        item(emoji, tr(label), unit(r[key].value), whens(r[key].when))))];
+      el('h2', {}, tr('Record')), el('p', { className: 'note' }, tr('Pallino pieno: il record. Cerchio: adesso. Grigi: gli altri.')),
+      ...sheet(METRICS.filter(([key]) => r[key]).map(([key, emoji, label, unit]) =>
+        item(emoji, tr(label), unit(r[key].value), [el('span', { className: 'when' }, whens(r[key].when)), ...strip(id, key, r[key].value, unit)])))];
+  }
+
+  // A personal record against the person now and against the group record, on one scale (a bullet chart).
+  // Records where less is the record (fewest in a month, longest pause) get the group's value in words only.
+  // A personal record among the group's (like Strava's Local Legend): every member's record a grey dot on one line,
+  // this person's in colour, where they are now as a ring, and the place in words with the gap to the next one
+  function strip(id, key, mine, unit) {
+    const fewest = key === 'worst_month', s = records.people[id].status;
+    const all = Object.entries(records.people).map(([user, r]) => [Number(user), r[key]?.value]).filter(([, v]) => v != null);
+    const better = (a, b) => fewest ? a < b : a > b;
+    const ahead = all.filter(([, v]) => better(v, mine));
+    const tied = all.filter(([user, v]) => v === mine && user !== id);
+    const next = ahead.sort((a, b) => fewest ? b[1] - a[1] : a[1] - b[1])[0];
+    const place = !ahead.length ? tr('Il record del gruppo') + (tied.length ? ` (${tr('pari con')} ${plainName(tied[0][0])})` : '')
+      : `${ordinal(ahead.length + 1)} ${tr('su')} ${all.length}, ${tr('a {n} da').replace('{n}', unit(Math.abs(next[1] - mine)))} ${plainName(next[0])}`;
+    const now = { daily: s.today_count, best_month: s.month_count, streak_days: s.streak_days, streak_count: s.streak_count }[key];
+    const top = Math.max(...all.map(([, v]) => v), now ?? 0, 1), at = value => `left:${value / top * 100}%`;
+    return [el('div', { className: 'strip' }, ...all.filter(([user]) => user !== id).map(([, v]) => el('span', { style: at(v) })),
+        ...(now === undefined ? [] : [el('span', { className: 'now', style: at(now) })]), el('span', { className: 'mine', style: at(mine) })),
+      el('div', { className: 'place' }, place)];
   }
 
   // My trophies in progress: how far the next one is (streak, 💩 of the month, conqueror of the season)
@@ -945,7 +1037,7 @@ function showApp(chatId, data) {
          ...(recordsOf === null
            ? [...(now.length ? [el('h2', {}, tr('Adesso')), el('div', { className: 'ranks' }, ...now)] : []),
               el('h2', {}, tr('Di sempre')), el('div', { className: 'ranks' }, ...recordRows(METRICS))]
-           : personRecords(recordsOf))]));
+           : personRecords(recordsOf))]), version());
   }
 
   // ---- one person, in a sheet that slides up from the bottom; Telegram's back button closes it
