@@ -56,14 +56,27 @@ On GitHub the same tests run on every pull request and every push to `main`, on 
 ## Workflow of a change
 
 ```mermaid
-flowchart LR
-    issue["Issue<br/>Bug, Feature or Task"] --> branch["Branch<br/>type/number_title"]
-    branch --> commits["Commits<br/>hooks: private files,<br/>tests, README charts"]
-    commits --> pr["Pull request<br/>Closes #number"]
-    pr --> ci{"CI: pytest<br/>on Python 3.10"}
+flowchart TD
+    issue("📝 <b>1. Issue</b><br/>Bug, Feature or Task")
+    branch("🌿 <b>2. Branch</b><br/>type/number_title")
+    commits("💾 <b>3. Commits</b><br/>hooks: private files, tests,<br/>README charts")
+    pr("🔀 <b>4. Pull request</b><br/>Closes #number")
+    ci{"CI: pytest<br/>on Python 3.10"}
+    merge("✅ <b>5. Merge to main</b>")
+    release("🚀 <b>6. Release</b><br/>version bump, tag, deploy,<br/>bot descriptions and menus")
+    issue --> branch --> commits --> pr --> ci
     ci -->|"red"| commits
-    ci -->|"green"| merge["Merge to main"]
-    merge --> release["Release:<br/>version bump, tag, deploy,<br/>bot descriptions and menus"]
+    ci -->|"green"| merge --> release
+    classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
+    classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
+    classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
+    classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
+    classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
+    class issue,branch,commits,pr,release step
+    class merge main
+    class ci check
 ```
 
 1. **Issue.** Every change starts from an issue: use the **Bug**, **Feature** or **Task** template (title and description in English). Report vulnerabilities privately, see [SECURITY.md](SECURITY.md). The labels say which area is touched (`commands`, `charts`, `database`, `hosting`, `deploy`, `dependencies`, `documentation`); the issue type says whether it is a bug, a feature or a task.
@@ -77,13 +90,13 @@ flowchart LR
 - Comments and docstrings in English. The bot messages are written in Italian inside `tr("...")`, with the English translation in `caccometro/i18n.py` ([docs/architecture.md](docs/architecture.md#translations)).
 - The `.py` files have CRLF line endings in the working tree on every system (`.gitattributes`).
 - No secrets in the repository: tokens live in `.env` (not tracked) or in environment variables.
-- The documentation: [README.md](README.md) for the people who use the bot, `docs/` and this file for the people who work on it. Keep the README commands table and the menus in `docs/deployment.md` in step with `menus.MENU`.
+- The documentation: [README.md](README.md) for the people who use the bot, `docs/` and this file for the people who work on it. Keep the README commands table and the menus in `docs/deployment.md` in step with `menus.MENU`. The infographics in `docs/images/` are drawn by `tools/draw_infographics.py`: change the flow there and run it again. The other diagrams are Mermaid in the same colours: copy the `classDef` lines of an existing one.
 
 ## Git hooks
 
 The hooks in `.githooks/` run once enabled with `git config core.hooksPath .githooks`:
 
-- `pre-commit` refuses the private files (`.env`, `logs/`, `backups/`, the logs), runs the tests, and redraws the README charts with `tools/sample_charts.py`. When the charts changed (new chart style, translations, version), it stops the commit: look at the images in `assets/screenshots/` and stage them.
+- `pre-commit` refuses the private files (`.env`, `logs/`, `backups/`, the logs), runs the tests, and redraws the README charts with `tools/sample_charts.py` and the infographics with `tools/draw_infographics.py`. When they changed (new chart style, translations, version), it stops the commit: look at the images in `assets/screenshots/` and `docs/images/` and stage them.
 - `commit-msg` refuses co-author and "Generated with" lines.
 
 Extra personal rules can go in `.git/hooks/local-pre-commit` and `.git/hooks/local-commit-msg`, which the versioned hooks call when they exist.

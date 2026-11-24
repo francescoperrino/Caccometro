@@ -1,13 +1,21 @@
-# 💩 Caccometro Bot Telegram
-
-[English](README.md) · **Italiano**
-
 <p align="center">
-  <img src="assets/avatar.png" alt="Avatar di Caccometro" height="200">
-  <img src="assets/demo.gif" alt="Caccometro: una 💩 mandata dal telefono, la classifica fa +1 e una medaglia" height="200">
+  <img src="assets/avatar.png" alt="Avatar di Caccometro" width="140">
 </p>
 
-Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in un gruppo (o in una chat privata) e sfida gli amici a chi ne fa di più: classifiche mensili e annuali, statistiche con grafici, record personali e di gruppo, trofei, giorni di "costipazione" e un gioco di conquista sulla mappa. Parla italiano e inglese.
+<h1 align="center">Caccometro</h1>
+
+<p align="center"><b>Chi ne fa di più? Il bot Telegram che conta le 💩 del tuo gruppo.</b></p>
+
+<p align="center"><a href="README.md">English</a> · <b>Italiano</b></p>
+
+Hai fatto il tuo dovere? Manda 💩 nel gruppo. Caccometro tiene il conto di tutti e lo trasforma in una gara tra amici:
+
+- 🏆 **Classifiche** del mese e dell'anno, con la previsione a fine mese
+- 📊 **Statistiche e grafici**: medie, la giornata tipo, chi è più regolare
+- 🏅 **Record e trofei**: serie di giorni, il 💩 del mese e dell'anno
+- 🚩 **Gioco di conquista**: dopo la 💩 manda la posizione e l'esagono sulla mappa è tuo, stagione dopo stagione
+- 📱 **Mini App**: mappa, classifiche, statistiche e trofei in un posto solo, aperta dalla chat
+- 🌍 Italiano e inglese, open source
 
 - [Come si usa](#-come-si-usa)
 - [Comandi](#-comandi)
@@ -22,11 +30,15 @@ Caccometro è un bot Telegram open source che conta le 💩 di ogni persona in u
 
 ## 💬 Come si usa
 
+<p align="center"><img src="docs/images/come_funziona_il_bot.svg" alt="Come funziona il Caccometro: mandi 💩, il bot la conta, conquisti un esagono con la posizione, confronti classifiche e statistiche, a mezzanotte del primo del mese si annuncia il 💩 del mese" width="600"></p>
+
 1. Aggiungi il bot al gruppo e manda `/start`.
 2. Quando hai fatto il tuo dovere manda un messaggio con 💩 o 🚽 (anche come sticker): il bot risponde con una frase divertente (cambia con l'ora e con il numero della 💩 del giorno), il conto di oggi e ricorda di mandare la posizione.
 3. Entro 15 minuti dalla 💩 manda una posizione (📎 → Posizione) per conquistare la sua zona: vedi [Gioco di conquista](#-gioco-di-conquista).
 4. Usa i comandi qui sotto per classifiche, statistiche e record.
 5. Il bot parla italiano; per l'inglese un admin manda `/lingua en` (in privato chiunque).
+
+<p align="center"><img src="assets/demo.gif" alt="Caccometro: una 💩 mandata dal telefono, la classifica fa +1 e una medaglia" width="260"></p>
 
 ---
 

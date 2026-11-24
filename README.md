@@ -1,13 +1,21 @@
-# 💩 Caccometro Telegram Bot
-
-**English** · [Italiano](README.it.md)
-
 <p align="center">
-  <img src="assets/avatar.png" alt="Caccometro avatar" height="200">
-  <img src="assets/demo.gif" alt="Caccometro: a 💩 sent from the phone, the leaderboard gets +1 and a medal" height="200">
+  <img src="assets/avatar.png" alt="Caccometro avatar" width="140">
 </p>
 
-Caccometro is an open source Telegram bot that counts the 💩 of every person in a group (or in a private chat) and challenges friends to see who does the most: monthly and yearly rankings, statistics with charts, personal and group records, trophies, days of "constipation", and a conquest game on the map. It speaks Italian and English.
+<h1 align="center">Caccometro</h1>
+
+<p align="center"><b>Who poops the most? The Telegram bot that counts the 💩 of your group.</b></p>
+
+<p align="center"><b>English</b> · <a href="README.it.md">Italiano</a></p>
+
+Done your duty? Send 💩 in the group. Caccometro keeps the count for everyone and turns it into a game among friends:
+
+- 🏆 **Leaderboards** of the month and of the year, with a forecast for the end of the month
+- 📊 **Statistics and charts**: averages, the typical day, who is the most regular
+- 🏅 **Records and trophies**: streaks, the 💩 of the month and of the year
+- 🚩 **Conquest game**: send a location after the 💩 and the hexagon on the map is yours, season after season
+- 📱 **Mini App**: map, leaderboards, statistics and trophies in one place, opened from the chat
+- 🌍 Italian and English, open source
 
 - [How to use it](#-how-to-use-it)
 - [Commands](#-commands)
@@ -22,11 +30,15 @@ Caccometro is an open source Telegram bot that counts the 💩 of every person i
 
 ## 💬 How to use it
 
+<p align="center"><img src="docs/images/how_the_bot_works.svg" alt="How Caccometro works: you send 💩, the bot counts it, you conquer a hexagon with a location, you compare leaderboards and statistics, at midnight on the 1st the 💩 of the month is announced" width="600"></p>
+
 1. Add the bot to the group and send `/start`.
 2. When you have done your duty, send a message with 💩 or 🚽 (also as a sticker): the bot replies with a funny sentence (it changes with the time of day and with the count of the day), today's count and a reminder to send your location.
 3. Within 15 minutes of the 💩, send a location (📎 → Location) to conquer its tile: see [Conquest game](#-conquest-game).
 4. Use the commands below for rankings, statistics and records.
 5. The bot speaks Italian; for English an admin sends `/language en` (in a private chat anybody can).
+
+<p align="center"><img src="assets/demo.gif" alt="Caccometro: a 💩 sent from the phone, the leaderboard gets +1 and a medal" width="260"></p>
 
 ---
 

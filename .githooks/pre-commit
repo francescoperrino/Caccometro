@@ -20,9 +20,10 @@ ${py:-python} -m pytest -q -p no:cacheprovider > /dev/null 2>&1 || {
     exit 1
 }
 
-# The README charts are drawn by the bot's own code: redraw them, refuse the commit if they changed (#143)
+# The README charts and the documentation infographics carry the bot version: redraw them, refuse the commit if they changed (#143, #194)
 ${py:-python} tools/sample_charts.py > /dev/null || exit 1
-if ! git diff --quiet -- assets/screenshots || [ -n "$(git ls-files --others --exclude-standard -- assets/screenshots)" ]; then
-    echo "pre-commit: the README charts changed with the code. Check and stage them: git add assets/screenshots" >&2
+${py:-python} tools/draw_infographics.py > /dev/null || exit 1
+if ! git diff --quiet -- assets/screenshots docs/images || [ -n "$(git ls-files --others --exclude-standard -- assets/screenshots docs/images)" ]; then
+    echo "pre-commit: the README charts or the infographics changed. Check and stage them: git add assets/screenshots docs/images" >&2
     exit 1
 fi
