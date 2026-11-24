@@ -4,15 +4,17 @@ import hmac
 import json
 import os
 import time
+from datetime import date, datetime, timedelta
 from urllib.parse import parse_qsl
 
 import h3
 from telegram.constants import ChatMemberStatus
 
 from caccometro import database, maps
-from caccometro.config import now_rome
+from caccometro.analysis import FORECAST_WINDOW_DAYS, analyze_group, analyze_user, forecast_totals, period_statistics, regularity
+from caccometro.config import ROME_TZ, now_rome, period_bounds
 from caccometro.conquest import holdings, mention_of
-from caccometro.trophies import season_of, season_results
+from caccometro.trophies import season_of, season_results, trophies_by_user
 
 SHORT_NAME = 'app'          # short name given to /newapp on BotFather, the same on both bots
 MAX_AGE_SECONDS = 24 * 3600  # older initData is refused: a copied link stops working after a day
@@ -96,8 +98,75 @@ def conquest_data(timed, users):
     names = {user_id: mention_of(users, user_id) for user_id in {user_id for user_id, _ in history} | set(users)}
     season = season_of(now_rome().date())
     result = season_results(timed).get(season)
-    return {'levels': levels, 'names': names, 'king': king,
+    return {'levels': levels, 'names': names, 'king': king, 'seasons': season_boards(timed),
             'ranking': [{'user': user_id, 'held': held} for user_id, held in
                         sorted(counts.items(), key=lambda item: (-item[1], item[0] != king))],
             'season': None if result is None else {'year': season[0], 'quarter': season[1], 'conquests': result.conquests,
                                                    'conquerors': result.conquerors, 'king': result.king}}
+
+
+def plain(value):
+    """Records and trophies ready for JSON: dates as 'YYYY-MM-DD', named tuples (Record, Period...) as objects."""
+    if isinstance(value, date):
+        return value.isoformat()
+    if hasattr(value, '_asdict'):
+        return {key: plain(item) for key, item in value._asdict().items()}
+    if isinstance(value, (list, tuple)):
+        return [plain(item) for item in value]
+    return value
+
+
+def records_data(rows_by_user, today, timed):
+    """Records of the group and of each person, and everyone's trophies (#190): what /records and /trophies show."""
+    people = {user_id: analyze_user(rows, today) for user_id, rows in rows_by_user.items() if any(c > 0 for _, c in rows)}
+    return {'group': plain(analyze_group(rows_by_user, today)),
+            'people': {user_id: plain(records) for user_id, records in people.items()},
+            'trophies': {user_id: {**plain(trophies), 'streak_trophies': trophies.streak_trophies}
+                         for user_id, trophies in trophies_by_user(rows_by_user, today, timed).items()}}
+
+
+def period_data(chat_id, time_period, period, today):
+    """Leaderboard with the forecast and statistics of a month ('MM-YYYY') or year ('YYYY'), like the commands (#190).
+
+    'daily' carries the counts of every day for the charts drawn by the page.
+    """
+    start, end = period_bounds(time_period, period)
+    rank = database.get_rank(chat_id, time_period, period)
+    daily = database.get_daily_counts_between(chat_id, start, end)
+    forecast = {}
+    if rank and start <= today.isoformat() <= end:  # ongoing period, as in leaderboard_command
+        recent = database.get_daily_counts_between(
+            chat_id, (today - timedelta(days=FORECAST_WINDOW_DAYS - 1)).isoformat(), today.isoformat())
+        forecast = forecast_totals({user.user_id: total for user, total in rank}, recent, today, end)
+    statistics = period_statistics(daily, database.get_users(chat_id), start, end, today)
+    # regularity on whole days only: from the first 💩 of the person (not before they joined) to yesterday
+    first_days = database.get_first_days(chat_id)
+    last = min(date.fromisoformat(end), today - timedelta(days=1))
+
+    def steadiness(user_id):
+        first = max(date.fromisoformat(start), date.fromisoformat(first_days.get(user_id, start)))
+        days = [(first + timedelta(days=i)).isoformat() for i in range((last - first).days + 1)]
+        return regularity([daily.get(user_id, {}).get(day, 0) for day in days])
+    return {'start': start, 'end': end, 'today': today.isoformat(), 'daily': daily,
+            'leaderboard': [{'user': user.user_id, 'total': total, 'forecast': forecast.get(user.user_id)}
+                            for user, total in rank],
+            'statistics': [{'user': s['user'].user_id, 'mean': s['mean'], 'median': float(s['median']),
+                            'variance': s['variance'], 'regularity': steadiness(s['user'].user_id)} for s in statistics]}
+
+
+def season_boards(timed):
+    """Every season with a conquest, oldest first (#190): the conquests each member made in it, stolen tiles included
+    (the rule of the conqueror title), and the tiles each one held at its end (now, for the current season), with its king."""
+    conquered, last, owners = {}, {}, {}
+    for i, (user_id, ts, cell) in enumerate(timed):
+        season = season_of(datetime.fromtimestamp(ts, ROME_TZ).date())
+        last[season] = i
+        counts = conquered.setdefault(season, {})
+        if owners.get(cell) != user_id:   # taking a tile you already own is not a conquest
+            owners[cell] = user_id
+            counts[user_id] = counts.get(user_id, 0) + 1
+    boards = []
+    for season in sorted(last):
+        held, king = holdings([(user_id, cell) for user_id, _, cell in timed[:last[season] + 1]])
+        boards.append({'year': season[0], 'quarter': season[1], 'conquests': conquered[season], 'held': held, 'king': king})
+    return boards

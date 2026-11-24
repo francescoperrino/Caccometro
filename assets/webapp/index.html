@@ -6,45 +6,217 @@
 <title>Caccometro</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js" integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG" crossorigin="anonymous"></script>
 <style>
-  :root { --bg: #17171a; --card: #222226; --chip: #26262b; --text: #f4f1ec; --hint: #a7a29a; --accent: #f2b84b; --on-accent: #1d1710; }
+  /* The colours of the bot's chart images (charts.py): warm tiles, cream cards, the denim of the avatar */
+  :root { --bg: #f3e4d0; --card: #fffaf3; --chip: #ead7bd; --text: #3b2a1e; --hint: #7a6a5c; --grid: #eadccb;
+          --accent: #2f4f8f; --on-accent: #fffaf3; }
+  *, *::before, *::after { box-sizing: border-box; }
   html, body { height: 100%; }
-  body { margin: 0; font-family: Nunito, system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  body { margin: 0; font-family: Nunito, system-ui, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
   #main { height: 100%; }
   .hint { color: var(--hint); padding: 16px; }
-  .app { height: 100%; display: flex; flex-direction: column; }
-  .pane { flex: 1; min-height: 0; padding: 20px 16px 0; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+  .pane .hint { padding: 0; margin: 0; font-size: 14px; }
+  .app { position: relative; height: 100%; display: flex; flex-direction: column; }
+  :root { --safe-bottom: max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)); --dock: calc(84px + var(--safe-bottom)); }  /* room the floating dock takes at the bottom */
+  .pane { flex: 1; min-height: 0; padding: 20px 16px var(--dock); display: flex; flex-direction: column; gap: 12px;
+          overflow-y: auto; overflow-x: hidden; }
   h1 { font-size: 26px; font-weight: 800; line-height: 1.1; margin: 0; }
+  h2 { font-size: 18px; font-weight: 800; margin: 8px 0 0; }
   button { font-family: inherit; color: inherit; }
   .pane[hidden] { display: none; }
   .pane.map { padding: 0; gap: 0; overflow: hidden; }
   .pane.map h1 { padding: 20px 16px 12px; }
+  .pane.map > .hint { padding: 0 16px; }
   .mapwrap { position: relative; flex: 1; min-height: 0; }
-  .chips { position: absolute; z-index: 1000; left: 0; right: 0; top: 0; display: flex; gap: 8px; padding: 12px; overflow-x: auto; pointer-events: none; }
-  .chips button { pointer-events: auto; }
-  .chips button { flex: none; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--bg); font-size: 15px;
-                  font-weight: 700; box-shadow: 0 2px 8px rgba(0, 0, 0, .4); cursor: pointer; }
-  .chips button.on { background: var(--accent); color: var(--on-accent); font-weight: 800; }
+  .mapwrap .leaflet-bottom { bottom: var(--dock); }  /* zoom buttons and credits above the dock */
+  .seg { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--chip); flex: none; }
+  .seg button { flex: 1; min-height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .seg button.on { background: var(--accent); color: var(--on-accent); font-weight: 800; }
+  .tabs { display: flex; flex: none; border-bottom: 2px solid var(--grid); }
+  .tabs button { flex: 1; min-height: 44px; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; background: none;
+                 color: var(--hint); font-size: 16px; font-weight: 800; cursor: pointer; }
+  .tabs button.on { color: var(--accent); border-bottom-color: var(--accent); }
+  .period .seg { flex: none; }
+  .period .seg button { min-height: 32px; padding: 0 12px; font-size: 14px; }
+  .period { display: flex; align-items: center; gap: 6px; flex: none; }
+  .period .arrow:disabled { opacity: .35; cursor: default; }
+  .period .label { flex: 1; min-width: 0; text-align: center; font-weight: 800; white-space: nowrap; }
+  .card { background: var(--card); border-radius: 16px; padding: 12px 10px 8px; flex: none; }
+  .chart { position: relative; }
+  .charttitle { color: var(--hint); font-size: 15px; padding: 2px 6px 8px; }
+  .dot { display: inline-block; flex: none; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
+  .period .arrow { flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--card); font-size: 20px; font-weight: 800; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   #map { position: absolute; inset: 0; }
-  .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
-  .row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 14px; border: 0; border-radius: 16px;
-         background: var(--card); font-size: 16px; font-weight: 700; text-align: left; cursor: pointer; }
-  .row .n { width: 24px; font-size: 18px; font-weight: 800; color: #c9c5bd; }
-  .row .grow { flex: 1; } .row .count { font-weight: 800; }
-  .season { background: #2a2417; color: #e9d8b4; border-radius: 16px; padding: 12px 14px; font-size: 14px; line-height: 1.4; }
-  nav { display: flex; border-top: 1px solid #2c2c31; background: #1d1d21; padding: 6px 8px 12px; }
-  nav button { flex: 1; min-height: 56px; border: 0; background: transparent; color: var(--hint); font-size: 13px; font-weight: 700;
-               display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; }
+  .overmap { position: absolute; z-index: 1000; top: 12px; left: 12px; right: 12px; pointer-events: none; }
+  /* the table of the chart images: denim header band, rows tinted with the person's colour */
+  .board { width: 100%; flex: none; border-collapse: separate; border-spacing: 0 3px; table-layout: fixed; font-variant-numeric: tabular-nums; }
+  .board th { background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 800; height: 36px; padding: 0 8px; text-align: right; }
+  .board th:first-child, .board td:first-child { border-radius: 10px 0 0 10px; } .board th:last-child { border-radius: 0 10px 10px 0; }
+  .board td { height: 44px; padding: 0 8px; text-align: right; font-size: 16px; font-weight: 800;
+              background: color-mix(in srgb, var(--tint) 12%, var(--card)); }
+  .board td:last-child { border-radius: 0 10px 10px 0; }
+  .board .who { width: auto; text-align: left; }
+  .board td.who { background: color-mix(in srgb, var(--tint) 40%, var(--card)); font-weight: 700; }
+  .board td.who span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sheet { background: var(--card); border-radius: 16px; padding: 0 16px; flex: none; }
+  .item { padding: 12px 0; border-top: 1px solid var(--grid); overflow-wrap: anywhere; }
+  .item:first-child { border-top: 0; }
+  .item .what, .tile .what { color: var(--hint); font-size: 14px; font-weight: 700; }
+  .item .value { font-size: 24px; line-height: 1.15; font-weight: 800; margin-top: 2px; }
+  .item .detail { font-size: 15px; line-height: 1.45; margin-top: 2px; }
+  .item .detail b { font-weight: 800; }
+  .item .when, .item .detail { color: var(--text); } .item .when { color: var(--hint); font-size: 13px; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; flex: none; overflow: hidden; border-radius: 18px;
+           background: var(--grid); border: 1px solid var(--grid); box-shadow: var(--solid-lift); }  /* the gaps draw the hairlines */
+  .tile { background: var(--card); padding: 12px 14px; }
+  .tile .value { font-size: 22px; font-weight: 800; }
+  /* ---- Liquid glass, the same everywhere: warm light behind, frosted cream surfaces, the chosen thing is a clear lens */
+  :root { --glass: rgba(255, 250, 243, .62); --glass-strong: rgba(255, 250, 243, .82); --edge: rgba(255, 255, 255, .75);
+          --lift: inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 1px rgba(59, 42, 30, .05), 0 6px 20px rgba(59, 42, 30, .10);
+          --lens: linear-gradient(180deg, rgba(255, 255, 255, .92), rgba(255, 250, 243, .6));
+          --lens-lift: inset 0 1px 0 #fff, inset 0 -2px 4px rgba(47, 79, 143, .10), 0 2px 8px rgba(59, 42, 30, .14);
+          --solid-lift: 0 1px 2px rgba(59, 42, 30, .08); --track: rgba(59, 42, 30, .06); --others: #cbbca9; --header: #2f4f8f;
+          --scrim: rgba(59, 42, 30, .25);
+          /* the chart colours of charts.py */
+          --ink-surface: #fffaf3; --ink-text: #3b2a1e; --ink-muted: #7a6a5c; --ink-grid: #eadccb; --ink-fine: #f1e8dc; --ink-half: #dccbb5; --ink-major: #b8a48c; }
+  /* Telegram in dark mode: the same palette on warm dark surfaces; the denim gets lighter to stay readable */
+  html.dark { --bg: #1d1814; --card: #2a231d; --chip: #3a3029; --text: #f3e4d0; --hint: #b3a391; --grid: #3a3029;
+              --accent: #8fb0f0; --on-accent: #1d1814;
+              --glass: rgba(42, 35, 29, .62); --glass-strong: rgba(42, 35, 29, .84); --edge: rgba(255, 255, 255, .12);
+              --lift: inset 0 1px 0 rgba(255, 255, 255, .10), 0 6px 20px rgba(0, 0, 0, .35);
+              --lens: linear-gradient(180deg, rgba(255, 255, 255, .20), rgba(255, 255, 255, .07));
+              --lens-lift: inset 0 1px 0 rgba(255, 255, 255, .25), 0 2px 8px rgba(0, 0, 0, .4);
+              --solid-lift: 0 1px 2px rgba(0, 0, 0, .3); --track: rgba(243, 228, 208, .08); --others: #5c4f42; --header: #3a5ea8;
+              --scrim: rgba(0, 0, 0, .5);
+              --ink-surface: #2a231d; --ink-text: #f3e4d0; --ink-muted: #b3a391; --ink-grid: #3a3029; --ink-fine: #312923; --ink-half: #4a3f35; --ink-major: #6b5c4d;
+              color-scheme: dark; }
+  .app { background: var(--bg); }
+  /* glass only on the controls (Apple: never on the content layer); content sits on solid surfaces */
+  .card, .sheet, .podium .step, .ranks, .more { background-color: var(--card); border: 1px solid var(--grid); box-shadow: var(--solid-lift); }
+  .seg, .period .arrow, .chooser, .panel, .mapwrap .leaflet-bar {
+    background-color: var(--glass); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%);
+    border: 1px solid var(--edge); box-shadow: var(--lift); }
+  .card, .sheet, .ranks, .more { border-radius: 18px; }  /* the podium 24, lists and sheets 18, small parts 12 */
+  .seg button.on { background: var(--lens); box-shadow: var(--lens-lift); color: var(--accent); border-color: transparent; }
+  .board th { background: var(--header); }
+  .board td { background: color-mix(in srgb, var(--tint) 12%, var(--card)); }
+  .board td.who { background: color-mix(in srgb, var(--tint) 20%, var(--card)); box-shadow: inset 5px 0 0 var(--tint); }  /* the colour as a stripe: the name stays easy to read */
+  .mapwrap .leaflet-bar { border-radius: 16px; overflow: hidden; }
+  .mapwrap .leaflet-bar a { background: transparent; color: var(--accent); border-color: var(--edge); }
+  .mapwrap .leaflet-control-attribution { background: var(--glass); border-radius: 8px 0 0 0; }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .seg, .period .arrow, .chooser, .panel, nav { background-color: var(--card); } }
+  @media (prefers-reduced-transparency: reduce) { .seg, .period .arrow, .chooser, .panel, nav { background-color: var(--card); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+  /* ---- the podium: the first three big, the leader in the middle and higher */
+  .podium { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 8px; align-items: end; flex: none; }
+  .podium .step { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding: 12px 6px 14px;
+                  border-radius: 24px; cursor: pointer; font: inherit; color: var(--text);
+                  box-shadow: var(--solid-lift), inset 0 -5px 0 var(--tint); }  /* the person's colour as the base of the step */
+  .podium .p0 { padding-top: 18px; padding-bottom: 22px; }
+  .podium .medal { font-size: 26px; line-height: 1; }
+  .podium .p0 .medal { font-size: 34px; }
+  .podium .name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 700; }
+  .podium .big { font-size: 24px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .podium .p0 .big { font-size: 30px; }
+  .podium .note { font-size: 12px; color: var(--hint); font-weight: 700; text-align: center; }
+  /* ---- the compact list: position, name, one number */
+  .ranks { display: flex; flex-direction: column; padding: 4px 0; flex: none; overflow: hidden; }
+  .rank, .record { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 6px 16px; border: 0;
+                   border-top: 1px solid var(--grid); background: none; font: inherit; color: var(--text); text-align: left; cursor: pointer; }
+  .ranks > :first-child { border-top: 0; }
+  .rank { box-shadow: inset 4px 0 0 var(--tint, transparent); }
+  .rank.on { background: color-mix(in srgb, var(--accent) 12%, var(--card)); }
+  .rank .pos { width: 22px; flex: none; color: var(--hint); font-weight: 800; text-align: center; }
+  .rank .name, .record .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 700; }
+  .rank .num, .record .num { flex: none; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .record .emoji { flex: none; font-size: 22px; }
+  .record .grow { display: flex; flex-direction: column; white-space: normal; }
+  .record .what { font-size: 13px; color: var(--hint); font-weight: 700; }
+  .record .who { font-size: 16px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .all { flex: none; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px;
+         background: conic-gradient(#a0561e 0 25%, #e0902b 0 50%, #2aa3e0 0 75%, #4caf50 0); }  /* everyone: a dot of many colours */
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; padding: 0 4px; list-style: none; flex: none;
+            color: var(--hint); font-size: 13px; font-weight: 700; }  /* small: it explains, it is not the content */
+  .answer { margin: 0; font-size: 17px; line-height: 1.35; flex: none; }
+  .bars { display: flex; flex-direction: column; gap: 2px; flex: none; }
+  .bar { display: grid; grid-template-columns: 38% 1fr auto; align-items: center; gap: 10px; min-height: 40px; padding: 0 4px;
+         border: 0; background: none; font: inherit; color: var(--text); text-align: left; cursor: pointer; }
+  .bar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 700; }
+  .bar .track { height: 14px; border-radius: 7px; background: var(--track); }
+  .bar .fill { display: block; height: 100%; border-radius: 7px; background: var(--others); }
+  .bar.me .fill { background: var(--tint); }
+  .bar.me .name { font-weight: 800; }
+  .bar .num { min-width: 40px; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .podium .step.me { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .rank.me { background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
+  .you { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--on-accent);
+         font-size: 11px; font-weight: 800; vertical-align: 2px; }
+  .tie { margin-left: 6px; color: var(--hint); font-size: 12px; font-weight: 700; }
+  .progress { height: 8px; margin-top: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
+  .progress span { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+  .item .answer { font-size: 16px; margin-top: 2px; }
+  .overmap { display: flex; gap: 8px; flex-wrap: wrap; }
+  .failed { padding: 24px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .failed .action { align-self: flex-start; padding: 0 20px; }
+  /* the shape of the page while the data arrives */
+  .skeleton { padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .skeleton i { display: block; border-radius: 16px; background: var(--chip); animation: pulse 1.2s ease-in-out infinite alternate; }
+  .skeleton .h { width: 45%; height: 30px; } .skeleton .s { height: 40px; border-radius: 999px; } .skeleton .b { height: 150px; } .skeleton .l { height: 48px; }
+  @keyframes pulse { to { opacity: .45; } }
+  @media (prefers-reduced-motion: reduce) { .skeleton i { animation: none; } }
+  .more .board { width: calc(100% - 16px); }
+  /* ---- what is there only on demand */
+  .more { flex: none; }
+  .more summary { min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 16px; font-weight: 800; color: var(--accent); cursor: pointer; list-style: none; }
+  .more summary::-webkit-details-marker { display: none; }
+  .more summary::before { content: '▸'; transition: transform .2s; }
+  .more[open] summary::before { transform: rotate(90deg); }
+  .more[open] { padding-bottom: 12px; }
+  .more > :not(summary) { margin: 0 8px 8px; }
+  .more .card { box-shadow: none; border: 0; background: var(--bg); }
+  /* ---- the chooser over the map and the sheet that slides up */
+  .overmap .chooser { pointer-events: auto; }
+  .chooser { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; min-height: 44px; padding: 0 16px; border-radius: 999px;
+             font: inherit; font-size: 16px; font-weight: 800; color: var(--text); cursor: pointer; background-color: var(--glass-strong); }
+  .chooser .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chooser .chev { color: var(--accent); margin-left: 6px; }
+  .backdrop { position: absolute; inset: 0; z-index: 1002; display: flex; align-items: flex-end; background: var(--scrim); }
+  .backdrop[hidden] { display: none; }
+  .panel { width: 100%; max-height: 85%; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+           padding: 16px 16px calc(20px + var(--safe-bottom)); border-radius: 28px 28px 0 0; background-color: var(--glass-strong);
+           animation: rise .28s cubic-bezier(.3, 1.2, .5, 1); }
+  @keyframes rise { from { transform: translateY(40px); opacity: 0; } }
+  .panelhead { display: flex; align-items: center; gap: 4px; }
+  .panelhead h2 { flex: 1; margin: 0; font-size: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .close { width: 44px; height: 44px; flex: none; border: 0; border-radius: 50%; background: var(--track); color: var(--text); font-size: 18px; cursor: pointer; }
+  .action { min-height: 48px; border: 0; border-radius: 12px; background: var(--lens); box-shadow: var(--lens-lift); color: var(--accent);
+            font: inherit; font-weight: 800; cursor: pointer; }
+  @media (prefers-reduced-motion: reduce) { .panel { animation: none; } .more summary::before { transition: none; } }
+  /* The dock: a floating pill of frosted glass, the content scrolls under it; a glass lens slides to the chosen tab */
+  nav { position: absolute; z-index: 1001; left: 12px; right: 12px; bottom: calc(10px + var(--safe-bottom));
+        display: flex; padding: 6px; border-radius: 30px;
+        background: var(--glass); -webkit-backdrop-filter: blur(18px) saturate(180%); backdrop-filter: blur(18px) saturate(180%);
+        border: 1px solid var(--edge); box-shadow: var(--lift); }
+  nav .lens { position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc((100% - 12px) / 4); border-radius: 24px;
+              background: var(--lens); box-shadow: var(--lens-lift);
+              transition: transform .35s cubic-bezier(.3, 1.4, .5, 1); }
+  nav button { position: relative; flex: 1; min-width: 0; min-height: 56px; border: 0; border-radius: 24px; background: transparent;
+               color: var(--hint); font-size: 12px; font-weight: 700; display: flex; flex-direction: column; align-items: center;
+               justify-content: center; gap: 2px; cursor: pointer; transition: color .2s; }
   nav button.on { color: var(--accent); font-weight: 800; }
+  @media (prefers-reduced-motion: reduce) { nav .lens, nav button { transition: none; } }
 </style>
 </head>
 <body>
-<main id="main"><p class="hint">…</p></main>
+<main id="main"><div class="skeleton" aria-label="…"><i class="h"></i><i class="s"></i><i class="b"></i><i class="l"></i><i class="l"></i><i class="l"></i></div></main>
 <script>
 const tg = window.Telegram.WebApp;
 tg.ready();
+tg.expand?.();
 
 // The page follows the language of the chat, like the bot (/language); Italian sentences are the keys
 const EN = {
@@ -53,6 +225,73 @@ const EN = {
   'Qualcosa è andato storto, riprova.': 'Something went wrong, try again.',
   'Mappa': 'Map',
   'Classifica': 'Leaderboard',
+  'Statistiche': 'Statistics',
+  'Trofei': 'Trophies',
+  'a fine anno': 'by year end',
+  'a fine mese': 'by month end',
+  '{n} più di': '{n} more than',
+  'a {n} da': '{n} behind',
+  'Nessuna 💩 in questo periodo. Manda 💩 nel gruppo per entrare in classifica.': 'No 💩 in this period. Send 💩 in the group to join the leaderboard.',
+  'Riprova': 'Try again',
+  'Le mie zone': 'My tiles',
+  'Bacheca': 'Trophy board',
+  'In corso': 'In progress',
+  'oggi è il giorno buono per iniziare una serie': 'today is a good day to start a streak',
+  'giorni al prossimo trofeo': 'days to the next trophy',
+  'mancano': 'still',
+  'con circa': 'with about',
+  'A questo ritmo finisci': 'At this pace you finish',
+  'Tu sei': 'You are',
+  'con': 'with',
+  'Sei in testa': 'You are leading',
+  'pari': 'tie',
+  'ancora pochi dati': 'not enough data yet',
+  'a sbalzi': 'up and down',
+  'abbastanza regolare': 'fairly regular',
+  'molto regolare': 'very regular',
+  'tu': 'you',
+  'come vai': 'how you go',
+  'in un giorno tipico': 'on a typical day',
+  'nel gruppo': 'in the group',
+  'al giorno, in media': 'per day, on average',
+  'In testa': 'Leading',
+  'Conquiste della stagione, anche rubate: il primo è stato il conquistatore. 👑 chi teneva più zone a fine stagione, il re.': 'Conquests of the season, stolen ones included: the first was the conqueror. 👑 whoever held the most tiles at the end, the king.',
+  'Conquiste di questa stagione, anche rubate: chi ne fa di più è il conquistatore. 👑 chi tiene più zone, il re.': 'Conquests of this season, stolen ones included: whoever makes the most is the conqueror. 👑 whoever holds the most tiles, the king.',
+  'Stagione successiva': 'Next season',
+  'Stagione precedente': 'Previous season',
+  'zone a fine stagione': 'tiles at the end of the season',
+  'zone tenute ora': 'tiles held now',
+  'Totale': 'Total',
+  'Chi vuoi vedere sulla mappa?': 'Who do you want to see on the map?',
+  'Di chi vuoi vedere i record?': 'Whose records do you want to see?',
+  'Gruppo': 'Group',
+  'Chi vuoi vedere?': 'Who do you want to see?',
+  'io': 'me',
+  'Scegli chi vedere sulla mappa': 'Choose who to see on the map',
+  'Ancora nessun trofeo: servono 15 giorni di fila con almeno una 💩.': 'No trophies yet: it takes 15 days in a row with at least one 💩.',
+  'vedile sulla mappa': 'see them on the map',
+  'Chiudi': 'Close',
+  'Di sempre': 'All time',
+  'Dettagli': 'Details',
+  'al giorno': 'per day',
+  'Previsione: a fine periodo, al ritmo degli ultimi 30 giorni.': 'Forecast: at the end of the period, at the pace of the last 30 days.',
+  'Mostra grafico': 'Show chart',
+  'previsione': 'forecast',
+  '💩 al giorno': '💩 per day',
+  'A fine periodo, al ritmo degli ultimi 30 giorni': 'At the end of the period, at the pace of the last 30 days',
+  'Previsione': 'Forecast',
+  'Finora': 'So far',
+  'Varianza': 'Variance',
+  'Mediana': 'Median',
+  'Media': 'Mean',
+  'Zone': 'Tiles',
+  'Persona': 'Person',
+  'Distribuzione giornaliera  (◆ media, — mediana)': 'Daily distribution  (◆ mean, — median)',
+  'Volte al giorno': 'Times per day',
+  'Come è andata giorno per giorno': 'How it went day by day',
+  'Totale progressivo': 'Running total',
+  'Giorni': 'Days',
+  'Giorno': 'Day',
   'Conquiste': 'Conquests',
   'Tutti': 'Everyone',
   'Io': 'Me',
@@ -60,9 +299,36 @@ const EN = {
   'Stagione': 'Season',
   'conquiste': 'conquests',
   'Re': 'King',
-  'tenute': 'held',
-  'perse': 'lost',
   'Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.': 'No tiles conquered. After a 💩 send a location within 15 minutes.',
+  'Mese': 'Month',
+  'Anno': 'Year',
+  'Nessuna 💩 in questo periodo.': 'No 💩 in this period.',
+  '💩 finora → previsione a fine periodo': '💩 so far → forecast at the end of the period',
+  '💩 al giorno: media · mediana · varianza': '💩 per day: mean · median · variance',
+  'Record del gruppo': 'Group records',
+  'Record': 'Records',
+  'Adesso': 'Right now',
+  'Più 💩 in un giorno': 'Most 💩 in a day',
+  'Più 💩 in un mese': 'Most 💩 in a month',
+  'Meno 💩 in un mese': 'Fewest 💩 in a month',
+  'Serie più lunga': 'Longest streak',
+  'Più 💩 in una serie': 'Most 💩 in a streak',
+  'Pausa più lunga': 'Longest pause',
+  'Oggi': 'Today',
+  'Questo mese': 'This month',
+  'Serie in corso': 'Streak in progress',
+  'Serie in corso più lunga': 'Longest streak in progress',
+  'Pausa in corso più lunga': 'Longest pause in progress',
+  'Giorni senza 💩': 'Days without 💩',
+  'giorno': 'day',
+  'giorni': 'days',
+  'Nessun dato disponibile.': 'No data available.',
+  'Ancora nessun trofeo.': 'No trophies yet.',
+  '💩 dell\'anno': '💩 of the year',
+  '💩 del mese': '💩 of the month',
+  '15 giorni di fila': '15 days in a row',
+  'Conquistatore della stagione': 'Season conqueror',
+  'Re della stagione': 'Season king',
 };
 let language = 'it';
 const tr = text => (language === 'en' && EN[text]) || text;
@@ -83,14 +349,19 @@ async function api(path) {
 }
 
 function failed(status) {
-  show(el('p', { className: 'hint' }, tr(status === 403 ? 'Non fai parte di questo gruppo.'
-    : status === 401 ? 'Apri la Mini App dal bot.' : 'Qualcosa è andato storto, riprova.')));
+  show(el('div', { className: 'failed' }, el('p', {}, tr(status === 403 ? 'Non fai parte di questo gruppo.'
+    : status === 401 ? 'Apri la Mini App dal bot.' : 'Qualcosa è andato storto, riprova.')),
+    ...(status === 403 || status === 401 ? [] : [el('button', { className: 'action', onclick: () => location.reload() }, tr('Riprova'))])));
 }
 
-const PALETTE = ['#e5484d', '#3e63dd', '#30a46c', '#f58231', '#911eb4', '#12a594', '#9a6324', '#d6409f'];
+// charts.PALETTE: the colours of the avatar, given to the members sorted by name like in the images
+const PALETTE = ['#a0561e', '#e0902b', '#2aa3e0', '#4caf50', '#7d5ba6', '#c94f3d', '#2f4f8f', '#e0607e'];
+const MEDALS = ['🥇', '🥈', '🥉'];
 const ICONS = {
   map: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
   rank: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
+  stats: '<path d="M3 20h18"/><path d="M4 16l5-6 4 3 7-8"/>',
+  trophies: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"/>',
 };
 
 function icon(name) {
@@ -99,43 +370,171 @@ function icon(name) {
   return svg;
 }
 
+// Days as numbers (days since 1970, UTC) so that the charts and the dates never depend on the time zone of the phone
+const DAY_MS = 86400000;
+const dayNumber = iso => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / DAY_MS;
+const isoOf = n => new Date(n * DAY_MS).toISOString().slice(0, 10);
+const dateText = iso => new Date(dayNumber(iso) * DAY_MS).toLocaleDateString(language, { timeZone: 'UTC' });
+const monthText = (year, month, style = 'long') =>
+  new Date(Date.UTC(year, month - 1, 1)).toLocaleString(language, { month: style, year: 'numeric', timeZone: 'UTC' });
+// a record is reached on dates, months ([year, month]) or runs of days ({start, end})
+const whenText = w => typeof w === 'string' ? dateText(w) : Array.isArray(w) ? monthText(w[0], w[1])
+  : `${dateText(w.start)} – ${dateText(w.end)}`;
+const ordinal = n => language === 'en' ? `#${n}` : `${n}°`;
+const days = n => `${n} ${tr(n === 1 ? 'giorno' : 'giorni')}`;
+const number = (n, digits) => n.toLocaleString(language, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+
+// Colours and grid of charts.py
+const INK = {};
+// Light or dark like Telegram; the chart colours are read from the CSS so the two themes stay in one place
+function applyTheme() {
+  document.documentElement.classList.toggle('dark', tg.colorScheme === 'dark');
+  const css = getComputedStyle(document.documentElement);
+  for (const key of ['surface', 'text', 'muted', 'grid', 'fine', 'half', 'major']) INK[key] = css.getPropertyValue('--ink-' + key).trim();
+  const bg = css.getPropertyValue('--bg').trim();
+  tg.setHeaderColor?.(bg);
+  tg.setBackgroundColor?.(bg);
+  tg.setBottomBarColor?.(bg);
+}
+applyTheme();
+
+// charts.layered_grid: the axis up to `top` rounded up to `roundTo`, a solid line at every power of ten step,
+// a dashed one halfway and, with `fine`, thin lines in between
+function layered(top, roundTo, fine) {
+  const max = Math.max(roundTo, Math.ceil(top / roundTo) * roundTo);
+  const order = 10 ** Math.floor(Math.log10(max));
+  return { max, order, tick: max / order <= 5 ? order / 2 : order, fine };
+}
+
+function stroke(ctx, x1, y1, x2, y2, color, width, dash = []) {
+  ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
+  ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+}
+
+Chart.register({
+  id: 'layeredGrid',  // the grid of layered_grid and fine_vlines, behind the data
+  beforeDatasetsDraw(chart, _, opts) {
+    if (!opts.grid) return;
+    const { ctx, chartArea: a, scales: { x, y } } = chart, g = opts.grid;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(a.left, a.top, a.right - a.left, a.bottom - a.top); ctx.clip();
+    for (const v of opts.xs || []) stroke(ctx, x.getPixelForValue(v), a.top, x.getPixelForValue(v), a.bottom, INK.fine, 0.6);
+    const levels = [...(g.fine ? [[g.fine, [], INK.fine, 0.6]] : []), [g.order / 2, [4, 3], INK.half, 1], [g.order, [], INK.major, 1]];
+    for (const [step, dash, color, width] of levels)
+      for (let i = 0; i * step <= g.max + step / 2; i++) stroke(ctx, a.left, y.getPixelForValue(i * step), a.right, y.getPixelForValue(i * step), color, width, dash);
+    ctx.restore();
+  },
+});
+
+Chart.register({
+  id: 'meanLabels',  // the mean in a rounded box above each curve, joined to the peak by a thin line
+  afterDatasetsDraw(chart, _, { labels }) {
+    if (!labels) return;
+    const { ctx, scales: { x, y } } = chart;
+    ctx.save();
+    ctx.font = 'bold 11px Nunito, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const q of labels) {
+      const px = x.getPixelForValue(q.mean), py = y.getPixelForValue(q.y), text = number(q.mean, 2);
+      const w = ctx.measureText(text).width + 10, h = 18;
+      stroke(ctx, px, y.getPixelForValue(q.peak), px, py + h / 2, q.color, 1);
+      ctx.beginPath(); ctx.roundRect(px - w / 2, py - h / 2, w, h, 5);
+      ctx.fillStyle = INK.surface; ctx.fill(); ctx.setLineDash([]); ctx.lineWidth = 1.5; ctx.strokeStyle = q.color; ctx.stroke();
+      ctx.fillStyle = INK.text; ctx.fillText(text, px, py + 0.5);
+    }
+    ctx.restore();
+  },
+});
+
+Chart.register({
+  id: 'boxParts',  // whiskers, caps, median, mean and outliers on the floating bars of the box plot
+  afterDatasetsDraw(chart, _, { boxes }) {
+    if (!boxes) return;
+    const { ctx, scales: { y } } = chart;
+    ctx.save();
+    chart.getDatasetMeta(0).data.forEach((bar, i) => {
+      const b = boxes[i], half = bar.width / 2, cx = bar.x;
+      stroke(ctx, cx, y.getPixelForValue(b.q1), cx, y.getPixelForValue(b.low), b.color, 2);
+      stroke(ctx, cx, y.getPixelForValue(b.q3), cx, y.getPixelForValue(b.high), b.color, 2);
+      for (const v of [b.low, b.high]) stroke(ctx, cx - half / 2, y.getPixelForValue(v), cx + half / 2, y.getPixelForValue(v), b.color, 2);
+      stroke(ctx, cx - half, y.getPixelForValue(b.median), cx + half, y.getPixelForValue(b.median), INK.text, 2.5);
+      for (const v of b.out) {
+        ctx.beginPath(); ctx.arc(cx, y.getPixelForValue(v), 3.5, 0, 2 * Math.PI);
+        ctx.globalAlpha = 0.7; ctx.fillStyle = b.color; ctx.fill(); ctx.globalAlpha = 1;
+      }
+      const my = y.getPixelForValue(b.mean), d = 6;
+      ctx.beginPath(); ctx.moveTo(cx, my - d); ctx.lineTo(cx + d, my); ctx.lineTo(cx, my + d); ctx.lineTo(cx - d, my); ctx.closePath();
+      ctx.fillStyle = INK.surface; ctx.fill(); ctx.setLineDash([]); ctx.lineWidth = 1.5; ctx.strokeStyle = INK.text; ctx.stroke();
+    });
+    ctx.restore();
+  },
+});
+
 async function openChat(chatId) {
   try {
     const data = await api('/api/chat?chat=' + encodeURIComponent(chatId));
     language = data.language;
-    showConquests(data.conquests);
+    showApp(chatId, data);
   } catch (status) { failed(status); }
 }
 
-function showConquests(c) {
+function showApp(chatId, data) {
+  const c = data.conquests, records = data.records;
   const me = tg.initDataUnsafe.user.id;
-  const ids = Object.keys(c.names).map(Number);
+  const ids = Object.keys(c.names).map(Number)
+    .sort((a, b) => c.names[a].replace('@', '').toLowerCase().localeCompare(c.names[b].replace('@', '').toLowerCase()) || a - b);
   const color = id => PALETTE[Math.max(ids.indexOf(id), 0) % PALETTE.length];
-  const name = id => c.names[id] + (id === c.king ? ' 👑' : '');
+  const plainName = id => c.names[id] || String(id);
+  const name = id => plainName(id) + (id === c.king ? ' 👑' : '');
+  const dot = id => el('span', { className: 'dot', style: 'background:' + color(id) });
   const tiles = c.levels[7];
-  if (!tiles.length) return show(el('p', { className: 'hint' }, tr('Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.')));
 
-  let person = null, map = null, layer = null;
   const mapPane = el('div', { className: 'pane map' });
   const rankPane = el('div', { className: 'pane' });
+  const statsPane = el('div', { className: 'pane' });
+  const trophiesPane = el('div', { className: 'pane' });
+  const panes = { map: mapPane, rank: rankPane, stats: statsPane, trophies: trophiesPane };
   const nav = el('nav');
-  const mapDiv = el('div', { id: 'map' });
-  const chips = el('div', { className: 'chips' });
+
+  const TABS = [['map', 'Mappa'], ['rank', 'Classifica'], ['stats', 'Statistiche'], ['trophies', 'Trofei']];
+  const lens = el('span', { className: 'lens' });
+  const tabButtons = TABS.map(([id, label]) => el('button', { onclick: () => go(id) }, icon(id), tr(label)));
+  nav.append(lens, ...tabButtons);
 
   function go(tab) {
-    mapPane.hidden = tab !== 'map';
-    rankPane.hidden = tab !== 'rank';
-    nav.replaceChildren(...[['map', 'Mappa'], ['rank', 'Classifica']].map(([id, label]) =>
-      el('button', { className: id === tab ? 'on' : '', onclick: () => go(id) }, icon(id), tr(label))));
-    if (tab === 'map') { map ? map.invalidateSize() : startMap(); }
+    for (const [id, pane] of Object.entries(panes)) pane.hidden = id !== tab;
+    const index = TABS.findIndex(([id]) => id === tab);
+    tabButtons.forEach((button, i) => { button.className = i === index ? 'on' : ''; button.ariaCurrent = i === index ? 'page' : null; });
+    lens.style.transform = `translateX(${index * 100}%)`;
+    if (tab === 'map' && tiles.length) { map ? map.invalidateSize() : startMap(); }
+    // dragging the map down must not close the Mini App
+    tab === 'map' ? tg.disableVerticalSwipes?.() : tg.enableVerticalSwipes?.();
+    tick();
   }
 
-  function pick(id) { person = id; drawChips(); fit(); draw(); }
-  // The names float over the map: everyone, me, then the other members
-  function drawChips() {
-    const chip = (id, label) => el('button', { className: person === id ? 'on' : '', onclick: () => pick(id) },
-      ...(id ? [el('span', { className: 'dot', style: 'background:' + color(id) })] : []), label);
-    chips.replaceChildren(chip(null, tr('Tutti')), chip(me, tr('Io')), ...ids.filter(id => id !== me).map(id => chip(id, c.names[id])));
+  // a light tick when the user changes tab, period, person or view (Telegram: selection changes only)
+  const tick = () => tg.HapticFeedback?.selectionChanged();
+
+  // A row of buttons with one selected: [[value, label]], the selected value, what to do on a tap
+  function seg(options, selected, onPick, className = 'seg') {
+    const pickIt = onPick;
+    onPick = value => { tick(); pickIt(value); };
+    return el('div', { className }, ...options.map(([value, label]) =>
+      el('button', { className: value === selected ? 'on' : '', onclick: () => onPick(value) }, label)));
+  }
+
+  // ---------------------------------------------------------------- map (#189)
+
+  let owner = null;  // the person the map shows; null: the whole group
+  let map = null, layer = null;
+  const mapDiv = el('div', { id: 'map' });
+  const mapPicker = el('div', { className: 'overmap' });
+
+  // Show one person (or null: everyone) on the map
+  function pick(id) {
+    owner = id;
+    tick();
+    mapPicker.replaceChildren(...mapControls());
+    if (map) { fit(); draw(); }
   }
 
   // The hexagons grow with the zoom out like the maps of /conquests: zoom 10 shows the tiles, each step out the next resolution
@@ -144,21 +543,21 @@ function showConquests(c) {
     const res = Math.max(1, Math.min(7, Math.round(map.getZoom()) - 3));
     for (const tile of c.levels[res]) {
       let style;
-      if (!person) style = { color: color(tile.owner), fillColor: color(tile.owner), fillOpacity: 0.5, weight: 1 };
+      if (!owner) style = { color: color(tile.owner), fillColor: color(tile.owner), fillOpacity: 0.5, weight: 1 };
       else {
-        const seen = tile.seen[person];
+        const seen = tile.seen[owner];
         if (!seen) continue;
-        const share = (tile.held[person] || 0) / seen;  // how much of what the member conquered inside is still held
-        style = share ? { color: color(person), fillColor: color(person), fillOpacity: 0.15 + 0.45 * share, weight: 1 }
-          : { color: color(person), fillOpacity: 0.05, weight: 1, dashArray: '4' };
+        const share = (tile.held[owner] || 0) / seen;  // how much of what the member conquered inside is still held
+        style = share ? { color: color(owner), fillColor: color(owner), fillOpacity: 0.12 + 0.38 * share, weight: 1 }  // all held = 0.5, the shade of 'Tutti'
+          : { color: color(owner), fillOpacity: 0.05, weight: 1, dashArray: '4' };
       }
       // an element, not a string: Leaflet writes strings as HTML and names are chosen by users
-      L.polygon(tile.outline, style).bindTooltip(el('span', {}, name(tile.owner))).addTo(layer);
+      L.polygon(tile.outline, style).bindTooltip(el('span', {}, name(tile.owner))).on('click', () => openPerson(tile.owner)).addTo(layer);
     }
   }
 
   function fit() {
-    const corners = tiles.filter(tile => !person || tile.seen[person]).flatMap(tile => tile.outline);
+    const corners = tiles.filter(tile => !owner || tile.seen[owner]).flatMap(tile => tile.outline);
     if (corners.length) map.fitBounds(L.latLngBounds(corners), { maxZoom: 13, padding: [20, 20] });
   }
 
@@ -173,17 +572,441 @@ function showConquests(c) {
     draw();
   }
 
-  const season = c.season && el('div', { className: 'season' }, `${tr('Stagione')} ${c.season.year} Q${c.season.quarter}: `
-    + `${c.season.conquests} ${tr('conquiste')} (${c.season.conquerors.map(id => c.names[id]).join(', ')}). ${tr('Re')}: ${c.names[c.season.king]}`);
-  mapPane.append(el('h1', {}, tr('Mappa')), el('div', { className: 'mapwrap' }, mapDiv, chips));
-  rankPane.append(el('h1', {}, tr('Conquiste')),
-    ...c.ranking.map((r, i) => el('button', { className: 'row', onclick: () => { pick(r.user); go('map'); } },
-      el('span', { className: 'n' }, String(i + 1)), el('span', { className: 'dot', style: 'background:' + color(r.user) }),
-      el('span', { className: 'grow' }, name(r.user)), el('span', { className: 'count' }, `${r.held} ${tr('zone')}`))),
-    ...(season ? [season] : []));
-  drawChips();
-  show(el('div', { className: 'app' }, mapPane, rankPane, nav));
+  mapPane.append(el('h1', {}, tr('Mappa')), tiles.length ? el('div', { className: 'mapwrap' }, mapDiv, mapPicker)
+    : el('p', { className: 'hint' }, tr('Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.')));
+
+  // ---------------------------------------------------------------- leaderboard and statistics of a period (#190)
+
+  Chart.defaults.font.family = 'Nunito, system-ui, sans-serif';
+  const today = new Date(dayNumber(data.today) * DAY_MS);
+  const current = { year: today.getUTCFullYear(), month: today.getUTCMonth() + 1 };
+  let period = { ...current }, board = 'poop', charts = [];
+  const cache = {};
+
+  function step(delta) {
+    tick();
+    if (period.month === null) period = { year: period.year + delta, month: null };
+    else {
+      const months = period.year * 12 + period.month - 1 + delta;
+      period = { year: Math.floor(months / 12), month: months % 12 + 1 };
+    }
+    drawPeriod();
+  }
+
+  function periodBar() {
+    const isCurrent = period.year === current.year && (period.month === null || period.month === current.month);
+    return el('div', { className: 'period' }, seg([['month', tr('Mese')], ['year', tr('Anno')]], period.month === null ? 'year' : 'month', kind => {
+        period = { year: period.year, month: kind === 'year' ? null : (period.year === current.year ? current.month : 12) };
+        drawPeriod();
+      }),
+      el('button', { className: 'arrow', onclick: () => step(-1), ariaLabel: '‹' }, '‹'),
+      el('span', { className: 'label' }, period.month === null ? String(period.year) : monthText(period.year, period.month, 'short')),
+      el('button', { className: 'arrow', disabled: isCurrent, onclick: () => step(1), ariaLabel: '›' }, '›'));
+  }
+
+  // ---- charts drawn like the images of the commands (charts.py): same grid, lines, dots and box plot
+
+  function chartBox(title, height, config) {
+    const canvas = el('canvas');
+    charts.push(new Chart(canvas, config));
+    return el('div', { className: 'card' }, ...(title ? [el('div', { className: 'charttitle' }, title)] : []),
+      el('div', { className: 'chart', style: `height:${height}px` }, canvas));
+  }
+
+  // the i-th member by name: colour of the palette, a dashed line from the 9th on (charts.user_style)
+  const dashOf = id => ids.indexOf(id) >= PALETTE.length ? [11, 5] : [];
+  const axisTitle = text => ({ display: true, text: tr(text), color: INK.muted, font: { size: 12 } });
+  const shortName = text => text.length <= 16 ? text : text.slice(0, 15) + '…';  // charts.short_name
+  const percentile = (sorted, q) => {  // linear, like numpy.percentile
+    const at = (sorted.length - 1) * q, low = Math.floor(at);
+    return sorted[low] + (sorted[Math.min(low + 1, sorted.length - 1)] - sorted[low]) * (at - low);
+  };
+
+  function leaderboardChart(p) {
+    const start = dayNumber(p.start), days = dayNumber(p.end) - start + 1;
+    const shown = Math.min(dayNumber(p.today), dayNumber(p.end)) - start + 1;  // days drawn: up to today
+    const year = period.month === null;
+    const top = Math.max(0, ...p.leaderboard.map(r => Math.max(r.total, r.forecast ?? 0)));
+    const step = year ? 100 : 10;
+    const grid = layered(top * 1.05, step, step / 10);  // headroom, thin lines every 💩 (every 10 a year)
+    const datasets = [];
+    for (const id of ids.filter(id => p.leaderboard.some(r => r.user === id))) {
+      const row = p.leaderboard.find(r => r.user === id);
+      let total = 0;
+      const points = [];
+      for (let i = 0; i < shown; i++) points.push({ x: i + 1, y: total += p.daily[id]?.[isoOf(start + i)] || 0 });
+      const last = points.length - 1;
+      datasets.push({ label: plainName(id), data: points, borderColor: color(id), backgroundColor: color(id), borderWidth: 3,
+        borderDash: dashOf(id), borderCapStyle: 'round', borderJoinStyle: 'round',
+        pointRadius: c => c.dataIndex === last ? 5 : 0, pointBorderColor: INK.surface, pointBorderWidth: 2, pointHoverRadius: 5 });
+      if (row.forecast !== null && shown < days) datasets.push({ label: plainName(id) + ' →',
+        data: [{ x: shown, y: total }, { x: days, y: row.forecast }], borderColor: color(id) + 'b3', borderWidth: 3, borderDash: [0.1, 6],
+        borderCapStyle: 'round', pointRadius: [0, 4.5], pointBackgroundColor: INK.surface, pointBorderColor: color(id), pointBorderWidth: 2 });
+    }
+    // a month: a thin line every day; a year: lines at the month starts and the names in the middle of each month
+    const monthStarts = [];
+    for (let i = 0; i < days; i++) if (isoOf(start + i).endsWith('-01')) monthStarts.push(i + 1);
+    const x = year
+      ? { afterBuildTicks: axis => { axis.ticks = monthStarts.map((m, i) => ({ value: (m + (monthStarts[i + 1] || days + 1)) / 2 })); },
+          ticks: { maxRotation: 0, autoSkipPadding: 2, callback: v => new Date((start + v - 1) * DAY_MS).toLocaleString(language, { month: 'short', timeZone: 'UTC' }) } }
+      : { ticks: { stepSize: 1, maxRotation: 0, autoSkipPadding: 6 }, title: axisTitle('Giorno') };
+    return chartBox(tr('Come è andata giorno per giorno'), 320, { type: 'line', data: { datasets },
+      options: { maintainAspectRatio: false, animation: false, interaction: { mode: 'nearest', intersect: false },
+        plugins: { legend: { display: false }, layeredGrid: { grid, xs: year ? monthStarts.slice(1) : [...Array(days).keys()].map(i => i + 1) },
+                   tooltip: { callbacks: { title: items => dateText(isoOf(start + items[0].parsed.x - 1)) } } },
+        scales: { x: { type: 'linear', min: 1, max: days, grid: { display: false }, border: { color: INK.grid }, ...x,
+                       ticks: { color: INK.muted, ...x.ticks } },
+                  y: { min: 0, max: grid.max, grid: { display: false }, border: { display: false },
+                       ticks: { color: INK.muted, stepSize: grid.tick, callback: v => v % grid.tick ? '' : v }, title: axisTitle('Totale progressivo') } } } });
+  }
+
+  function statisticsCharts(p) {
+    const start = dayNumber(p.start);
+    const shown = Math.min(dayNumber(p.today), dayNumber(p.end)) - start + 1;
+    const users = ids.filter(id => p.statistics.some(s => s.user === id));
+    const stat = id => p.statistics.find(s => s.user === id);
+    const counts = Object.fromEntries(users.map(id => [id, [...Array(shown).keys()].map(i => p.daily[id]?.[isoOf(start + i)] || 0)]));
+    const maxCount = Math.max(1, ...users.flatMap(id => counts[id]));
+
+    // Normal curves scaled to the number of days, a dotted line and a label at each mean
+    const curves = [], peaks = [];
+    // the mean labels fit up to 5 people
+    const faded = () => false;
+    const labelled = users.length <= 5;
+    for (const id of users) {
+      const { mean, variance } = stat(id);
+      if (variance <= 0) continue;
+      const pdf = x => Math.exp(-0.5 * (x - mean) ** 2 / variance) / Math.sqrt(2 * Math.PI * variance) * shown;
+      const data = [...Array(200).keys()].map(i => ({ x: i * maxCount / 199, y: pdf(i * maxCount / 199) }));
+      if (faded(id)) { curves.push({ data, borderColor: INK.half, borderWidth: 1.5, pointRadius: 0 }); continue; }
+      curves.push({ data, borderColor: color(id), backgroundColor: color(id) + '0d', fill: 'origin', borderWidth: labelled ? 3 : 2,
+        borderDash: dashOf(id), pointRadius: 0 });
+      curves.push({ data: [{ x: mean, y: 0 }, { x: mean, y: pdf(mean) }], borderColor: color(id), borderWidth: 1.5, borderDash: [1.5, 3], pointRadius: 0 });
+      if (labelled) peaks.push({ mean, peak: pdf(mean), color: color(id) });
+    }
+    // a label that would cover another one moves up (charts.generate_statistics_chart)
+    const top = Math.max(1, ...curves.flatMap(c => c.data.map(point => point.y)));
+    const width = 0.13 * maxCount * 2.2, height = 0.09 * top * 1.6;  // a phone is narrower than the image: bigger boxes in data units
+    const placed = [];
+    for (const q of [...peaks].sort((a, b) => a.peak - b.peak)) {
+      q.y = q.peak + height * 0.6;
+      for (const other of [...placed].sort((a, b) => a.y - b.y)) if (Math.abs(q.mean - other.mean) < width && Math.abs(q.y - other.y) < height) q.y = other.y + height;
+      placed.push(q);
+    }
+    const curveGrid = layered(Math.max(top, ...placed.map(q => q.y)) + height, 5);
+    const curvesChart = chartBox(null, 280, { type: 'line', data: { datasets: curves },
+      options: { maintainAspectRatio: false, animation: false, events: [],
+        plugins: { legend: { display: false }, tooltip: { enabled: false }, meanLabels: { labels: placed },
+                   layeredGrid: { grid: curveGrid, xs: [...Array(maxCount + 1).keys()] } },
+        scales: { x: { type: 'linear', min: 0, max: maxCount, grid: { display: false }, border: { color: INK.grid },
+                       ticks: { color: INK.muted, stepSize: 1 }, title: axisTitle('Volte al giorno') },
+                  y: { min: 0, max: curveGrid.max, grid: { display: false }, border: { display: false },
+                       ticks: { color: INK.muted, stepSize: curveGrid.tick, callback: v => v % curveGrid.tick ? '' : v }, title: axisTitle('Giorni') } } } });
+
+    // Box plot: box = middle half of the days, line = median, diamond = mean, whiskers to 1.5 times the box (matplotlib)
+    const boxes = users.map(id => {
+      const sorted = [...counts[id]].sort((a, b) => a - b);
+      const q1 = percentile(sorted, 0.25), q3 = percentile(sorted, 0.75), reach = 1.5 * (q3 - q1);
+      const inside = sorted.filter(v => v >= q1 - reach && v <= q3 + reach);
+      return { q1, q3, median: percentile(sorted, 0.5), mean: stat(id).mean, low: inside[0], high: inside[inside.length - 1],
+               out: [...new Set(sorted.filter(v => v < q1 - reach || v > q3 + reach))], color: faded(id) ? INK.half : color(id) };
+    });
+    const boxChart = chartBox(tr('Distribuzione giornaliera  (◆ media, — mediana)'), 260, { type: 'bar',
+      data: { labels: users.map(id => shortName(plainName(id))), datasets: [{ data: boxes.map(b => [b.q1, b.q3 === b.q1 ? b.q1 + 0.0001 : b.q3]),
+        backgroundColor: users.map(id => faded(id) ? INK.fine : color(id) + '59'), borderColor: boxes.map(b => b.color), borderWidth: 2, borderSkipped: false,
+        barPercentage: 0.55, categoryPercentage: 1 }] },
+      options: { maintainAspectRatio: false, animation: false, events: [],
+        plugins: { legend: { display: false }, tooltip: { enabled: false }, boxParts: { boxes } },
+        scales: { x: { grid: { display: false }, border: { color: INK.grid }, ticks: { color: INK.text, autoSkip: false, maxRotation: 60 } },
+                  y: { min: -0.3, max: maxCount + 0.6, grid: { color: INK.grid }, border: { display: false },
+                       afterBuildTicks: axis => { axis.ticks = [...Array(maxCount + 1).keys()].map(value => ({ value })); },
+                       ticks: { color: INK.muted },
+                       title: axisTitle('Volte al giorno') } } } });
+    return [curvesChart, boxChart];
+  }
+
+  // ---- the main answer first: a podium for the first three, one number for everyone else, the rest on demand
+
+  // entries: [{ id, value, note, label }] best first, value = what the list ranks by; ties share the position
+  function podium(entries) {
+    const positions = entries.map(e => entries.findIndex(o => o.value === e.value));
+    const tied = i => positions.filter(x => x === positions[i]).length > 1;
+    const you = e => e.id === me ? [el('span', { className: 'you' }, tr('tu'))] : [];
+    const step = (e, i) => el('button', { className: `step p${positions[i]}${e.id === me ? ' me' : ''}`, style: `--tint:${color(e.id)}`, onclick: () => openPerson(e.id) },
+      el('span', { className: 'medal' }, MEDALS[positions[i]] || ''), el('span', { className: 'name' }, e.label || plainName(e.id)), ...you(e),
+      el('span', { className: 'big' }, e.text ?? String(e.value)), ...(e.note ? [el('span', { className: 'note' }, e.note)] : []));
+    const top = entries.slice(0, 3).map(step);
+    const rest = entries.slice(3).map((e, k) => el('button', { className: 'rank' + (e.id === me ? ' me' : ''), style: `--tint:${color(e.id)}`, onclick: () => openPerson(e.id) },
+      el('span', { className: 'pos' }, String(positions[k + 3] + 1)), el('span', { className: 'name' }, e.label || plainName(e.id), ...you(e),
+        ...(tied(k + 3) ? [el('span', { className: 'tie' }, tr('pari'))] : [])),
+      el('span', { className: 'num' }, e.text ?? String(e.value))));
+    // second, first, third: the leader in the middle and higher
+    return [el('div', { className: 'podium' }, ...[top[1], top[0], top[2]].filter(Boolean)), ...(rest.length ? [el('div', { className: 'ranks' }, ...rest)] : [])];
+  }
+
+  // A closed section; its content (charts need a visible box) is built the first time it opens
+  function more(label, build) {
+    const box = el('details', { className: 'more' }, el('summary', {}, label));
+    box.addEventListener('toggle', () => { if (box.open && box.children.length === 1) box.append(...build()); });
+    return box;
+  }
+
+  // The table of the chart images, for the details: a denim header band, every row in its person's colour
+  function scoreboard(columns, rows) {
+    const head = el('tr', {}, el('th', { className: 'who' }, tr('Persona')),
+      ...columns.map(([label, width]) => el('th', { style: `width:${width || 64}px` }, label)));
+    const body = rows.map(row => el('tr', { style: `--tint:${color(row.id)}` },
+      el('td', { className: 'who' }, el('span', {}, plainName(row.id))), ...row.cells.map(cell => el('td', {}, cell))));
+    return el('table', { className: 'board' }, el('thead', {}, head), el('tbody', {}, ...body));
+  }
+
+  // Conquests of a season (who conquered most: the conqueror title) or in total (tiles held now: the map)
+  let conquestView = 'season', seasonIndex = c.seasons.length - 1;
+  function conquestBoard() {
+    if (!c.ranking.length) return [el('p', { className: 'hint' }, tr('Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.'))];
+    const switchView = seg([['season', tr('Stagione')], ['total', tr('Totale')]], conquestView, value => { conquestView = value; drawPeriod(); });
+    if (conquestView === 'total') return [el('div', { className: 'period' }, switchView),
+      ...podium(c.ranking.map(r => ({ id: r.user, value: r.held, label: name(r.user), note: tr('zone tenute ora') })))];
+    const season = c.seasons[seasonIndex], ongoing = seasonIndex === c.seasons.length - 1;
+    const nav_ = el('div', { className: 'period' }, switchView,
+      el('button', { className: 'arrow', disabled: seasonIndex === 0, ariaLabel: tr('Stagione precedente'), onclick: () => { seasonIndex--; drawPeriod(); } }, '‹'),
+      el('span', { className: 'label' }, `${season.year} Q${season.quarter}`),
+      el('button', { className: 'arrow', disabled: ongoing, ariaLabel: tr('Stagione successiva'), onclick: () => { seasonIndex++; drawPeriod(); } }, '›'));
+    const people = Object.keys(season.conquests).map(Number).sort((x, y) => season.conquests[y] - season.conquests[x] || ids.indexOf(x) - ids.indexOf(y));
+    return [nav_, ...podium(people.map(id => ({ id, value: season.conquests[id],
+        label: plainName(id) + (id === season.king ? ' 👑' : ''),
+        note: `${season.held[id] || 0} ${tr(ongoing ? 'zone tenute ora' : 'zone a fine stagione')}` }))),
+      el('p', { className: 'hint' }, tr(ongoing ? 'Conquiste di questa stagione, anche rubate: chi ne fa di più è il conquistatore. 👑 chi tiene più zone, il re.'
+        : 'Conquiste della stagione, anche rubate: il primo è stato il conquistatore. 👑 chi teneva più zone a fine stagione, il re.'))];
+  }
+
+  // "Who leads, where am I, how far from the one above", in one sentence
+  function answer(rows, value, unit) {
+    const first = rows[0], mine = rows.findIndex(row => row.user === me);
+    const bold = text => el('b', {}, text);
+    const gap = (x, y) => Number.isInteger(x - y) ? x - y : number(x - y, 2);
+    if (mine === 0) {
+      const next = rows.find(row => value(row) < value(first));
+      return el('p', { className: 'answer' }, `${tr('Sei in testa')} ${tr('con')} `, bold(unit(value(first))),
+        ...(next ? [`, ${tr('{n} più di').replace('{n}', gap(value(first), value(next)))} `, bold(plainName(next.user))] : []), '.');
+    }
+    const lead = [`${tr('In testa')}: `, bold(plainName(first.user)), ` ${tr('con')} ${unit(value(first))}.`];
+    if (mine < 0) return el('p', { className: 'answer' }, ...lead);
+    const place = rows.findIndex(row => value(row) === value(rows[mine])) + 1;
+    const above = [...rows.slice(0, mine)].reverse().find(row => value(row) > value(rows[mine]));
+    return el('p', { className: 'answer' }, ...lead, ` ${tr('Tu sei')} `, bold(ordinal(place)),
+      ...(above ? [`, ${tr('a {n} da').replace('{n}', gap(value(above), value(rows[mine])))} `, bold(plainName(above.user))] : []), '.');
+  }
+
+  function leaderboardBoard(p) {
+    const mine = p.leaderboard.find(r => r.user === me);
+    // where I would finish at this pace: my place among the forecasts
+    const finish = mine && mine.forecast !== null ? 1 + p.leaderboard.filter(r => r.forecast > mine.forecast).length : 0;
+    return [answer(p.leaderboard, r => r.total, n => `${n} 💩`),
+      ...(finish ? [el('p', { className: 'hint' }, `${tr('A questo ritmo finisci')} ${ordinal(finish)} ${tr('con circa')} ${mine.forecast} 💩.`)] : []),
+      ...podium(p.leaderboard.map(r => ({ id: r.user, value: r.total, text: `${r.total} 💩`,
+      note: r.forecast === null ? '' : `${tr(period.month === null ? 'a fine anno' : 'a fine mese')} ~${r.forecast}` }))),
+      more(tr('Mostra grafico'), () => [leaderboardChart(p), ...(p.leaderboard.some(r => r.forecast !== null)
+        ? [el('p', { className: 'hint' }, tr('Previsione: a fine periodo, al ritmo degli ultimi 30 giorni.'))] : [])])];
+  }
+
+  // How steady someone is, computed by the server (analysis.regularity); null: still too few days
+  const steadiness = s => tr(s.regularity || 'ancora pochi dati');
+
+  function statisticsBoard(p) {
+    const mine = p.statistics.find(s => s.user === me);
+    const place = mine ? p.statistics.findIndex(s => s.mean === mine.mean) + 1 : 0;
+    const top = Math.max(...p.statistics.map(s => s.mean));
+    const tile = (value, label) => el('div', { className: 'tile' }, el('div', { className: 'value' }, value), el('div', { className: 'what' }, label));
+    return [
+      answer(p.statistics, row => row.mean, n => `${number(n, 2)} ${tr('al giorno')}`),
+      ...(mine ? [el('div', { className: 'tiles' }, tile(number(mine.mean, 2), tr('al giorno, in media')), tile(ordinal(place), tr('nel gruppo')),
+        tile(number(mine.median, 0), tr('in un giorno tipico')), tile(steadiness(mine), tr('come vai')))] : []),
+      // one sorted bar per person, the names written on the bars: me in colour, the others in grey
+      el('div', { className: 'bars' }, ...p.statistics.map(s => el('button', { className: 'bar' + (s.user === me ? ' me' : ''), onclick: () => openPerson(s.user) },
+        el('span', { className: 'name' }, plainName(s.user) + (s.user === me ? ` (${tr('tu')})` : '')),
+        el('span', { className: 'track' }, el('span', { className: 'fill', style: `width:${s.mean / top * 100}%;--tint:${color(s.user)}` })),
+        el('span', { className: 'num' }, number(s.mean, 2))))),
+      more(tr('Dettagli'), () => [
+        scoreboard([[tr('Media'), 60], [tr('Mediana'), 66], [tr('Varianza'), 70]],
+          p.statistics.map(s => ({ id: s.user, cells: [number(s.mean, 2), number(s.median, 1), number(s.variance, 2)] }))),
+        ...statisticsCharts(p)])];
+  }
+
+  async function drawPeriod() {
+    const key = `${period.year}-${period.month}`;
+    const switchBoard = seg([['poop', '💩'], ['conquests', tr('Conquiste')]], board, value => { board = value; drawPeriod(); }, 'tabs');
+    const head = () => [el('h1', {}, tr('Classifica')), switchBoard, ...(board === 'poop' ? [periodBar()] : [])];
+    if (!cache[key]) {
+      const loading = () => el('p', { className: 'hint' }, '…');
+      rankPane.replaceChildren(...head(), ...(board === 'poop' ? [loading()] : conquestBoard()));
+      statsPane.replaceChildren(el('h1', {}, tr('Statistiche')), periodBar(), loading());
+      try {
+        cache[key] = await api(`/api/period?chat=${encodeURIComponent(chatId)}&year=${period.year}`
+          + (period.month === null ? '' : `&month=${period.month}`));
+      } catch (status) { return failed(status); }
+      if (key !== `${period.year}-${period.month}`) return;  // another period was picked meanwhile
+    }
+    const p = cache[key];
+    charts.forEach(chart => chart.destroy());
+    charts = [];
+    const empty = () => el('p', { className: 'hint' }, tr('Nessuna 💩 in questo periodo. Manda 💩 nel gruppo per entrare in classifica.'));
+    rankPane.replaceChildren(...head(), ...(board === 'conquests' ? conquestBoard() : !p.leaderboard.length ? [empty()] : leaderboardBoard(p)));
+    statsPane.replaceChildren(el('h1', {}, tr('Statistiche')), periodBar(), ...(!p.statistics.length ? [empty()] : statisticsBoard(p)));
+    if (key === `${current.year}-${current.month}`) drawTrophies();
+  }
+
+  // ---------------------------------------------------------------- trophies and records (#190)
+
+  const poops = n => `${n} 💩`;
+  const METRICS = [['daily', '🥵', 'Più 💩 in un giorno', poops], ['best_month', '🤩', 'Più 💩 in un mese', poops],
+    ['worst_month', '😭', 'Meno 💩 in un mese', poops], ['streak_days', '🥳', 'Serie più lunga', days],
+    ['streak_count', '🫣', 'Più 💩 in una serie', poops], ['gap_days', '🤢', 'Pausa più lunga', days]];
+  const NOW = [['today', '💩', 'Oggi', poops], ['active_streak', '🔥', 'Serie in corso più lunga', days],
+    ['active_gap', '🐢', 'Pausa in corso più lunga', days]];
+  const TROPHIES = [['years', '👑', '💩 dell\'anno'], ['months', '🏅', '💩 del mese'], ['streak_trophies', '🔥', '15 giorni di fila'],
+    ['conqueror', '🚩', 'Conquistatore della stagione'], ['king', '⛰️', 'Re della stagione']];
+  const trophyCount = (t, key) => typeof t[key] === 'number' ? t[key] : t[key].length;
+  const trophyTotal = t => TROPHIES.reduce((sum, [key]) => sum + trophyCount(t, key), 0);
+  const trophyIcons = t => TROPHIES.filter(([key]) => trophyCount(t, key)).map(([key, emoji]) => `${emoji}${trophyCount(t, key)}`).join('  ');
+
+  // One entry of a sheet: what it is (small), the value (big), the details (small)
+  function item(emoji, label, value, detail) {
+    return el('div', { className: 'item' }, el('div', { className: 'what' }, `${emoji} ${label}`), el('div', { className: 'value' }, value),
+      ...(detail ? [el('div', { className: 'detail' }, ...[detail].flat())] : []));
+  }
+  const sheet = items => items.length ? [el('div', { className: 'sheet' }, ...items)] : [];
+  const whens = (list, limit = 3) => list.slice(-limit).reverse().map(whenText).join(', ') + (list.length > limit ? ', …' : '');
+  const seasons = list => [...list].reverse().map(([year, quarter]) => `${year} Q${quarter}`).join(', ');
+
+  // A record of the group in one row: what, who (the first holder, +N on a tie) and the value; a tap opens the holder
+  function recordRows(metrics) {
+    return metrics.filter(([key]) => records.group[key]).map(([key, emoji, label, unit]) => {
+      const leaders = records.group[key], first = leaders.holders[0].key, others = leaders.holders.length - 1;
+      return el('button', { className: 'record', onclick: () => openPerson(first) }, el('span', { className: 'emoji' }, emoji),
+        el('span', { className: 'grow' }, el('span', { className: 'what' }, tr(label)),
+          el('span', { className: 'who' }, plainName(first) + (others ? ` +${others}` : ''))),
+        el('span', { className: 'num' }, unit(leaders.value)));
+    });
+  }
+
+  function personTrophies(t) {
+    if (!t) return [el('p', { className: 'hint' }, tr('Ancora nessun trofeo.'))];
+    const detail = {
+      years: () => [...t.years].reverse().join(', '), months: () => whens(t.months, 6), conqueror: () => seasons(t.conqueror),
+      king: () => seasons(t.king), streak_trophies: () => t.streaks.slice(-3).reverse().map(([run, n]) => `${days(n)}: ${whenText(run)}`).join(', '),
+    };
+    return sheet(TROPHIES.filter(([key]) => trophyCount(t, key)).map(([key, emoji, label]) => item(emoji, tr(label), String(trophyCount(t, key)), detail[key]())));
+  }
+
+  function personRecords(id) {
+    const r = records.people[id], s = r?.status;
+    if (!r) return [el('p', { className: 'hint' }, tr('Nessun dato disponibile.'))];
+    const tile = (label, value) => el('div', { className: 'tile' }, el('div', { className: 'value' }, value), el('div', { className: 'what' }, tr(label)));
+    return [el('div', { className: 'tiles' }, tile('Oggi', poops(s.today_count)), tile('Questo mese', poops(s.month_count)),
+        tile('Serie in corso', days(s.streak_days)), tile('Giorni senza 💩', days(s.gap_days))),
+      el('h2', {}, tr('Record')), ...sheet(METRICS.filter(([key]) => r[key]).map(([key, emoji, label, unit]) =>
+        item(emoji, tr(label), unit(r[key].value), whens(r[key].when))))];
+  }
+
+  // My trophies in progress: how far the next one is (streak, 💩 of the month, conqueror of the season)
+  function inProgress() {
+    const items = [], s = records.people[me]?.status;
+    if (s) {
+      const next = (Math.floor(s.streak_days / 15) + 1) * 15;
+      items.push(el('div', { className: 'item' }, el('div', { className: 'what' }, `🔥 ${tr('15 giorni di fila')}`),
+        el('div', { className: 'value' }, `${s.streak_days} / ${next}`),
+        el('div', { className: 'detail' }, s.streak_days ? `${tr('mancano')} ${next - s.streak_days} ${tr('giorni al prossimo trofeo')}` : tr('oggi è il giorno buono per iniziare una serie')),
+        el('div', { className: 'progress' }, el('span', { style: `width:${s.streak_days % 15 / 15 * 100}%` }))));
+    }
+    const month = cache[`${current.year}-${current.month}`];
+    if (month?.leaderboard.some(r => r.user === me)) items.push(el('div', { className: 'item' },
+      el('div', { className: 'what' }, `🏅 ${tr('💩 del mese')}`), answer(month.leaderboard, r => r.total, n => `${n} 💩`)));
+    const season = c.seasons[c.seasons.length - 1];
+    if (season && season.conquests[me]) items.push(el('div', { className: 'item' },
+      el('div', { className: 'what' }, `🚩 ${tr('Conquistatore della stagione')} ${season.year} Q${season.quarter}`),
+      answer(Object.keys(season.conquests).map(Number).sort((x, y) => season.conquests[y] - season.conquests[x]).map(user => ({ user, n: season.conquests[user] })),
+        row => row.n, n => `${n} ${tr('conquiste')}`)));
+    return items.length ? [el('h2', {}, tr('In corso')), el('div', { className: 'sheet' }, ...items), el('h2', {}, tr('Bacheca'))] : [];
+  }
+
+  let section = 'trophies', recordsOf = null;  // recordsOf: whose records the Record section shows; null: the group
+  function drawTrophies() {
+    const switchSection = seg([['trophies', tr('Trofei')], ['records', tr('Record')]], section, value => { section = value; drawTrophies(); }, 'tabs');
+    const winners = Object.keys(records.trophies).map(Number).sort((a, b) =>
+      trophyTotal(records.trophies[b]) - trophyTotal(records.trophies[a]) || ids.indexOf(a) - ids.indexOf(b));
+    const now = recordRows(NOW);
+    trophiesPane.replaceChildren(el('h1', {}, tr('Trofei')), switchSection, ...(section === 'trophies'
+      ? (winners.length ? [...inProgress(), ...podium(winners.map(id => ({ id, value: trophyTotal(records.trophies[id]), note: trophyIcons(records.trophies[id]) }))),
+          el('ul', { className: 'legend' }, ...TROPHIES.map(([, emoji, label]) => el('li', {}, `${emoji} ${tr(label)}`)))]
+        : [...inProgress(), el('p', { className: 'hint' }, tr('Ancora nessun trofeo: servono 15 giorni di fila con almeno una 💩.'))])
+      : [picker(recordsOf, id => { recordsOf = id; drawTrophies(); }, id => id === null ? '' : poops(records.people[id]?.status.month_count ?? 0),
+           tr('Gruppo'), tr('Di chi vuoi vedere i record?')),
+         ...(recordsOf === null
+           ? [...(now.length ? [el('h2', {}, tr('Adesso')), el('div', { className: 'ranks' }, ...now)] : []),
+              el('h2', {}, tr('Di sempre')), el('div', { className: 'ranks' }, ...recordRows(METRICS))]
+           : personRecords(recordsOf))]));
+  }
+
+  // ---- one person, in a sheet that slides up from the bottom; Telegram's back button closes it
+
+  const backdrop = el('div', { className: 'backdrop', hidden: true, onclick: event => { if (event.target === backdrop) closePerson(); } });
+  function closePerson() {
+    backdrop.hidden = true;
+    tg.BackButton?.hide();
+  }
+  tg.BackButton?.onClick(closePerson);
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !backdrop.hidden) closePerson(); });
+
+  function openPerson(id) {
+    const held = c.ranking.find(x => x.user === id)?.held || 0;
+    openPanel(name(id), id, [
+      ...(held ? [el('button', { className: 'action', onclick: () => { closePerson(); pick(id); go('map'); } },
+        `🗺️ ${held} ${tr('zone')}: ${tr('vedile sulla mappa')}`)] : []),
+      ...personRecords(id), el('h2', {}, tr('Trofei')), ...personTrophies(records.trophies[id])]);
+  }
+
+  // A sheet from the bottom with a title (and the colour of a person), closed by ✕, a tap outside, Esc or Telegram's back button
+  function openPanel(title, id, content) {
+    const panel = el('div', { className: 'panel', role: 'dialog', ariaModal: 'true', ariaLabel: title },
+      el('div', { className: 'panelhead' }, ...(id === null ? [] : [dot(id)]), el('h2', {}, title),
+        el('button', { className: 'close', ariaLabel: tr('Chiudi'), onclick: closePerson }, '✕')), ...content);
+    backdrop.replaceChildren(panel);
+    backdrop.hidden = false;
+    tg.BackButton?.show();
+    panel.querySelector('.close').focus();
+  }
+
+  // Who the map shows: a button with the chosen person, the list of people slides up from the bottom
+  // A button with the chosen person (null: everyone); the list of people slides up from the bottom.
+  // count(id) is the number shown next to each person, allLabel the name of the "everyone" choice
+  function picker(chosen, onPick, count, allLabel, question) {
+    const label = id => id === null ? allLabel : id === me ? `${plainName(me)} (${tr('io')})` : plainName(id);
+    const mark = id => id === null ? el('span', { className: 'all' }) : dot(id);
+    const choose = () => {
+      const people = [null, ...(ids.includes(me) ? [me] : []), ...ids.filter(id => id !== me)];
+      openPanel(question, null, [el('div', { className: 'ranks' }, ...people.map(id =>
+        el('button', { className: 'rank' + (chosen === id ? ' on' : ''), style: id === null ? '' : `--tint:${color(id)}`,
+                       onclick: () => { closePerson(); onPick(id); } },
+          mark(id), el('span', { className: 'name' }, label(id)), el('span', { className: 'num' }, count(id)))))]);
+    };
+    return el('button', { className: 'chooser', ariaLabel: question, onclick: choose },
+      mark(chosen), el('span', { className: 'name' }, label(chosen)), el('span', { className: 'chev', ariaHidden: 'true' }, '▾'));
+  }
+
+  // over the map: who it shows, and a shortcut to my zones (dragging is never the only way to get there)
+  const mapControls = () => [mapChooser(), ...(owner !== me && tiles.some(tile => tile.seen[me])
+    ? [el('button', { className: 'chooser', onclick: () => pick(me) }, '📍 ', tr('Le mie zone'))] : [])];
+
+  // the menu over the map
+  const mapChooser = () => picker(owner, pick, id => `${id === null ? tiles.length : c.ranking.find(x => x.user === id)?.held || 0} ${tr('zone')}`,
+    tr('Tutti'), tr('Chi vuoi vedere sulla mappa?'));
+
+  show(el('div', { className: 'app' }, mapPane, rankPane, statsPane, trophiesPane, nav, backdrop));
+  mapPicker.append(...mapControls());
+  drawTrophies();
   go('map');
+  drawPeriod();
 }
 
 // Opened with a direct link from a group (/app): that group; from the private menu button: the private chat with the bot

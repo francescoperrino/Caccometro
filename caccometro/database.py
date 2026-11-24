@@ -535,3 +535,11 @@ def link_legacy_by_username(chat_id):
         if user is not None:
             linked.append((legacy_username, user, link_legacy_username(chat_id, legacy_username, user.user_id)))
     return linked
+
+def get_first_days(chat_id):
+    """{user_id: 'YYYY-MM-DD'} of the first day with 💩 of every user of the chat."""
+    conn = _connect(chat_id)
+    try:
+        return dict(conn.execute('SELECT user_id, MIN(date) FROM user_count WHERE count > 0 GROUP BY user_id'))
+    finally:
+        conn.close()
