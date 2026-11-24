@@ -132,6 +132,7 @@ La documentazione tecnica è solo in inglese:
 | [docs/architecture.md](docs/architecture.md) | Moduli, percorso di un messaggio, database, traduzioni |
 | [docs/deployment.md](docs/deployment.md) | Configurazione di Telegram (menu, descrizioni), produzione su un hosting WSGI, webhook, annuncio di mezzanotte |
 | [docs/operations.md](docs/operations.md) | Deploy, backup e ripristino, log, release |
+| [docs/research/](docs/research/README.md) | Gli studi dietro le scelte: design della Mini App, indice di regolarità, hosting |
 | [SECURITY.md](SECURITY.md) | Segnalare una vulnerabilità |
 
 ## Licenza

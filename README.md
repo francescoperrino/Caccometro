@@ -131,6 +131,7 @@ The bot reads the group messages to find the 💩: this is why its **Group Priva
 | [docs/architecture.md](docs/architecture.md) | Modules, path of a message, database, translations |
 | [docs/deployment.md](docs/deployment.md) | Telegram setup (menus, descriptions), production on a WSGI hosting, webhook, midnight announcement |
 | [docs/operations.md](docs/operations.md) | Deploy, backups and restore, logs, releases |
+| [docs/research/](docs/research/README.md) | The studies behind the choices: Mini App design, regularity index, hosting |
 | [SECURITY.md](SECURITY.md) | Reporting a vulnerability |
 
 ## License
