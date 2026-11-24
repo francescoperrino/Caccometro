@@ -272,3 +272,19 @@ def period_statistics(daily_counts, users, start_period, end_period, today: date
             'variance': round(sum((x - mean) ** 2 for x in counts) / valid_days, 2),
         })
     return sorted(statistics, key=lambda s: (-s['mean'], s['variance']))
+
+
+REGULARITY_MIN_DAYS, REGULARITY_MIN_POOPS = 14, 5   # below this the label would be noise
+# The index of dispersion (variance / mean of the daily counts): 1 = as random as dice, lower = steadier.
+# Thresholds from the real groups (November 2026 backups, 282 months of one person: quartiles 0.31 and 0.56), so
+# about a quarter of the months read "very regular" and a fifth "up and down"; no published threshold exists.
+REGULARITY_STEPS = ((0.3, 'molto regolare'), (0.6, 'abbastanza regolare'))
+
+
+def regularity(counts):
+    """'molto regolare', 'abbastanza regolare' or 'a sbalzi' from the daily counts (0 on days without), None with too little data."""
+    if len(counts) < REGULARITY_MIN_DAYS or sum(counts) < REGULARITY_MIN_POOPS:
+        return None
+    mean = sum(counts) / len(counts)
+    dispersion = sum((x - mean) ** 2 for x in counts) / (len(counts) - 1) / mean
+    return next((label for limit, label in REGULARITY_STEPS if dispersion < limit), 'a sbalzi')

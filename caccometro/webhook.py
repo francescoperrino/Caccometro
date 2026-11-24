@@ -9,7 +9,8 @@ from telegram.error import BadRequest, Forbidden
 
 from caccometro import __version__, database, i18n, miniapp
 from caccometro.bot import application, outcome_of, update_log
-from caccometro.config import BOT_TOKEN, PROJECT_DIR, WEBHOOK_SECRET
+from caccometro.commands import MAX_YEAR, MIN_YEAR
+from caccometro.config import BOT_TOKEN, PROJECT_DIR, WEBHOOK_SECRET, now_rome
 
 logger = logging.getLogger(__name__)
 
@@ -72,24 +73,17 @@ def mini_app_user():
     return miniapp.user_of(request.headers.get('Authorization', '').removeprefix('tma '), BOT_TOKEN)
 
 
-def language_of(chat_id, known):
-    """Language of a chat with a database (`known`); the default one otherwise, without creating its database."""
-    return (database.get_language(chat_id) if chat_id in known else None) or i18n.DEFAULT_LANGUAGE
-
-
-@app.route('/api/chat')
-async def api_chat():
-    """Data of one chat, only for its members (left or kicked users get 403)."""
+async def member_chat():
+    """The chat of ?chat= when the signed user is one of its members: (chat_id, None), or (None, the error Response)."""
     user = mini_app_user()
     if user is None:
-        return Response('unauthorized', status=401)
+        return None, Response('unauthorized', status=401)
     try:
         chat_id = int(request.args.get('chat', ''))
     except ValueError:
-        return Response('bad request', status=400)
-    known = miniapp.known_chats()
-    if chat_id not in known:
-        return Response('not found', status=404)
+        return None, Response('bad request', status=400)
+    if chat_id not in miniapp.known_chats():
+        return None, Response('not found', status=404)
     try:
         async with application:
             member = await miniapp.is_member(application.bot, chat_id, user['id'])
@@ -97,10 +91,40 @@ async def api_chat():
         member = False  # the bot is no longer in the group
     if not member:
         logger.info("Mini App: chat refused to a non-member")
-        return Response('forbidden', status=403)
+        return None, Response('forbidden', status=403)
+    return chat_id, None
+
+
+@app.route('/api/chat')
+async def api_chat():
+    """Data of one chat, only for its members (left or kicked users get 403)."""
+    chat_id, error = await member_chat()
+    if error:
+        return error
     logger.info("Mini App: chat opened")
-    return {'chat': chat_id, 'language': language_of(chat_id, known),
-            'conquests': miniapp.conquest_data(database.get_timed_conquests(chat_id), database.get_users(chat_id))}
+    rows_by_user, users = database.get_all_user_rows(chat_id)
+    timed = database.get_timed_conquests(chat_id)
+    today = now_rome().date()
+    return {'chat': chat_id, 'version': __version__, 'today': today.isoformat(), 'language': database.get_language(chat_id) or i18n.DEFAULT_LANGUAGE,
+            'conquests': miniapp.conquest_data(timed, users),
+            'records': miniapp.records_data(rows_by_user, today, timed)}
+
+
+@app.route('/api/period')
+async def api_period():
+    """Leaderboard and statistics of ?year= (and ?month=) in one chat, only for its members."""
+    chat_id, error = await member_chat()
+    if error:
+        return error
+    try:
+        year = int(request.args.get('year', ''))
+        month = int(request.args['month']) if 'month' in request.args else None
+    except ValueError:
+        return Response('bad request', status=400)
+    if not MIN_YEAR <= year <= MAX_YEAR or month is not None and not 1 <= month <= 12:
+        return Response('bad request', status=400)
+    time_period, period = ('year', str(year)) if month is None else ('month', f'{month:02d}-{year}')
+    return miniapp.period_data(chat_id, time_period, period, now_rome().date())
 
 
 @app.route('/')

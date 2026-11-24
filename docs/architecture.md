@@ -24,7 +24,7 @@ caccometro/          the bot, as a Python package
   announce.py        midnight announcement of the 💩 of the month (scheduled task)
   charts.py          ranking and statistics charts (PNG in memory)
   maps.py            conquest maps over OpenStreetMap tiles (JPEG in memory, tile cache in tile_cache/)
-  miniapp.py         Mini App: signed initData, the chats of a user, membership checks, direct link
+  miniapp.py         Mini App: signed initData, membership checks, direct link, data of the map, seasons, records and periods
 assets/webapp/       the Mini App page (static HTML and JavaScript, libraries from a CDN)
 scripts/set_webhook.py   registers the webhook on Telegram (once)
 tools/               service scripts: deploy, database backups, log download and summary, bot version, command menus, README charts and maps
@@ -80,10 +80,49 @@ flowchart TD
 
 ## Mini App
 
+
 The Mini App (#79) is one static page, `assets/webapp/index.html`, served by Flask at `/app`, with its libraries from a CDN and no build step. It opens from the menu button of the private chat or from the button of `/app` in a chat (direct link `t.me/<bot>/app?startapp=<chat_id>`, already on that chat: groups accept only plain URL buttons). The page asks the JSON API of `webhook.py` for the data:
 
 - every call carries the signed `initData` in `Authorization: tma <initData>`; `miniapp.user_of` checks the signature with the bot token and refuses it after 24 hours (401);
-- `/api/chat?chat=<id>` answers only for a chat with a database (404 otherwise: the API never creates one) and only to its members: `getChatMember`, trusted for 5 minutes, refuses who left or was kicked (403); the private chat needs no check. The answer carries the conquest map (`miniapp.conquest_data`): for each h3 resolution from 7 (the tiles) to 1 (the world) the hexagons with their owner (most tiles inside, like `/conquests`), the tiles each member holds and ever conquered inside, and the outline computed with `h3`, plus names, ranking, king and current season; the saved locations never leave the server. The page draws it with Leaflet and OpenStreetMap tiles loaded by the device: the zoom picks the resolution, so the hexagons merge when zooming out. Chips over the map choose everyone, me or another member (tiles held, lighter the more were lost, dashed when all lost); a bottom bar switches to the ranking, where a tap on a member opens the map on them.
+- `webhook.member_chat` checks the chat of every call: it must have a database (404 otherwise: the API never creates one) and the user must be a member: `getChatMember`, trusted for 5 minutes, refuses who left or was kicked (403); the private chat needs no check;
+- `/api/chat?chat=<id>` sends what does not depend on a period: the bot version (shown at the bottom of every tab), the language and today's date of the chat; the conquest map (`miniapp.conquest_data`: for each h3 resolution from 7, the tiles, to 1, the world, the hexagons with their owner, the tiles each member holds and ever conquered inside and the outline computed with `h3`, plus names, ranking, king, current season and `seasons`, the conquests and the tiles held of every season from `miniapp.season_boards`); and the records and trophies of the group and of each person (`miniapp.records_data`, the same functions as `/records` and `/trophies`). The saved locations never leave the server;
+- `/api/period?chat=<id>&year=<YYYY>[&month=<MM>]` sends a month or a year (`miniapp.period_data`): the leaderboard with the forecast like `/leaderboard_month`, the statistics like `/stats_month` with the regularity of each person (`analysis.regularity`, see [the study](research/regularity_index.md)), and the counts of every day for the charts drawn by the page.
+
+```mermaid
+flowchart TD
+    open("👤 <b>1. You open the Mini App</b><br/>menu button or /app")
+    page("📄 <b>2. GET /app</b><br/>the static page")
+    request("🔑 <b>3. GET /api/chat, then /api/period</b><br/>Authorization: tma initData")
+    signed{"Signed by Telegram,<br/>younger than 24 h?"}
+    known{"Chat with a database?"}
+    member{"Private chat, or member?<br/>(getChatMember, kept 5 min)"}
+    data("📦 <b>4. JSON from miniapp.py</b><br/>map, seasons, records, trophies<br/>or one month or year")
+    draw("📱 <b>5. The page draws it</b><br/>Leaflet map, podiums, lists,<br/>Chart.js charts")
+    e401["401: open it from the bot"]
+    e404["404"]
+    e403["403: not a member"]
+    open --> page --> request --> signed
+    signed -->|"no"| e401
+    signed -->|"yes"| known
+    known -->|"no"| e404
+    known -->|"yes"| member
+    member -->|"no"| e403
+    member -->|"yes"| data --> draw
+    classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
+    classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
+    classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
+    classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
+    classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
+    class open person
+    class page,request,draw step
+    class data main
+    class signed,known,member check
+    class e401,e404,e403 stop
+```
+
+The page follows Telegram's light or dark mode and its back button; how it is organised and why is in [Mini App design](research/mini_app_design.md).
 
 Each call holds the single worker of the web app like an update, and its calls to Telegram go through `RetryingRequest`.
 
