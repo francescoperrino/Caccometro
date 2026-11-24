@@ -5,34 +5,35 @@ The service scripts in `tools/` that keep the production bot running: deploy, ba
 **Settings.** The scripts read `HOSTING_USERNAME` from the `.env` and the API token from the `HOSTING_API_TOKEN` environment variable (never in the `.env`, never printed). Run them from the repository root, with the virtual environment active. Backups and logs always end up in the project `backups/` and `logs/` folders, whatever folder the scripts start from, and only the owner can read them: they hold database copies and usernames.
 
 ```mermaid
-flowchart LR
-    subgraph dev["Development machine"]
-        repo["Local repository<br/>code, tests"]
-        deploy["deploy.py"]
-        nightly["Nightly cron, 03:30<br/>backup_db.py, then log_summary.py"]
-        local[("backups/<br/>file and db copies<br/>logs/<br/>logs and summaries")]
-    end
-    subgraph gh["GitHub"]
-        ci["CI: pytest on Python 3.10<br/>required for the merge"]
-        rel["Release and tag vX.Y.Z"]
-    end
-    subgraph hosting["Hosting"]
-        files["Code, assets, db/, logs"]
-        web["Web app"]
-    end
-    maintainer["👤 Maintainer<br/>private Telegram chat"]
+flowchart TD
+    repo("💻 <b>1. Local repository</b><br/>development machine: code, tests")
+    ci("✅ <b>2. CI on GitHub</b><br/>pytest on Python 3.10,<br/>required for the merge")
+    rel("🏷️ <b>3. Release on GitHub</b><br/>signed tag vX.Y.Z")
+    deploy("🚀 <b>4. deploy.py</b><br/>by hand, from the development machine")
+    local[("backups/ and logs/<br/>development machine")]
+    files[("Hosting<br/>code, assets, db/, logs")]
+    web("🌐 <b>5. Web app on the hosting</b><br/>reloaded, home page checked")
+    nightly("🌙 <b>Nightly cron, 03:30</b><br/>backup_db.py, then log_summary.py")
+    maintainer("👤 <b>Maintainer</b><br/>private Telegram chat")
     repo -->|"pull request"| ci
     ci -->|"merge to main"| rel
     rel --> deploy
-    deploy -->|"1. copy of the old .py files and the dbs"| local
-    deploy -->|"2. upload"| files
-    deploy -->|"3. reload and home page check"| web
-    nightly -->|"downloads db/*.db and the logs"| files
-    nightly --> local
+    deploy -->|"a. copy of the old .py files and the dbs"| local
+    deploy -->|"b. upload"| files
+    deploy -->|"c. reload"| web
+    files -->|"db/*.db and the logs, every night"| nightly
+    nightly -->|"copies and summaries"| local
     nightly -.->|"only when something is wrong"| maintainer
-    style dev stroke-dasharray: 5 5
-    style gh stroke-dasharray: 5 5
-    style hosting stroke-dasharray: 5 5
+    classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
+    classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
+    classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
+    classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
+    classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
+    class repo,ci,rel,web,nightly,local,files step
+    class deploy main
+    class maintainer person
 ```
 
 ## Deploy
@@ -53,15 +54,33 @@ A cron job on the development machine runs every night at 03:30 the backup and t
 
 ```mermaid
 flowchart TD
-    cron["cron, 03:30"] --> download["backup_db.py: download db/*.db<br/>to a new folder in backups/db/"]
-    download --> check{"PRAGMA integrity_check ok,<br/>and no chat total down by more than 20%?"}
-    check -->|"yes"| keep["Keep the last 14 copies;<br/>the first copy of each month also goes to backups/db_monthly/"]
-    check -->|"no"| failed["FAILED on stderr, exit code 1,<br/>Telegram alert to the maintainer<br/>(the copy is kept, never monthly)"]
-    keep --> summary
-    failed --> summary["log_summary.py: download the logs,<br/>summary of the last 24 hours<br/>to logs/ with a copy of the logs,<br/>the last 30 of each kept"]
-    summary --> new{"A lost reply, a new or repeated error,<br/>a slow update, lines in the error log,<br/>or a log not downloaded?"}
-    new -->|"yes"| alert["One Telegram alert to the maintainer<br/>with all the reasons"]
-    new -->|"no"| done["Nothing sent"]
+    cron("🌙 <b>1. cron, 03:30</b>")
+    download("🗄️ <b>2. backup_db.py</b><br/>downloads db/*.db<br/>to a new folder in backups/db/")
+    healthy{"integrity_check ok, and no chat<br/>total down by more than 20%?"}
+    keep("📦 <b>Keep the last 14 copies</b><br/>the first copy of each month<br/>also goes to backups/db_monthly/")
+    failed("FAILED on stderr, exit code 1,<br/>Telegram alert to the maintainer<br/>(the copy stays, never monthly)")
+    summary("📊 <b>3. log_summary.py</b><br/>summary of the last 24 hours<br/>to logs/ with a copy of the logs,<br/>the last 30 of each kept")
+    wrong{"A lost reply, a new or repeated error,<br/>a slow update, error log lines,<br/>or a log not downloaded?"}
+    alert("✈️ <b>4. One Telegram alert</b><br/>with all the reasons")
+    quiet["nothing sent"]
+    cron --> download --> healthy
+    healthy -->|"yes"| keep --> summary
+    healthy -->|"no"| failed --> summary
+    summary --> wrong
+    wrong -->|"yes"| alert
+    wrong -->|"no"| quiet
+    classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
+    classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
+    classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
+    classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
+    classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
+    class cron,download,summary step
+    class keep main
+    class healthy,wrong check
+    class failed,alert alert
+    class quiet stop
 ```
 
 - **Backup** (`tools/backup_db.py [--keep N]`): the alerts are sent by the development bot (`BOT_TOKEN` of the local `.env`) to the `ALERT_CHAT_ID` chat; without that variable nothing is sent. When the backup works nothing arrives.
@@ -88,7 +107,7 @@ The version is in `caccometro/__init__.py` (`__version__`, [Semantic Versioning]
 4. `tools/bot_version.py` writes "Versione X.Y.Z" / "Version X.Y.Z" at the end of the descriptions of the production and development bots, in Italian and English (the description of each language must already be there).
 5. If the commands changed, register the menus again on both bots with `tools/register_menus.py dev` and `prod` ([deployment.md](deployment.md#command-menus)). The menus already set in single chats with `/language` keep the old list until the chat sends `/language` again.
 
-The charts in the README carry the version too: the commit of the bump redraws them (`tools/sample_charts.py`, see [CONTRIBUTING.md](../CONTRIBUTING.md#git-hooks)).
+The charts in the README and the infographics in `docs/images/` carry the version too: the commit of the bump redraws them (`tools/sample_charts.py` and `tools/draw_infographics.py`, see [CONTRIBUTING.md](../CONTRIBUTING.md#git-hooks)).
 
 ## Web app expiry
 

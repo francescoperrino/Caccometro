@@ -80,30 +80,40 @@ After every release `tools/bot_version.py` adds a "Versione X.Y.Z" / "Version X.
 In production the bot runs as a Flask web app on a WSGI hosting (we use [PythonAnywhere](https://www.pythonanywhere.com/), free plan, Python 3.10): Telegram calls `/webhook` on every message.
 
 ```mermaid
-flowchart LR
-    person["👤 People in the group<br/>Telegram app"]
+flowchart TD
+    person("👤 <b>People in the group</b><br/>Telegram app")
     subgraph telegram["Telegram"]
-        api["Bot API<br/>receives and delivers the messages"]
+        api("✈️ <b>Bot API</b><br/>receives and delivers the messages")
     end
-    subgraph hosting["Hosting · WSGI web app"]
-        flask["Flask + caccometro<br/>one uWSGI process, /webhook"]
-        proxy["Outgoing proxy<br/>sometimes answers 503"]
+    subgraph hosting["Hosting, WSGI web app"]
+        flask("🐍 <b>Flask + caccometro</b><br/>one uWSGI process, /webhook")
+        task("🕛 <b>Scheduled task</b><br/>every day at 22:00 UTC<br/>caccometro.announce")
         db[("SQLite<br/>one file per chat in db/")]
         log[("caccometro.log<br/>4 MB at most")]
-        task["Scheduled task<br/>every day at 22:00 UTC<br/>caccometro.announce"]
+        proxy("🚧 <b>Outgoing proxy</b><br/>sometimes answers 503")
     end
     person -->|"💩 and commands"| api
-    api -->|"HTTPS POST /webhook with secret token"| flask
+    api -->|"HTTPS POST /webhook<br/>with secret token"| flask
     flask -->|"counts, users, language"| db
     flask -->|"log lines, no message text"| log
     task -->|"reads the counts"| db
-    task -->|"first-of-the-month announcement"| proxy
     flask -->|"replies and charts"| proxy
+    task -->|"announcement on the 1st"| proxy
     proxy -->|"HTTPS sendMessage, sendPhoto"| api
     api -->|"bot reply"| person
-    style telegram stroke-dasharray: 5 5
-    style hosting stroke-dasharray: 5 5
-    linkStyle 1 stroke:#c0392b,stroke-width:2px
+    classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
+    classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
+    classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
+    classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
+    classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
+    class person person
+    class api,task,db,log step
+    class flask main
+    class proxy alert
+    style telegram fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:5 5,color:#7a6a5c
+    style hosting fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:5 5,color:#7a6a5c
 ```
 
 The replies go out through the hosting proxy, which sometimes answers 503 for a few seconds: `RetryingRequest` tries again ([architecture.md](architecture.md#path-of-a-message)).
@@ -154,16 +164,33 @@ At 22:00 UTC it is 23:00 in Italy (winter time) or midnight (summer time), so th
 
 ```mermaid
 flowchart TD
-    task["Scheduled task, every day at 22:00 UTC"] --> close{"Midnight in Italy<br/>less than 2 hours away?"}
-    close -->|"yes"| wait["Sleep until midnight"]
+    task("🕛 <b>1. Scheduled task</b><br/>every day at 22:00 UTC")
+    close{"Midnight in Italy<br/>less than 2 hours away?"}
+    wait("😴 <b>2. Sleep until midnight</b>")
+    first{"Is the new day<br/>the 1st of a month?"}
+    quit["log 'not the first day of a month', exit"]
+    chats("🗂️ <b>3. Every chat database</b><br/>in db/, in the chat language")
+    winners{"Anybody with 💩<br/>in the month just ended?"}
+    skip["next chat"]
+    send("🏆 <b>4. 💩 of the month</b><br/>on January 1st also the 💩 of the year<br/>and new year wishes")
+    task --> close
+    close -->|"yes"| wait --> first
     close -->|"no, it is already past"| first
-    wait --> first{"Is the new day<br/>the 1st of a month?"}
-    first -->|"no"| stop["Log 'not the first day of a month', exit"]
-    first -->|"yes"| chats["For every chat database in db/"]
-    chats --> language["Language of the chat"]
-    language --> winners{"Anybody with 💩<br/>in the month just ended?"}
-    winners -->|"no"| next["Next chat"]
-    winners -->|"yes"| send["💩 of the month<br/>(on January 1st also the 💩 of the year and new year wishes)"]
+    first -->|"no"| quit
+    first -->|"yes"| chats --> winners
+    winners -->|"no"| skip
+    winners -->|"yes"| send
+    classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
+    classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
+    classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
+    classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
+    classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
+    class task,wait,chats step
+    class send main
+    class close,first,winners check
+    class quit,skip stop
 ```
 
 To try it without sending anything: `python3.10 -m caccometro.announce --date 2027-01-01 --dry-run`.

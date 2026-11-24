@@ -47,29 +47,44 @@ From sending to reply. In production Telegram calls the webhook; locally the bot
 
 ```mermaid
 flowchart TD
-    start["👤 A person writes in the group"] --> mode{"Mode?"}
-    mode -->|"polling, locally"| app["python-telegram-bot Application<br/>(bot.py)"]
-    mode -->|"webhook, in production"| secret{"Right secret token?<br/>(webhook.py)"}
-    secret -->|"no"| refused["Answer 403, update dropped"]
-    secret -->|"yes"| seen{"update_id among the last 500?"}
-    seen -->|"yes"| skipped["Answer 200, update ignored<br/>(Telegram sent it again)"]
-    seen -->|"no"| app
-    app --> sender["chat.py: learns the sender's username and name,<br/>picks the language of the chat (i18n.py)"]
-    sender --> command{"Is it a command?"}
-    command -->|"yes"| commands["commands.py: reads the database,<br/>computes with analysis.py and trophies.py"]
-    command -->|"no"| poop{"Does it contain 💩 or 🚽?"}
-    poop -->|"no"| location{"Is it a location?"}
-    location -->|"no"| silent["No reply"]
-    location -->|"yes"| window{"💩 of the sender in the<br/>last 15 minutes, window unused?"}
-    window -->|"no"| first["'First the 💩, then the conquest'"]
-    window -->|"yes"| conquer["messages.py: conquers the h3 tile,<br/>window used up, king from conquest.py,<br/>zoom map from maps.py (text only if the tiles fail)"]
-    poop -->|"yes"| count["messages.py: +1 💩 on the day the message was sent<br/>(message.date, Italian time), opens the conquest window,<br/>reminds to send a location"]
-    commands --> output["Text or chart in the chat language<br/>(formatting.py, charts.py)"]
-    output --> send["RetryingRequest: send to Telegram,<br/>up to 6 attempts if the connection or the proxy fails"]
-    count --> send
-    first --> send
-    conquer --> send
-    send --> reply["👤 The person sees the reply"]
+    you("👤 <b>1. You</b><br/>write 💩, a command or a location")
+    tg("✈️ <b>2. Telegram</b><br/>delivers the message")
+    secret{"Right secret token?"}
+    seen{"update_id new?<br/>(the last 500 are kept)"}
+    kind{"What is it?"}
+    poop("💩 <b>3. Count</b><br/>+1 on the day it was sent,<br/>Italian time; opens the<br/>15-minute window")
+    cmd("📊 <b>3. Command</b><br/>commands.py reads the database,<br/>computes with analysis.py<br/>and trophies.py")
+    loc("📍 <b>3. Location</b><br/>messages.py conquers the tile<br/>if a 💩 came in the last 15 min,<br/>zoom map from maps.py")
+    reply("💬 <b>4. Reply</b><br/>text or chart in the chat language;<br/>RetryingRequest: up to 6 attempts")
+    r403["403, dropped"]
+    r200["200, ignored<br/>(Telegram sent it again)"]
+    silent["no reply"]
+    you --> tg
+    tg -->|"production: webhook"| secret
+    tg -->|"locally: polling"| kind
+    secret -->|"no"| r403
+    secret -->|"yes"| seen
+    seen -->|"no"| r200
+    seen -->|"yes"| kind
+    kind -->|"💩 or 🚽"| poop
+    kind -->|"command"| cmd
+    kind -->|"location"| loc
+    kind -->|"anything else"| silent
+    poop --> reply
+    cmd --> reply
+    loc --> reply
+    classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
+    classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
+    classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
+    classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
+    classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
+    class you person
+    class tg,cmd,loc,reply step
+    class poop main
+    class secret,seen,kind check
+    class r403,r200,silent stop
 ```
 
 - When an update is done, `bot.py` (`LoggingApplication`) writes one line: `Update <id> done: command=<English command, or message, sticker, location> chat=<private|group> ms=<duration> attempts=<requests to Telegram, retries included> outcome=<ok|lost|error>`. `lost` means the network gave up after all the attempts, `error` any other exception. In webhook mode the line covers the whole request, also the start of the Application (its `getMe` after a reload, with the retries), and is written even when the start fails. No names, no text: the nightly summary is built on this line.
@@ -80,6 +95,7 @@ flowchart TD
 
 ## Mini App
 
+<p align="center"><img src="images/mini_app_flow.svg" alt="How the Mini App works: you open it, Telegram signs who you are, the server checks signature, chat and membership, sends the data of that chat, the phone draws it" width="600"></p>
 
 The Mini App (#79) is one static page, `assets/webapp/index.html`, served by Flask at `/app`, with its libraries from a CDN and no build step. It opens from the menu button of the private chat or from the button of `/app` in a chat (direct link `t.me/<bot>/app?startapp=<chat_id>`, already on that chat: groups accept only plain URL buttons). The page asks the JSON API of `webhook.py` for the data:
 
