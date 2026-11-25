@@ -106,7 +106,7 @@ def test_conquests_command(chat_id, monkeypatch):
     upd = make_update(username="mario", user_id=uid("mario"))
     asyncio.run(commands.conquests_command(upd, make_context()))
     assert upd.message.reply_text.call_args.args[0] == (
-        "🗺️ *Conquiste*\n\n🥇 *@mario 👑*: 1 🚩\n🥈 *@luigi*: 1 🚩\n"
+        "🗺️ *Conquiste*\n\n🥇 *@mario 👑*: 1 🚩\n🥇 *@luigi*: 1 🚩\n"
         "\n🚩 Stagione ottobre–dicembre 2026: conquistatore *@mario* e *@luigi* (1), re *@mario*")
     upd = make_update(username="luigi", user_id=uid("luigi"))
     asyncio.run(commands.conquests_command(upd, make_context("io")))

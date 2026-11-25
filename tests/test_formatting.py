@@ -118,3 +118,23 @@ def test_tied_months_and_periods_beyond_three_are_summarized():
     assert "nei mesi 05-2023, 04-2023, 03-2023 e altri 2." in text
     assert "(10-01-2024, 10-05-2023, 10-04-2023 e altri 3)." in text         # longest run: 6 one-day runs tied
     assert "in una serie di giorni consecutivi (10-05-2023, 10-04-2023, 10-03-2023 e altri 2)." in text
+
+
+def test_standing_lines_name_the_leader_and_the_place_of_the_sender():
+    from caccometro.formatting import standing_lines, tie_positions
+    names = {1: "Anna", 2: "Chiara", 3: "Luca"}  # made-up names
+    rows = [(1, 37), (2, 34), (3, 30)]
+    assert standing_lines(rows, names, 1, str) == ["Anna è in testa con 37, 3 più di Chiara."]
+    assert standing_lines(rows, names, 3, str, {1: 40, 2: 41, 3: 42})[1] == "Luca: 3° con 30, a 4 da Chiara, a questo ritmo 1° (~42 💩)."
+    assert standing_lines([(1, 5), (2, 5)], names, 1, str) == ["In testa a pari merito con 5: Anna, Chiara."]
+    assert standing_lines([(1, 5)], names, 1, str) == []
+    assert tie_positions([5, 4, 4, 1]) == [1, 2, 2, 4]
+
+
+def test_record_places_compare_a_person_with_the_group():
+    from caccometro.analysis import record_places
+    rows = {1: [("2026-01-01", 3)], 2: [("2026-01-01", 1)]}
+    people = {user: analyze_user(user_rows, date(2026, 1, 10)) for user, user_rows in rows.items()}
+    assert record_places(1, people)["daily"] == (1, 2)
+    assert record_places(2, people)["daily"] == (2, 2)
+    assert record_places(1, {1: people[1]}) == {}

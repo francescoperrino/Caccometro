@@ -11,7 +11,8 @@ import h3
 from telegram.constants import ChatMemberStatus
 
 from caccometro import database, maps
-from caccometro.analysis import FORECAST_WINDOW_DAYS, analyze_group, analyze_user, forecast_totals, period_statistics, regularity
+from caccometro.analysis import (FORECAST_WINDOW_DAYS, analyze_group, analyze_user, forecast_totals, period_regularity,
+                                 period_statistics)
 from caccometro.config import ROME_TZ, now_rome, period_bounds
 from caccometro.conquest import holdings, mention_of
 from caccometro.trophies import season_of, season_results, trophies_by_user
@@ -139,19 +140,14 @@ def period_data(chat_id, time_period, period, today):
             chat_id, (today - timedelta(days=FORECAST_WINDOW_DAYS - 1)).isoformat(), today.isoformat())
         forecast = forecast_totals({user.user_id: total for user, total in rank}, recent, today, end)
     statistics = period_statistics(daily, database.get_users(chat_id), start, end, today)
-    # regularity on whole days only: from the first 💩 of the person (not before they joined) to yesterday
     first_days = database.get_first_days(chat_id)
-    last = min(date.fromisoformat(end), today - timedelta(days=1))
-
-    def steadiness(user_id):
-        first = max(date.fromisoformat(start), date.fromisoformat(first_days.get(user_id, start)))
-        days = [(first + timedelta(days=i)).isoformat() for i in range((last - first).days + 1)]
-        return regularity([daily.get(user_id, {}).get(day, 0) for day in days])
     return {'start': start, 'end': end, 'today': today.isoformat(), 'daily': daily,
             'leaderboard': [{'user': user.user_id, 'total': total, 'forecast': forecast.get(user.user_id)}
                             for user, total in rank],
             'statistics': [{'user': s['user'].user_id, 'mean': s['mean'], 'median': float(s['median']),
-                            'variance': s['variance'], 'regularity': steadiness(s['user'].user_id)} for s in statistics]}
+                            'variance': s['variance'],
+                            'regularity': period_regularity(daily, first_days, s['user'].user_id, start, end, today)}
+                           for s in statistics]}
 
 
 def season_boards(timed):

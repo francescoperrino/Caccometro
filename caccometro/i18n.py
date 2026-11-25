@@ -355,6 +355,18 @@ EN = {
     "Volte al giorno": "Times per day",
     "Giorni": "Days",
     "Distribuzione giornaliera  (◆ media, — mediana)": "Daily distribution  (◆ mean, — median)",
+    # leaderboards, statistics and records compared with the group (#201)
+    "In testa a pari merito con {value}: {names}.": "Tied for the lead with {value}: {names}.",
+    "{name} è in testa con {value}, {gap} più di {other}.": "{name} leads with {value}, {gap} more than {other}.",
+    "{name}: {place}° con {value}, a {gap} da {other}": "{name}: #{place} with {value}, {gap} behind {other}",
+    ", a questo ritmo {place}° (~{value} 💩)": ", at this pace #{place} (~{value} 💩)",
+    "{value} al giorno": "{value} a day",
+    "{name}, come vai: {label}.": "{name}, how you are doing: {label}.",
+    "molto regolare": "very regular",
+    "abbastanza regolare": "fairly regular",
+    "a sbalzi": "up and down",
+    " (record del gruppo)": " (group record)",
+    " ({place}° su {total})": " (#{place} of {total})",
 }
 
 TRANSLATIONS = {'en': EN}
