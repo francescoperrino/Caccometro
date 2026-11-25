@@ -46,7 +46,7 @@ Hai fatto il tuo dovere? Manda 💩 nel gruppo. Caccometro tiene il conto di tut
 
 | Comando                                        | Descrizione |
 | :--------------------------------------------- | :---------- |
-| `/start`                                       | Prepara il database della chat e mostra la versione del bot. |
+| `/start`                                       | Prepara il database della chat, mostra la versione del bot e i comandi principali. |
 | `/classifica_mese [MM-YYYY]`                   | Classifica del mese (quello corrente se la data manca; anche `marzo 2026`), con un grafico dell'andamento giorno per giorno. Per il mese in corso, accanto a ogni conto, la previsione a fine mese. Sotto la lista: chi è in testa, dove sei tu e, con 🔥 accanto ai nomi, le serie in corso. |
 | `/classifica_anno [YYYY]`                      | Classifica dell'anno (quello corrente se manca; anche `26`), con un grafico e, per l'anno in corso, la previsione a fine anno. |
 | `/statistiche_mese [MM-YYYY]`                  | Media, mediana e varianza delle 💩 al giorno di ogni persona nel mese, con un grafico delle distribuzioni. Sotto la lista: chi è in testa e quanto sei regolare. |
