@@ -27,7 +27,7 @@ caccometro/          the bot, as a Python package
   miniapp.py         Mini App: signed initData, membership checks, direct link, data of the map, seasons, records and periods
 assets/webapp/       the Mini App page (static HTML and JavaScript, libraries from a CDN)
 scripts/set_webhook.py   registers the webhook on Telegram (once)
-tools/               service scripts: deploy, database backups, log download and summary, bot version, command menus, README charts and maps
+tools/               service scripts: deploy, database backups, log download and summary, bot version, command menus, README charts and maps, page of the replies, module diagram
 .githooks/           git hooks (pre-commit, commit-msg), enabled with core.hooksPath
 .gitattributes       line endings of the .py files (CRLF) and of the hooks (LF)
 tests/               pytest tests
@@ -40,6 +40,96 @@ assets/              avatar, animation, fonts, medal images of the charts, READM
 `analysis.py`, `trophies.py` and `conquest.py` do not touch the database or Telegram: they receive the counts and return records, statistics and trophies, which makes them the easiest parts to test.
 
 `maps.py` draws the conquest maps: OpenStreetMap raster tiles fetched with `httpx` (User-Agent with the project name and repository, two attempts, 10 seconds for all the tiles of an image), kept 7 days in `tile_cache/` (at most 3000 files, the oldest dropped first), joined with Pillow and drawn with matplotlib in Web Mercator. The zoom around a conquest, the only map that follows the location, shows the real tiles (h3 resolution 6); `/conquests` shows fixed boxes: Lombardy at resolution 5, Italy at resolution 4 and the world at resolution 1, where a hexagon goes to the member holding most tiles inside it, on a tie the latest conqueror. When the tiles cannot be fetched, `maps.render` returns None and the reply goes out as text. `tools/sample_maps.py` draws the README maps (by hand: it needs the network).
+
+## Dependencies between modules
+
+Which module imports which, drawn from the code by `tools/draw_dependencies.py` (a test fails when it no longer matches). The arrows mostly go down: the Telegram code uses the replies, the replies use the rules, and the rules and the storage know nothing of Telegram. Two arrows cross between rules and storage: `analysis.py` takes only the `User` type from `database.py`, never a query, and `database.py` uses `conquest.cell_of` to recalculate the saved conquests when the schema changes (#174).
+
+<!-- drawn by tools/draw_dependencies.py: start -->
+```mermaid
+flowchart TD
+    subgraph start["🚪 Entry points"]
+        __main__("<b>__main__.py</b>")
+        webhook("<b>webhook.py</b>")
+        announce("<b>announce.py</b>")
+    end
+    subgraph telegram["✈️ Telegram: updates, commands, Mini App"]
+        bot("<b>bot.py</b>")
+        commands("<b>commands.py</b>")
+        messages("<b>messages.py</b>")
+        chat("<b>chat.py</b>")
+        menus("<b>menus.py</b>")
+        miniapp("<b>miniapp.py</b>")
+    end
+    subgraph replies["💬 Replies: texts, charts, maps"]
+        formatting("<b>formatting.py</b>")
+        charts("<b>charts.py</b>")
+        maps("<b>maps.py</b>")
+    end
+    subgraph rules["🧮 Rules: pure functions"]
+        analysis("<b>analysis.py</b>")
+        trophies("<b>trophies.py</b>")
+        conquest("<b>conquest.py</b>")
+    end
+    subgraph storage["🗄️ Storage"]
+        database("<b>database.py</b>")
+    end
+    __main__ --> bot
+    analysis --> database
+    announce --> bot
+    announce --> chat
+    announce --> database
+    announce --> formatting
+    announce --> trophies
+    bot --> commands
+    bot --> menus
+    bot --> messages
+    chat --> database
+    commands --> analysis
+    commands --> charts
+    commands --> chat
+    commands --> conquest
+    commands --> database
+    commands --> formatting
+    commands --> maps
+    commands --> menus
+    commands --> miniapp
+    commands --> trophies
+    database --> conquest
+    formatting --> analysis
+    formatting --> trophies
+    maps --> charts
+    maps --> conquest
+    messages --> chat
+    messages --> conquest
+    messages --> database
+    messages --> formatting
+    messages --> maps
+    messages --> menus
+    messages --> trophies
+    miniapp --> analysis
+    miniapp --> conquest
+    miniapp --> database
+    miniapp --> maps
+    miniapp --> trophies
+    trophies --> analysis
+    trophies --> conquest
+    webhook --> bot
+    webhook --> commands
+    webhook --> database
+    webhook --> miniapp
+    classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
+    classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
+    classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
+    class __main__,webhook,announce person
+    class bot,commands,messages,chat,menus,miniapp,formatting,charts,maps,analysis,trophies,conquest,database step
+    class analysis,trophies,conquest main
+```
+
+An arrow goes from a module to the modules it imports. Not drawn: `config.py`, `i18n.py`, imported by almost every module, and `__init__.py`, which holds only the version.
+
+Import cycles: none.
+<!-- drawn by tools/draw_dependencies.py: end -->
 
 ## Path of a message
 
@@ -92,6 +182,71 @@ flowchart TD
 - An error outside the handlers (for example the bot cannot start) makes the webhook answer 500. Telegram sends the update again later. The `update_id` is remembered once the Application has started, so a 💩 is never counted twice, and an update refused because the start failed is processed when it comes again.
 - `RetryingRequest` waits 1, 2, 4, 8 and 16 seconds between the attempts. It does not retry timeouts and read errors, because the message may have already arrived.
 - The webhook starts and stops the Application at every request: each Flask request has its own event loop.
+
+## A 💩 and its conquest
+
+The same path in time order, for a 💩 in a group followed by a location (production, webhook mode). Each update is a separate request: the database is what links the two.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor you as 👤 You
+    participant tg as ✈️ Telegram
+    participant hook as webhook.py
+    participant bot as bot.py
+    participant msg as messages.py
+    participant db as database.py
+    participant maps as maps.py
+    you->>tg: 💩
+    tg->>hook: POST /webhook with the secret token
+    hook->>bot: process_update
+    bot->>msg: handle_message
+    msg->>db: add_count: +1 on the day it was sent
+    msg->>db: open_conquest_window: time of this 💩
+    msg->>tg: reply: funny sentence, 💩 today, send your location
+    hook-->>tg: 200
+    you->>tg: 📍 location, within 15 minutes
+    tg->>hook: POST /webhook
+    hook->>bot: process_update
+    bot->>msg: handle_message
+    msg->>db: conquer: one transaction checks and uses up the window, saves the conquest
+    db-->>msg: previous owner and all the conquests of the chat
+    msg->>maps: zoom_map: tiles around the conquest
+    maps-->>msg: JPEG, or None without the map tiles
+    msg->>tg: photo with 🚩, 🏠 or ⚔️, and 👑 if the king changed
+    hook-->>tg: 200
+```
+
+The window of each person is one row of `last_poop`. A location conquers only while that row is younger than 15 minutes, and the conquest deletes it, so one 💩 gives one conquest. The tile belongs to the latest conquest saved for it, and the history is never reset.
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    closed: 🔒 No window
+    open: ⏳ Window open, 15 minutes
+    expired: ⌛ Expired, the old time stays
+    pick: Whose tile?
+    state pick <<choice>>
+    newtile: 🚩 New tile
+    defended: 🏠 Defended
+    stolen: ⚔️ Stolen
+    [*] --> closed
+    closed --> open: 💩 message or sticker
+    expired --> open: 💩
+    open --> open: another 💩 starts the 15 minutes again
+    open --> expired: 15 minutes pass
+    closed --> closed: location, "first the 💩"
+    expired --> expired: location, "first the 💩"
+    open --> pick: location, window used up
+    pick --> newtile: nobody's
+    pick --> defended: already yours
+    pick --> stolen: someone else's
+    newtile --> closed
+    defended --> closed
+    stolen --> closed
+```
+
+Seasons are not drawn: they are calendar quarters computed from the dates of the conquests, with no state of their own (`trophies.season_results`).
 
 ## Mini App
 

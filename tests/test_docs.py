@@ -117,6 +117,14 @@ def test_the_page_of_the_replies_is_up_to_date():
     assert read("docs/replies.md") == module.render(), "docs/replies.md is stale: run python tools/write_replies.py"
 
 
+def test_the_dependency_diagram_matches_the_imports(architecture):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("draw_dependencies", ROOT / "tools" / "draw_dependencies.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.updated(architecture) == architecture, "the diagram is stale: run python tools/draw_dependencies.py"
+
+
 @pytest.mark.parametrize("name", ["README.md", "README.it.md"])
 def test_the_readmes_show_every_sample_chart(name):
     for chart in (ROOT / "assets" / "screenshots").glob("*.png"):
