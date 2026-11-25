@@ -157,6 +157,6 @@ def test_the_sentences_follow_the_number_of_days_and_of_poops():
     from caccometro import formatting
     for sentence in (formatting.last_poop_sentence("Anna", 1) for _ in range(20)):
         assert "ieri" in sentence and "1" not in sentence
-    assert all("5" in formatting.last_poop_sentence("Anna", 5) for _ in range(20))
+    assert all("5 giorni" in formatting.last_poop_sentence("Anna", 5) for _ in range(20))
     assert all("4 💩" in formatting.change_count_sentence("Anna", "10-03-2024", 4, 1) for _ in range(20))
     assert all("1 volta" in s or "1 💩" in s for s in (formatting.day_count_sentence("Anna", "oggi", 1) for _ in range(20)))

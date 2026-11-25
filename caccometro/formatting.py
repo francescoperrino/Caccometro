@@ -333,7 +333,7 @@ def format_group_trophies(trophies, names):
     """
     lines = [tr("🏆 *Bacheca dei trofei* 🏆") + "\n"]
     if not trophies:
-        lines.append(tr("Ancora nessun trofeo: servono {days} giorni di fila con almeno una 💩, "
+        lines.append(tr("🤷 Ancora nessun trofeo: servono {days} giorni di fila con almeno una 💩, "
                         "oppure vincere un mese.").format(days=STREAK_STEP))
     else:
         ranked = sorted(trophies.items(), key=lambda item: (-len(item[1].years), -len(item[1].months),

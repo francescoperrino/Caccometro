@@ -326,8 +326,8 @@ EN = {
     # /trophies
     "🔥 *Nuovo trofeo!* {days} giorni di fila con almeno una 💩!": "🔥 *New trophy!* {days} days in a row with at least one 💩!",
     "🏆 *Bacheca dei trofei* 🏆": "🏆 *Trophy board* 🏆",
-    "Ancora nessun trofeo: servono {days} giorni di fila con almeno una 💩, oppure vincere un mese.":
-        "No trophy yet: it takes {days} days in a row with at least one 💩, or winning a month.",
+    "🤷 Ancora nessun trofeo: servono {days} giorni di fila con almeno una 💩, oppure vincere un mese.":
+        "🤷 No trophy yet: it takes {days} days in a row with at least one 💩, or winning a month.",
     "👑 💩 dell'anno · 🏅 💩 del mese · 🔥 {days} giorni di fila":
         "👑 💩 of the year · 🏅 💩 of the month · 🔥 {days} days in a row",
     "I tuoi: /trofei io — di un altro: /trofei @username (o rispondi a un suo messaggio)":
