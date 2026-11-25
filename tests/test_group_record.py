@@ -208,12 +208,12 @@ def test_record_io_wins_over_a_reply(seed):
 
 
 def test_record_in_an_empty_chat(chat_id):
-    assert record() == "Nessun dato disponibile."
+    assert record() == "🤷 Nessun dato disponibile."
 
 
 def test_record_of_someone_without_data_says_so(seed):
     seed({"mario": {"2024-03-10": 1}, "luigi": {}})
-    assert record("@luigi") == "Nessun dato disponibile per @luigi."
+    assert record("@luigi") == "🤷 Nessun dato disponibile per @luigi."
 
 
 def test_group_message_escapes_markdown_in_names(chat_id):

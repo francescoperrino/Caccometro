@@ -1,5 +1,6 @@
 """Handler of plain messages: counts the 💩 and 🚽 sent as text or sticker."""
 import logging
+import random
 import re
 import time
 
@@ -100,12 +101,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text: str = update.message.text.lower().strip()
         response: str = ""
         if config.BOT_USERNAME and config.BOT_USERNAME.lower() in text:
-            response = tr("Cosa vuoi dirmi?")
+            response = tr("💬 Cosa vuoi dirmi?")
         elif "💩" in text or "🚽" in text:
             response = record_poop(sender, chat_id, update.message.date)
         elif re.search(r'\brun\b', text):
-            response = tr("{name} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu.").format(
-                name=escape_md(sender.mention))
+            response = "🙄 " + random.choice([
+                tr("{name} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu."),
+                tr("{name}, *Run* non è un comando. Funziono solo con quelli veri, non con quelli che ti inventi tu."),
+                tr("{name}, ma sei serio? *Run*?! Guarda il menu dei comandi, poi riprova."),
+            ]).format(name=escape_md(sender.mention))
         if response:
             await update.message.reply_text(response, parse_mode='Markdown')
     elif update.message.sticker:

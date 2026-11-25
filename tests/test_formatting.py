@@ -140,3 +140,23 @@ def test_record_places_compare_a_person_with_the_group():
     assert record_places(1, {1: people[1]}) == {}
     tied = {user: analyze_user([("2026-01-01", 3)], date(2026, 1, 10)) for user in (1, 2)}
     assert record_places(1, tied)["daily"] == (1, 2, True)
+
+
+def test_the_command_sentences_name_the_person_and_fill_every_field():
+    import re
+    from caccometro import formatting
+    for _ in range(40):  # pools are random: many draws cover every sentence
+        sentences = [formatting.last_poop_sentence("Anna", days) for days in (None, 0, 1, 2, 3, 4, 9)]
+        sentences += [formatting.day_count_sentence("Anna", "oggi", count) for count in (0, 1, 2, 3, 7)]
+        sentences += [formatting.change_count_sentence("Anna", "10-03-2024", 4, delta) for delta in (1, -1)]
+        for sentence in sentences:
+            assert "Anna" in sentence and not re.search(r"[{}]", sentence)
+
+
+def test_the_sentences_follow_the_number_of_days_and_of_poops():
+    from caccometro import formatting
+    for sentence in (formatting.last_poop_sentence("Anna", 1) for _ in range(20)):
+        assert "ieri" in sentence and "1" not in sentence
+    assert all("5 giorni" in formatting.last_poop_sentence("Anna", 5) for _ in range(20))
+    assert all("4 💩" in formatting.change_count_sentence("Anna", "10-03-2024", 4, 1) for _ in range(20))
+    assert all("1 volta" in s or "1 💩" in s for s in (formatting.day_count_sentence("Anna", "oggi", 1) for _ in range(20)))

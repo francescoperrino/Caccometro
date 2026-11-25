@@ -47,7 +47,7 @@ Done your duty? Send 💩 in the group. Caccometro keeps the count for everyone 
 
 | Command                                        | Description |
 | :--------------------------------------------- | :---------- |
-| `/start`                                       | Prepares the database of the chat and shows the version of the bot. |
+| `/start`                                       | Prepares the database of the chat, shows the version of the bot and the main commands. |
 | `/leaderboard_month [MM-YYYY]`                 | Leaderboard of the month (the current one if the date is missing; also `march 2026`), with a chart of the day-by-day trend. For the current month, next to each count, the forecast for the end of the month. Under the list: who leads, where you stand and, with 🔥 next to the names, the streaks in progress. |
 | `/leaderboard_year [YYYY]`                     | Leaderboard of the year (the current one if missing; also `26`), with a chart and, for the current year, the forecast for the end of the year. |
 | `/stats_month [MM-YYYY]`                       | Mean, median and variance of the 💩 per day of each person in the month, with a chart of the distributions. Under the list: who leads and how regular you are. |

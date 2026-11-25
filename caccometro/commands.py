@@ -20,8 +20,9 @@ from caccometro.database import (init_database, find_user_by_username, add_count
                                  get_first_days, list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username,
                                  set_language, get_timed_conquests)
 from caccometro.menus import set_chat_menu
-from caccometro.formatting import (bold, flame, format_group_record, format_group_trophies, format_season_line,
-                                   format_user_record, format_user_trophies, standing_lines, tie_positions)
+from caccometro.formatting import (bold, change_count_sentence, day_count_sentence, flame, format_group_record,
+                                   format_group_trophies, format_season_line, format_user_record, format_user_trophies,
+                                   last_poop_sentence, standing_lines, tie_positions)
 from caccometro.trophies import season_of, season_results, trophies_by_user
 
 logger = logging.getLogger(__name__)
@@ -111,7 +112,7 @@ def resolve_target(update: Update, args, sender, usage):
             return None, args, invalid_format(usage)
         target = find_user_by_username(chat_id, username)
         if target is None:
-            return None, args, tr("Non conosco @{username}: deve scrivere almeno un messaggio nel gruppo "
+            return None, args, tr("🤔 Non conosco @{username}: deve scrivere almeno un messaggio nel gruppo "
                                   "(oppure rispondi a un suo messaggio).").format(username=username)
         return target, args[1:], None
     replied = replied_person(update)
@@ -122,7 +123,7 @@ def resolve_target(update: Update, args, sender, usage):
 
 def invalid_format(usage):
     """The reply to arguments that do not fit the command."""
-    return tr("Formato non valido. Usa: {usage}").format(usage=usage)
+    return tr("⚠️ Formato non valido. Usa: {usage}").format(usage=usage)
 
 
 def replied_person(update: Update):
@@ -160,7 +161,7 @@ async def may_change_counts_of(update: Update, context: ContextTypes.DEFAULT_TYP
     """Everybody can change their own counts; only the group admins can change the counts of others."""
     if target.user_id == sender.user_id or await is_chat_admin(update, context):
         return True
-    await update.message.reply_text(tr("Solo gli admin del gruppo possono modificare i conteggi degli altri."))
+    await update.message.reply_text(tr("🔒 Solo gli admin del gruppo possono modificare i conteggi degli altri."))
     return False
 
 
@@ -174,6 +175,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(tr("Ciao, sono 🤖 *Caccometro* 🤖.\n"
                                        "Manda 💩 quando hai fatto il tuo dovere.\n"
                                        "Entro 15 minuti manda una posizione per conquistare la sua zona 🚩.\n"
+                                       "/classifica\\_mese, /record e /app per classifiche, record e mappa.\n"
                                        "_Versione {version}_\n\n"
                                        "🇬🇧 English: /language en").format(version=__version__), parse_mode='Markdown')
 
@@ -203,8 +205,8 @@ async def period_from_args(update: Update, args, time_period):
     date = period['parse'](' '.join(args))  # joined: 'marzo 2026' arrives as two arguments
     if date is None:
         await update.message.reply_text(
-            tr("Formato data non valido. Usa MM-YYYY (anche 3/2026, 03.26 o marzo 2026).") if time_period == 'month'
-            else tr("Formato anno non valido. Usa YYYY (anche 26)."))
+            tr("⚠️ Formato data non valido. Usa MM-YYYY (anche 3/2026, 03.26 o marzo 2026).") if time_period == 'month'
+            else tr("⚠️ Formato anno non valido. Usa YYYY (anche 26)."))
     return date
 
 
@@ -267,8 +269,8 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time
                                    now_rome().date())
     month = time_period == 'month'
     if not statistics:
-        empty = (tr("Nessuna statistica disponibile per il mese {date}.") if month
-                 else tr("Nessuna statistica disponibile per l'anno {date}."))
+        empty = (tr("🤷 Nessuna statistica disponibile per il mese {date}.") if month
+                 else tr("🤷 Nessuna statistica disponibile per l'anno {date}."))
         await update.message.reply_text(empty.format(date=date) + legacy_hint(update.message.chat_id))
         return
 
@@ -324,7 +326,7 @@ async def records_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # no target at all: the records of the whole group
         rows_by_user, users = get_all_user_rows(chat_id)
         if not rows_by_user:
-            await update.message.reply_text(tr("Nessun dato disponibile.") + legacy_hint(chat_id))
+            await update.message.reply_text(tr("🤷 Nessun dato disponibile.") + legacy_hint(chat_id))
             return
         board = analyze_group(rows_by_user, now_rome().date())
         names = {user_id: escape_md(user.mention) for user_id, user in users.items()}
@@ -333,7 +335,7 @@ async def records_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     rows = get_record(target.user_id, chat_id)
     if not rows:
-        await update.message.reply_text(tr("Nessun dato disponibile per {name}.").format(name=target.mention)
+        await update.message.reply_text(tr("🤷 Nessun dato disponibile per {name}.").format(name=target.mention)
                                         + legacy_hint(update.message.chat_id))
         return
     today = now_rome().date()
@@ -436,7 +438,7 @@ async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYP
     try:
         date, selected_date = parse_date_arg(args[0])
     except ValueError as e:
-        await update.message.reply_text(tr("Errore: {error}").format(error=e))
+        await update.message.reply_text(tr("⚠️ Errore: {error}").format(error=e))
         return
 
     old_count, new_count = add_count(target.user_id, selected_date, delta, update.message.chat_id)
@@ -444,12 +446,10 @@ async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYP
                 f"{selected_date} {old_count} -> {new_count}")
     if delta < 0 and old_count == 0:
         await update.message.reply_text(
-            tr("Il conteggio di {name} nel giorno {date} non può essere aggiornato poiché era già 0 💩.")
+            tr("⚠️ Il conteggio di {name} nel giorno {date} non può essere aggiornato poiché era già 0 💩.")
             .format(name=target.mention, date=date))
     else:
-        await update.message.reply_text(
-            tr("Il conteggio di {name} nel giorno {date} è stato aggiornato a {count} 💩.")
-            .format(name=target.mention, date=date, count=new_count))
+        await update.message.reply_text(change_count_sentence(target.mention, date, new_count, delta))
 
 async def add_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /add_poop command."""
@@ -475,7 +475,7 @@ async def day_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             date, selected_date = parse_date_arg(args[0])
         except ValueError as e:
-            await update.message.reply_text(tr("Errore: {error}").format(error=e))
+            await update.message.reply_text(tr("⚠️ Errore: {error}").format(error=e))
             return
         day = tr("il giorno {date}").format(date=date)
     else:
@@ -483,11 +483,7 @@ async def day_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         day = tr("oggi")
 
     count = get_count(target.user_id, selected_date, update.message.chat_id)
-    if count == 0:
-        reply = tr("{name} {day} non hai fatto 💩.")
-    else:
-        reply = tr("{name} {day} hai fatto 💩 {count} volte.") if count > 1 else tr("{name} {day} hai fatto 💩 {count} volta.")
-    await update.message.reply_text(reply.format(name=target.mention, day=day, count=count))
+    await update.message.reply_text(day_count_sentence(target.mention, day, count))
 
 async def last_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /last_poop command."""
@@ -502,13 +498,7 @@ async def last_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(error)
         return
     days = get_days_since_last_poop(target.user_id, update.message.chat_id)
-    if days is None:
-        reply = tr("{name} non ci sono dati sull'ultima 💩.")
-    elif days == 0:
-        reply = tr("{name} oggi hai fatto 💩.")
-    else:
-        reply = tr("{name} non fai 💩 da {days} giorni.") if days > 1 else tr("{name} non fai 💩 da {days} giorno.")
-    await update.message.reply_text(reply.format(name=target.mention, days=days))
+    await update.message.reply_text(last_poop_sentence(target.mention, days))
 
 async def link_history_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /link_history command: link the old username-based history to Telegram users.
@@ -526,7 +516,7 @@ async def link_history_command(update: Update, context: ContextTypes.DEFAULT_TYP
     if not args:
         legacy = list_legacy_users(chat_id)
         if not legacy:
-            await update.message.reply_text(tr("Non ci sono dati storici da collegare."))
+            await update.message.reply_text(tr("🤷 Non ci sono dati storici da collegare."))
             return
         lines = [tr("Dati storici ancora da collegare:")]
         for legacy_username, total in legacy:
@@ -542,7 +532,7 @@ async def link_history_command(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
     if not await is_chat_admin(update, context):
-        await update.message.reply_text(tr("Solo gli admin del gruppo possono collegare i dati storici."))
+        await update.message.reply_text(tr("🔒 Solo gli admin del gruppo possono collegare i dati storici."))
         return
 
     # 'auto' is the keyword; an old username that is literally 'auto' can be written as '@auto'
@@ -554,11 +544,11 @@ async def link_history_command(update: Update, context: ContextTypes.DEFAULT_TYP
         remaining = list_legacy_users(chat_id)
         lines = []
         if linked:
-            lines.append(tr("Collegati:"))
+            lines.append(tr("🔗 Collegati:"))
             lines += [tr("• {username} → {name} ({days} giorni)").format(username=legacy_username, name=user.mention, days=days)
                       for legacy_username, user, days in linked]
         else:
-            lines.append(tr("Nessuna corrispondenza trovata tra lo storico e gli utenti che hanno già scritto nel gruppo."))
+            lines.append(tr("🤷 Nessuna corrispondenza trovata tra lo storico e gli utenti che hanno già scritto nel gruppo."))
         if remaining:
             lines.append("\n" + tr("Da collegare a mano (rispondi a un messaggio della persona con /collega_storico <username storico>):"))
             lines += [f"• {legacy_username}: {total} 💩" for legacy_username, total in remaining]
@@ -571,17 +561,17 @@ async def link_history_command(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     replied = replied_person(update)
     if replied is None:
-        await update.message.reply_text(tr("Rispondi a un messaggio della persona da collegare. Usa: {usage}").format(usage=usage))
+        await update.message.reply_text(tr("⚠️ Rispondi a un messaggio della persona da collegare. Usa: {usage}").format(usage=usage))
         return
     legacy_username = args[0].lstrip('@')
     target = register_user(chat_id, replied)
     days = link_legacy_username(chat_id, legacy_username, target.user_id)
     logger.info(f"History linked by {sender.mention} in {where(update)}: {legacy_username} -> {target.mention}, {days} days")
     if days == 0:
-        await update.message.reply_text(tr("Nessun dato storico trovato per «{username}» (già collegato o inesistente).")
+        await update.message.reply_text(tr("🤷 Nessun dato storico trovato per «{username}» (già collegato o inesistente).")
                                         .format(username=legacy_username))
     else:
-        await update.message.reply_text(tr("Collegati {days} giorni di dati storici di «{username}» a {name}.")
+        await update.message.reply_text(tr("🔗 Collegati {days} giorni di dati storici di «{username}» a {name}.")
                                         .format(days=days, username=legacy_username, name=target.mention))
 
 
@@ -592,11 +582,11 @@ async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     language = context.args[0].lower() if len(context.args) == 1 else None
     if language not in i18n.LANGUAGES:
-        await update.message.reply_text(tr("La lingua di questa chat è {name}. Per cambiarla: /lingua it oppure /lingua en.")
+        await update.message.reply_text(tr("🌐 La lingua di questa chat è {name}. Per cambiarla: /lingua it oppure /lingua en.")
                                         .format(name=i18n.LANGUAGES[i18n.current()]))
         return
     if not await is_chat_admin(update, context):
-        await update.message.reply_text(tr("Solo gli admin del gruppo possono cambiare la lingua."))
+        await update.message.reply_text(tr("🔒 Solo gli admin del gruppo possono cambiare la lingua."))
         return
     set_language(update.message.chat_id, language)
     i18n.use(language)

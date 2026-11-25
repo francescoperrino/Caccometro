@@ -41,18 +41,22 @@ def month_name(number):
 
 EN = {
     # /language
-    "La lingua di questa chat è {name}. Per cambiarla: /lingua it oppure /lingua en.":
-        "The language of this chat is {name}. To change it: /language en or /language it.",
-    "Solo gli admin del gruppo possono cambiare la lingua.": "Only the group admins can change the language.",
+    "🌐 La lingua di questa chat è {name}. Per cambiarla: /lingua it oppure /lingua en.":
+        "🌐 The language of this chat is {name}. To change it: /language en or /language it.",
+    "🔒 Solo gli admin del gruppo possono cambiare la lingua.": "🔒 Only the group admins can change the language.",
     "Da ora parlo italiano 🇮🇹": "From now on I speak English 🇬🇧",
     "📱 Classifiche, statistiche e mappa delle conquiste nella Mini App.": "📱 Leaderboards, statistics and conquest map in the Mini App.",
     "Apri": "Open",
 
     # /start and plain messages
     "Ciao, sono 🤖 *Caccometro* 🤖.\nManda 💩 quando hai fatto il tuo dovere.\n"
-    "Entro 15 minuti manda una posizione per conquistare la sua zona 🚩.\n_Versione {version}_\n\n🇬🇧 English: /language en":
+    "Entro 15 minuti manda una posizione per conquistare la sua zona 🚩.\n"
+    "/classifica\\_mese, /record e /app per classifiche, record e mappa.\n"
+    "_Versione {version}_\n\n🇬🇧 English: /language en":
         "Hi, I am 🤖 *Caccometro* 🤖.\nSend 💩 when you have done your duty.\n"
-        "Within 15 minutes send a location to conquer its tile 🚩.\n_Version {version}_\n\n🇮🇹 Italiano: /lingua it",
+        "Within 15 minutes send a location to conquer its tile 🚩.\n"
+        "/leaderboard\\_month, /records and /app for leaderboards, records and the map.\n"
+        "_Version {version}_\n\n🇮🇹 Italiano: /lingua it",
     "💩 oggi: {count}": "💩 today: {count}",
     "{name} a quest'ora? La notte porta consiglio, e anche 💩.":
         "{name} at this hour? Night brings wisdom, and 💩 too.",
@@ -130,8 +134,8 @@ EN = {
         "First 💩 of the day after lunch? {name} took a while.",
     "{name} inizia la giornata a notte fonda.":
         "{name} starts the day in the dead of night.",
-    "Di nuovo, {name}?! Che cosa hai mangiato?":
-        "Again, {name}?! What did you eat?",
+    "Di nuovo {name}?! Che cosa ha mangiato?":
+        "{name} again?! What did they eat?",
     "{name} non si ferma più.":
         "{name} cannot be stopped.",
     "{name} fa le cose in grande oggi.":
@@ -140,7 +144,7 @@ EN = {
         "{name} in the small hours and 💩 again: need a doctor?",
     "Il pranzo non è andato giù a {name}: ancora!":
         "Lunch did not sit well with {name}: again!",
-    "Cosa vuoi dirmi?": "What do you want to tell me?",
+    "💬 Cosa vuoi dirmi?": "💬 What do you want to tell me?",
 
     # conquest game
     "Prima la 💩, poi la conquista 😏": "First the 💩, then the conquest 😏",
@@ -165,19 +169,23 @@ EN = {
     "Zone del gruppo": "Tiles of the group",
     "{name} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu.":
         "{name} what the hell are you writing *Run* for? I only work with my own commands, not with the ones you make up.",
+    "{name}, *Run* non è un comando. Funziono solo con quelli veri, non con quelli che ti inventi tu.":
+        "{name}, *Run* is not a command. I only work with real ones, not the ones you make up.",
+    "{name}, ma sei serio? *Run*?! Guarda il menu dei comandi, poi riprova.":
+        "{name}, seriously? *Run*?! Check the command menu, then try again.",
 
     # arguments
-    "Formato non valido. Usa: {usage}": "Invalid format. Use: {usage}",
-    "Errore: {error}": "Error: {error}",
+    "⚠️ Formato non valido. Usa: {usage}": "⚠️ Invalid format. Use: {usage}",
+    "⚠️ Errore: {error}": "⚠️ Error: {error}",
     "Data non valida. Esempi: 05-03-2026, 5/3/26, 5.3 (anno corrente), oggi, ieri.":
         "Invalid date. Examples: 05-03-2026, 5/3/26, 5.3 (current year), today, yesterday.",
     "La data selezionata è nel futuro.": "The selected date is in the future.",
     "L'anno deve essere dal {year} in poi.": "The year must be {year} or later.",
-    "Formato data non valido. Usa MM-YYYY (anche 3/2026, 03.26 o marzo 2026).":
-        "Invalid date format. Use MM-YYYY (also 3/2026, 03.26 or march 2026).",
-    "Formato anno non valido. Usa YYYY (anche 26).": "Invalid year format. Use YYYY (also 26).",
-    "Non conosco @{username}: deve scrivere almeno un messaggio nel gruppo (oppure rispondi a un suo messaggio).":
-        "I do not know @{username}: they must write at least one message in the group (or reply to one of their messages).",
+    "⚠️ Formato data non valido. Usa MM-YYYY (anche 3/2026, 03.26 o marzo 2026).":
+        "⚠️ Invalid date format. Use MM-YYYY (also 3/2026, 03.26 or march 2026).",
+    "⚠️ Formato anno non valido. Usa YYYY (anche 26).": "⚠️ Invalid year format. Use YYYY (also 26).",
+    "🤔 Non conosco @{username}: deve scrivere almeno un messaggio nel gruppo (oppure rispondi a un suo messaggio).":
+        "🤔 I do not know @{username}: they must write at least one message in the group (or reply to one of their messages).",
     "/record [@username | io]": "/records [@username | me]",
     "/trofei [@username | io]": "/trophies [@username | me]",
     "/aggiungi_cacca @username DD-MM-YYYY": "/add_poop @username DD-MM-YYYY",
@@ -186,8 +194,8 @@ EN = {
     "/ultima_cacca @username": "/last_poop @username",
     "/collega_storico <username storico> (in risposta a un messaggio della persona)":
         "/link_history <old username> (as a reply to a message of the person)",
-    "Nessun dato disponibile.": "No data available.",
-    "Nessun dato disponibile per {name}.": "No data available for {name}.",
+    "🤷 Nessun dato disponibile.": "🤷 No data available.",
+    "🤷 Nessun dato disponibile per {name}.": "🤷 No data available for {name}.",
     "ℹ️ Ci sono dati storici ancora da collegare: usa /collega_storico.": "ℹ️ There is old history still to link: use /link_history.",
 
     # leaderboards and statistics
@@ -197,49 +205,66 @@ EN = {
     "🏆 *Classifica dell'anno {date}*": "🏆 *Leaderboard of the year {date}*",
     "_💩 finora → previsione a fine mese_": "_💩 so far → forecast at the end of the month_",
     "_💩 finora → previsione a fine anno_": "_💩 so far → forecast at the end of the year_",
-    "Nessuna statistica disponibile per il mese {date}.": "No statistics available for the month {date}.",
-    "Nessuna statistica disponibile per l'anno {date}.": "No statistics available for the year {date}.",
+    "🤷 Nessuna statistica disponibile per il mese {date}.": "🤷 No statistics available for the month {date}.",
+    "🤷 Nessuna statistica disponibile per l'anno {date}.": "🤷 No statistics available for the year {date}.",
     "📊 *Statistiche del mese {date}*": "📊 *Statistics of the month {date}*",
     "📊 *Statistiche dell'anno {date}*": "📊 *Statistics of the year {date}*",
     "💩 al giorno: media · mediana · varianza": "💩 per day: mean · median · variance",
 
     # /add_poop, /remove_poop, /day_count, /last_poop
-    "Solo gli admin del gruppo possono modificare i conteggi degli altri.":
-        "Only the group admins can change the counts of somebody else.",
-    "Il conteggio di {name} nel giorno {date} non può essere aggiornato poiché era già 0 💩.":
-        "The count of {name} on {date} cannot be changed: it was already 0 💩.",
-    "Il conteggio di {name} nel giorno {date} è stato aggiornato a {count} 💩.":
-        "The count of {name} on {date} is now {count} 💩.",
+    "🔒 Solo gli admin del gruppo possono modificare i conteggi degli altri.":
+        "🔒 Only the group admins can change the counts of somebody else.",
+    "⚠️ Il conteggio di {name} nel giorno {date} non può essere aggiornato poiché era già 0 💩.":
+        "⚠️ The count of {name} on {date} cannot be changed: it was already 0 💩.",
     "il giorno {date}": "on {date}",
     "oggi": "today",
-    "{name} {day} hai fatto 💩 {count} volta.": "{name}, {day} you did 💩 {count} time.",
-    "{name} {day} hai fatto 💩 {count} volte.": "{name}, {day} you did 💩 {count} times.",
-    "{name} {day} non hai fatto 💩.": "{name}, {day} you did no 💩.",
-    "{name} oggi hai fatto 💩.": "{name}, today you did 💩.",
-    "{name} non fai 💩 da {days} giorno.": "{name}, no 💩 for {days} day.",
-    "{name} non fai 💩 da {days} giorni.": "{name}, no 💩 for {days} days.",
-    "{name} non ci sono dati sull'ultima 💩.": "{name}, there is no data about your last 💩.",
+    "Nessun dato sull'ultima 💩 di {name}: si comincia oggi.": "No data on the last 💩 of {name}: it starts today.",
+    "{name} oggi ha già fatto 💩: il dovere è compiuto.": "{name} already did 💩 today: duty done.",
+    "{name} oggi ha già dato 💩. Riposa.": "{name} already delivered 💩 today. Resting.",
+    "{name} ha fatto 💩 ieri: tutto sotto controllo.": "{name} did 💩 yesterday: all under control.",
+    "L'ultima 💩 di {name} è di ieri: oggi è il giorno giusto.": "The last 💩 of {name} was yesterday: today is the day.",
+    "{name} non fa 💩 da {days} giorni: inizia a farsi sentire.": "{name} has had no 💩 for {days} days: it starts to show.",
+    "{name} non fa 💩 da {days} giorni: serve una prugna.": "{name} has had no 💩 for {days} days: a prune is needed.",
+    "{name} non fa 💩 da {days} giorni: serve un intervento.": "{name} has had no 💩 for {days} days: time for an intervention.",
+    "{name} non fa 💩 da {days} giorni?! Il bagno lo aspetta, ed è preoccupato.": "{name} has had no 💩 for {days} days?! The bathroom is waiting, and worried.",
+    "{name} {day} non ha fatto 💩: giornata di sciopero?": "{name} did no 💩 {day}: on strike?",
+    "{name} {day}: zero 💩. Il registro è vuoto.": "{name} {day}: zero 💩. The record is empty.",
+    "{name} {day} ha fatto 💩 {count} volta: nella norma.": "{name} {day} did 💩 {count} time: normal.",
+    "{name} {day} ha fatto 💩 {count} volte: nella norma.": "{name} {day} did 💩 {count} times: normal.",
+    "{name} {day}: {count} 💩, regolare come un orologio.": "{name} {day}: {count} 💩, regular as clockwork.",
+    "{name} {day}: {count} 💩. Che cosa ha mangiato?": "{name} {day}: {count} 💩. What did they eat?",
+    "{name} {day}: {count} 💩, giornata da record.": "{name} {day}: {count} 💩, record-breaking day.",
+    "Fatto: {name} il {date} sale a {count} 💩. La storia è riscritta.":
+        "Done: {name} goes up to {count} 💩 on {date}. History rewritten.",
+    "{name} il {date} ora ha {count} 💩. Meglio tardi che mai.":
+        "{name} now has {count} 💩 on {date}. Better late than never.",
+    "Registrato: {name} il {date} arriva a {count} 💩.": "Recorded: {name} reaches {count} 💩 on {date}.",
+    "Cancellata: {name} il {date} scende a {count} 💩. Nessuno ha visto niente.":
+        "Erased: {name} drops to {count} 💩 on {date}. Nobody saw anything.",
+    "{name} il {date} ora ha {count} 💩. Tirato lo sciacquone sul passato.":
+        "{name} now has {count} 💩 on {date}. The past has been flushed.",
+    "Tolta: {name} il {date} resta con {count} 💩.": "Removed: {name} is left with {count} 💩 on {date}.",
 
     # /link_history
-    "Non ci sono dati storici da collegare.": "There is no old history to link.",
+    "🤷 Non ci sono dati storici da collegare.": "🤷 There is no old history to link.",
     "Dati storici ancora da collegare:": "Old history still to link:",
     " → {name} (corrispondenza trovata)": " → {name} (match found)",
     "({orphans} registrazioni senza username non si possono collegare.)":
         "({orphans} records without a username cannot be linked.)",
     "Gli admin possono usare /collega_storico auto per collegare le corrispondenze, oppure rispondere a un messaggio della persona con /collega_storico <username storico>.":
         "The admins can use /link_history auto to link the matches, or reply to a message of the person with /link_history <old username>.",
-    "Solo gli admin del gruppo possono collegare i dati storici.": "Only the group admins can link the old history.",
-    "Collegati:": "Linked:",
+    "🔒 Solo gli admin del gruppo possono collegare i dati storici.": "🔒 Only the group admins can link the old history.",
+    "🔗 Collegati:": "🔗 Linked:",
     "• {username} → {name} ({days} giorni)": "• {username} → {name} ({days} days)",
-    "Nessuna corrispondenza trovata tra lo storico e gli utenti che hanno già scritto nel gruppo.":
-        "No match found between the old history and the users who have already written in the group.",
+    "🤷 Nessuna corrispondenza trovata tra lo storico e gli utenti che hanno già scritto nel gruppo.":
+        "🤷 No match found between the old history and the users who have already written in the group.",
     "Da collegare a mano (rispondi a un messaggio della persona con /collega_storico <username storico>):":
         "To link by hand (reply to a message of the person with /link_history <old username>):",
-    "Rispondi a un messaggio della persona da collegare. Usa: {usage}": "Reply to a message of the person to link. Use: {usage}",
-    "Nessun dato storico trovato per «{username}» (già collegato o inesistente).":
-        "No old history found for «{username}» (already linked or never recorded).",
-    "Collegati {days} giorni di dati storici di «{username}» a {name}.":
-        "Linked {days} days of old history of «{username}» to {name}.",
+    "⚠️ Rispondi a un messaggio della persona da collegare. Usa: {usage}": "⚠️ Reply to a message of the person to link. Use: {usage}",
+    "🤷 Nessun dato storico trovato per «{username}» (già collegato o inesistente).":
+        "🤷 No old history found for «{username}» (already linked or never recorded).",
+    "🔗 Collegati {days} giorni di dati storici di «{username}» a {name}.":
+        "🔗 Linked {days} days of old history of «{username}» to {name}.",
 
     # words used inside other sentences
     "volta": "time",
@@ -301,8 +326,8 @@ EN = {
     # /trophies
     "🔥 *Nuovo trofeo!* {days} giorni di fila con almeno una 💩!": "🔥 *New trophy!* {days} days in a row with at least one 💩!",
     "🏆 *Bacheca dei trofei* 🏆": "🏆 *Trophy board* 🏆",
-    "Ancora nessun trofeo: servono {days} giorni di fila con almeno una 💩, oppure vincere un mese.":
-        "No trophy yet: it takes {days} days in a row with at least one 💩, or winning a month.",
+    "🤷 Ancora nessun trofeo: servono {days} giorni di fila con almeno una 💩, oppure vincere un mese.":
+        "🤷 No trophy yet: it takes {days} days in a row with at least one 💩, or winning a month.",
     "👑 💩 dell'anno · 🏅 💩 del mese · 🔥 {days} giorni di fila":
         "👑 💩 of the year · 🏅 💩 of the month · 🔥 {days} days in a row",
     "I tuoi: /trofei io — di un altro: /trofei @username (o rispondi a un suo messaggio)":
@@ -313,7 +338,7 @@ EN = {
     "🚩 Stagione {season}: conquistatore {conquerors} ({n}), re {king}":
         "🚩 Season {season}: conqueror {conquerors} ({n}), king {king}",
     "Trofei di {name}": "Trophies of {name}",
-    "Ancora nessun trofeo.": "No trophy yet.",
+    "🤷 Ancora nessun trofeo.": "🤷 No trophy yet.",
     "👑 💩 dell'anno: {years}": "👑 💩 of the year: {years}",
     "🏅 💩 del mese ({count}): {months}": "🏅 💩 of the month ({count}): {months}",
     "🔥 Serie: {n} trofeo": "🔥 Streaks: {n} trophy",
