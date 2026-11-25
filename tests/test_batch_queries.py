@@ -180,7 +180,7 @@ def test_remove_poop_from_one_goes_to_zero(chat_id, seed):
     seed({"mario": {"2024-03-10": 1}})
     upd = make_update()
     run(commands.remove_poop_command(upd, make_context("10-03-2024")))
-    assert "aggiornato a 0" in upd.message.reply_text.call_args[0][0]
+    assert "0 💩" in upd.message.reply_text.call_args[0][0]
     assert database.get_count(uid("mario"), "2024-03-10", chat_id) == 0
 
 
@@ -196,7 +196,7 @@ def test_add_poop_reports_the_new_count(chat_id, seed):
     seed({"mario": {"2024-03-10": 2}})
     upd = make_update()
     run(commands.add_poop_command(upd, make_context("10-03-2024")))
-    assert "aggiornato a 3" in upd.message.reply_text.call_args[0][0]
+    assert "3 💩" in upd.message.reply_text.call_args[0][0]
 
 
 def test_poop_messages_sent_at_the_same_time_are_all_counted(chat_id):

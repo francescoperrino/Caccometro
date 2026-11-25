@@ -45,7 +45,7 @@ def test_list_shows_pending_history_and_matches(tmp_path):
 def test_list_with_nothing_to_link(chat_id):
     upd = make_update()
     run(commands.link_history_command(upd, make_context()))
-    assert reply_of(upd) == "Non ci sono dati storici da collegare."
+    assert reply_of(upd) == "🤷 Non ci sono dati storici da collegare."
 
 
 def test_list_is_open_to_everybody(tmp_path):

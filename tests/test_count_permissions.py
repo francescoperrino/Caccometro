@@ -19,7 +19,7 @@ def run(command, *args, member_status="member", chat_type="group"):
 def test_a_member_cannot_change_the_counts_of_somebody_else(seed, chat_id, command):
     seed({"luigi": {"2024-03-10": 1}})
     reply = run(command, "@luigi", "10-03-2024")
-    assert reply == "Solo gli admin del gruppo possono modificare i conteggi degli altri."
+    assert reply == "🔒 Solo gli admin del gruppo possono modificare i conteggi degli altri."
     assert database.get_count(uid("luigi"), "2024-03-10", chat_id) == 1
 
 

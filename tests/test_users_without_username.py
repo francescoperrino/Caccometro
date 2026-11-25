@@ -75,7 +75,7 @@ def test_commands_work_for_users_without_username(chat_id):
     assert "Record per Anna Rossi" in upd.message.reply_text.call_args[0][0]
     upd = make_update(**sender)
     run(commands.last_poop_command(upd, make_context()))
-    assert "Anna Rossi oggi hai fatto" in upd.message.reply_text.call_args[0][0]
+    assert "Anna Rossi oggi ha già" in upd.message.reply_text.call_args[0][0]
     upd = make_update(**sender)
     run(commands.leaderboard_month_command(upd, make_context()))
     assert "Anna Rossi" in upd.message.reply_photo.call_args.kwargs["caption"]

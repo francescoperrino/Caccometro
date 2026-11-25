@@ -137,7 +137,7 @@ def test_last_poop_with_different_case(seed):
     import pytz
     today = datetime.now(pytz.timezone("Europe/Rome")).strftime("%Y-%m-%d")
     seed({"luigi": {today: 1}})
-    assert "oggi hai fatto" in reply_of(commands.last_poop_command, "@LUIGI")
+    assert "oggi ha già" in reply_of(commands.last_poop_command, "@LUIGI")
 
 
 @pytest.mark.parametrize("command", [

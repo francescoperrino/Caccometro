@@ -358,7 +358,7 @@ def format_user_trophies(name, trophies, current_streak):
     """
     lines = [f"🏆 {bold(tr('Trofei di {name}').format(name=name))} 🏆\n"]
     if trophies is None:
-        lines.append(tr("Ancora nessun trofeo."))
+        lines.append(tr("🤷 Ancora nessun trofeo."))
     else:
         if trophies.years:
             lines.append(tr("👑 💩 dell'anno: {years}").format(years=', '.join(str(year) for year in reversed(trophies.years))))
@@ -478,7 +478,7 @@ def _poop_sentences():
         ("first", "early"): [tr("{name} è mattiniero: la prima 💩 arriva presto.")],
         ("first", "lunch"): [tr("Prima 💩 della giornata dopo pranzo? {name} ci ha messo un po'.")],
         ("first", "night"): [tr("{name} inizia la giornata a notte fonda.")],
-        ("third", None): [tr("Di nuovo, {name}?! Che cosa hai mangiato?"),
+        ("third", None): [tr("Di nuovo {name}?! Che cosa ha mangiato?"),
                           tr("{name} non si ferma più."),
                           tr("{name} fa le cose in grande oggi.")],
         ("third", "night"): [tr("{name} nelle ore piccole e ancora 💩: serve un medico?")],
@@ -502,3 +502,50 @@ def poop_pool(hour, count):
 def poop_sentence(name, hour, count):
     """A random sentence for the 💩 of `name` sent at Italian `hour`, the `count`-th of the day."""
     return random.choice(poop_pool(hour, count)).format(name=name)
+
+
+def last_poop_sentence(name, days):
+    """A random sentence for /last_poop: `days` since the last 💩 of `name` (0 is today, None is no data)."""
+    if days is None:
+        emoji, pool = "🤷", [tr("Nessun dato sull'ultima 💩 di {name}: si comincia oggi.")]
+    elif days == 0:
+        emoji, pool = "✅", [tr("{name} oggi ha già fatto 💩: il dovere è compiuto."),
+                tr("{name} oggi ha già dato 💩. Riposa.")]
+    elif days == 1:
+        emoji, pool = "👀", [tr("{name} ha fatto 💩 ieri: tutto sotto controllo."),
+                tr("L'ultima 💩 di {name} è di ieri: oggi è il giorno giusto.")]
+    elif days <= 3:
+        emoji, pool = "😬", [tr("{name} non fa 💩 da {days} giorni: inizia a farsi sentire."),
+                tr("{name} non fa 💩 da {days} giorni: serve una prugna.")]
+    else:
+        emoji, pool = "🚨", [tr("{name} non fa 💩 da {days} giorni: serve un intervento."),
+                tr("{name} non fa 💩 da {days} giorni?! Il bagno lo aspetta, ed è preoccupato.")]
+    return f"{emoji} " + random.choice(pool).format(name=name, days=days)
+
+
+def day_count_sentence(name, day, count):
+    """A random sentence for /day_count: `count` 💩 of `name`, `day` being "oggi" or "il giorno <date>"."""
+    if count == 0:
+        emoji, pool = "🏖️", [tr("{name} {day} non ha fatto 💩: giornata di sciopero?"),
+                tr("{name} {day}: zero 💩. Il registro è vuoto.")]
+    elif count <= 2:
+        once = tr("{name} {day} ha fatto 💩 {count} volta: nella norma.") if count == 1 \
+            else tr("{name} {day} ha fatto 💩 {count} volte: nella norma.")
+        emoji, pool = "🕰️", [once, tr("{name} {day}: {count} 💩, regolare come un orologio.")]
+    else:
+        emoji, pool = "🏆", [tr("{name} {day}: {count} 💩. Che cosa ha mangiato?"),
+                tr("{name} {day}: {count} 💩, giornata da record.")]
+    return f"{emoji} " + random.choice(pool).format(name=name, day=day, count=count)
+
+
+def change_count_sentence(name, date, count, delta):
+    """A random sentence for /add_poop (delta > 0) and /remove_poop (delta < 0): the new `count` of `name` on `date`."""
+    if delta > 0:
+        emoji, pool = "➕", [tr("Fatto: {name} il {date} sale a {count} 💩. La storia è riscritta."),
+                tr("{name} il {date} ora ha {count} 💩. Meglio tardi che mai."),
+                tr("Registrato: {name} il {date} arriva a {count} 💩.")]
+    else:
+        emoji, pool = "🧻", [tr("Cancellata: {name} il {date} scende a {count} 💩. Nessuno ha visto niente."),
+                tr("{name} il {date} ora ha {count} 💩. Tirato lo sciacquone sul passato."),
+                tr("Tolta: {name} il {date} resta con {count} 💩.")]
+    return f"{emoji} " + random.choice(pool).format(name=name, date=date, count=count)

@@ -106,3 +106,12 @@ def test_start_without_a_message_does_nothing():
     upd = make_update()
     upd.message = None
     run(commands.start_command(upd, make_context()))
+
+
+def test_start_escapes_the_underscores_of_the_command_names_for_markdown(chat_id):
+    import re
+    upd = make_update()
+    run(commands.start_command(upd, make_context()))
+    text = upd.message.reply_text.call_args[0][0]
+    assert "classifica\\_mese" in text
+    assert len(re.findall(r"(?<!\\)_", text)) == 2   # only the italics of the version are left

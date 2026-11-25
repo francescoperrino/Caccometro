@@ -18,7 +18,7 @@ def test_bot_mention_is_case_insensitive(monkeypatch):
     monkeypatch.setattr(config, "BOT_USERNAME", "@CaccoMetro_Bot")
     upd = make_update(text="ciao @caccometro_bot come va")
     run(messages.handle_message(upd, make_context()))
-    assert upd.message.reply_text.call_args[0][0] == "Cosa vuoi dirmi?"
+    assert upd.message.reply_text.call_args[0][0] == "💬 Cosa vuoi dirmi?"
 
 
 def test_missing_bot_username_does_not_crash(monkeypatch):
