@@ -37,32 +37,27 @@ The pattern is steady: name, a pitch of one or two lines and one picture of the 
 
 ## What we chose and why
 
-A proposal: the maintainer decides. Three readers: people who use the bot (the README), contributors ([CONTRIBUTING.md](../../CONTRIBUTING.md) and [architecture](../architecture.md)), the maintainer ([deployment](../deployment.md) and [operations](../operations.md)).
-
-### Proposed order of README.md
+Three readers: people who use the bot (the README), contributors ([CONTRIBUTING.md](../../CONTRIBUTING.md) and [architecture](../architecture.md)) and the maintainer ([deployment](../deployment.md) and [operations](../operations.md)). Both READMEs follow this order:
 
 | # | Part | Why |
 | --- | --- | --- |
-| 1 | Avatar, name, one-line pitch, language switcher | What every project above shows first; the switcher stays where readers see it before reading on. |
-| 2 | Two or three badges | Enough to show the project is alive, without a wall. |
-| 3 | Demo GIF | Apps lead with the product; a chat bot is easier to show than to describe. |
-| 4 | Feature list (the six lines of today) | Answers "what does it do" in one screen. |
-| 5 | Mini App screenshots, side by side | The part people cannot imagine from the commands. |
-| 6 | How to use it (five steps) | "How do I get started", the second question of every guide. |
-| 7 | Commands table | The reference users come back for. |
-| 8 | Charts and conquest maps | Proof of what the replies look like. |
-| 9 | Rules of records, trophies, conquests, dates, old history, in `<details>` | Detail on demand; the outline still shows them. |
-| 10 | Privacy | A group must know what is stored before adding the bot. |
-| 11 | Documentation table, license, OpenStreetMap credit | Where contributors and the maintainer go next. |
+| 1 | Demo GIF, name, one-line pitch, language switcher | Apps lead with a picture of the product. The GIF is the avatar in motion, so a still avatar above it would repeat it. |
+| 2 | Three badges: tests, latest release, license | Enough to show the project is alive. The release badge stands in for the package badge a bot does not have. |
+| 3 | An "Add to your group" button (`t.me/<bot>?startgroup`) | Adding the bot is the one thing a visitor wants to do; a plain Telegram badge would only open the chat. |
+| 4 | Feature list | Answers "what does it do" in one screen. |
+| 5 | Mini App screenshots, four in a row | The part people cannot imagine from the commands. Light theme, JPEG, 390 px. |
+| 6 | Table of contents | The README stays over 100 lines, and the GitHub outline is easy to miss. |
+| 7 | How to use it | "How do I get started", the second question of every guide. |
+| 8 | Commands: one short row each, details and date formats in `<details>` | The table is the reference users come back for; `tests/test_docs.py` still finds every command at the start of a row. |
+| 9 | Charts and conquest maps | What the replies look like. |
+| 10 | Rules of records, trophies, conquests and old history, in `<details>` | Detail on demand, never steps a new user needs. |
+| 11 | Privacy | A group must know what is stored before adding the bot. |
+| 12 | Documentation table, license, OpenStreetMap credit | Where contributors and the maintainer go next. [replies.md](../replies.md) comes first: it is the one document users read too. |
 
-### The choices
+Other choices:
 
-- **Pitch.** Keep "Who poops the most? ..." under 120 characters and make the GitHub description match it (today the description is longer): standard-readme asks for both to match.
-- **Badges.** Tests (the GitHub Actions badge, served by GitHub), license and perhaps a "Telegram" link to the bot; no stars, no downloads: there is no package and stars say nothing to a group.
-- **Hero GIF.** Move `assets/demo.gif` from "How to use it" to just under the pitch, about 400 px wide, kept near 2 MB; no MP4, since GitHub does not document video in repository Markdown.
-- **Screenshots.** Two to four Mini App screenshots in a two-column table, light theme, JPEG; a `<picture>` dark version only if it costs nothing to keep, since the projects above use it only for the banner.
-- **Command table.** One row per command with the one-line menu text; the long explanations of today go under the table in `<details>`, so `tests/test_docs.py` keeps finding every command at the start of a row. The full English and Italian menu table stays in [deployment](../deployment.md#command-menus), and every reply of the bot goes in the generated `docs/replies.md`, linked from here.
-- **`<details>`.** For rules and edge cases only (records, trophies, conquest rules, date formats, old history and supergroups), never for steps a new user needs.
-- **Table of contents.** Keep a short one: the README stays over 100 lines, and the GitHub outline is easy to miss.
-- **Language switcher.** Keep `README.md` in English and `README.it.md` in Italian with the switcher under the pitch, as today; both files keep the same order so a change is easy to mirror.
-- **What moves out.** Nothing for contributors or the maintainer stays in the README beyond the documentation table; CONTRIBUTING, SECURITY and `docs/` already hold it.
+- **Pitch.** "Who poops the most? ..." stays under 120 characters. The GitHub description is longer and lists the features; standard-readme asks for the two to match, which is left for the next release.
+- **Video.** A GIF of about 400 px and 2 MB, since GitHub does not document video stored in the repository.
+- **Dark screenshots.** None: the projects above use `<picture>` only for a banner, and a second set doubles the work at every Mini App change.
+- **Menus and replies.** The full English and Italian menu table is in [deployment](../deployment.md#command-menus); every reply of the bot is in [replies.md](../replies.md), written from the code.
+- **Language switcher.** `README.md` in English and `README.it.md` in Italian, with the switcher under the pitch. Both files keep the same order, so a change is easy to copy across.

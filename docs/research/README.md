@@ -7,6 +7,6 @@ Studies behind the choices of the project: what the evidence says, the options w
 | [Mini App design](mini_app_design.md) | How should the Mini App show leaderboards, statistics, records, trophies and the map on a phone? | Chosen (#190) |
 | [Regularity index](regularity_index.md) | How do we say "how regular" someone is from daily counts, with some science behind it? | Chosen (#190) |
 | [Hosting](hosting.md) | Where should the bot run for free, with maintenance close to zero? | Pending (#89, #183) |
-| [README structure](readme.md) | How should the README be ordered, and what belongs at the top, in `<details>` or in other files? | Proposal (#204) |
+| [README structure](readme.md) | How should the README be ordered, and what belongs at the top, in `<details>` or in other files? | Chosen (#204) |
 
 The sources were read in November 2026. A study is updated, not rewritten, when new evidence changes a choice.
