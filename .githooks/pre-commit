@@ -20,10 +20,12 @@ ${py:-python} -m pytest -q -p no:cacheprovider > /dev/null 2>&1 || {
     exit 1
 }
 
-# The README charts and the documentation infographics carry the bot version: redraw them, refuse the commit if they changed (#143, #194)
+# The README charts and the documentation infographics carry the bot version, the page of the replies follows i18n.py:
+# redraw them, refuse the commit if they changed (#143, #194, #204)
 ${py:-python} tools/sample_charts.py > /dev/null || exit 1
 ${py:-python} tools/draw_infographics.py > /dev/null || exit 1
-if ! git diff --quiet -- assets/screenshots docs/images || [ -n "$(git ls-files --others --exclude-standard -- assets/screenshots docs/images)" ]; then
-    echo "pre-commit: the README charts or the infographics changed. Check and stage them: git add assets/screenshots docs/images" >&2
+${py:-python} tools/write_replies.py > /dev/null || exit 1
+if ! git diff --quiet -- assets/screenshots docs/images docs/replies.md || [ -n "$(git ls-files --others --exclude-standard -- assets/screenshots docs/images docs/replies.md)" ]; then
+    echo "pre-commit: the README charts, the infographics or docs/replies.md changed. Check and stage them: git add assets/screenshots docs/images docs/replies.md" >&2
     exit 1
 fi

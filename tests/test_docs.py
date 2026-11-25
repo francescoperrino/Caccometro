@@ -109,6 +109,14 @@ def test_the_relative_links_point_to_existing_files(doc):
         assert (doc.parent / target).exists(), f"{doc.name} links to {target}, which does not exist"
 
 
+def test_the_page_of_the_replies_is_up_to_date():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("write_replies", ROOT / "tools" / "write_replies.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert read("docs/replies.md") == module.render(), "docs/replies.md is stale: run python tools/write_replies.py"
+
+
 @pytest.mark.parametrize("name", ["README.md", "README.it.md"])
 def test_the_readmes_show_every_sample_chart(name):
     for chart in (ROOT / "assets" / "screenshots").glob("*.png"):

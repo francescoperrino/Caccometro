@@ -48,7 +48,7 @@ EN = {
     "📱 Classifiche, statistiche e mappa delle conquiste nella Mini App.": "📱 Leaderboards, statistics and conquest map in the Mini App.",
     "Apri": "Open",
 
-    # /start and plain messages
+    # /start
     "Ciao, sono 🤖 *Caccometro* 🤖.\nManda 💩 quando hai fatto il tuo dovere.\n"
     "Entro 15 minuti manda una posizione per conquistare la sua zona 🚩.\n"
     "/classifica\\_mese, /record e /app per classifiche, record e mappa.\n"
@@ -57,6 +57,7 @@ EN = {
         "Within 15 minutes send a location to conquer its tile 🚩.\n"
         "/leaderboard\\_month, /records and /app for leaderboards, records and the map.\n"
         "_Version {version}_\n\n🇮🇹 Italiano: /lingua it",
+    # Messages with 💩 or 🚽
     "💩 oggi: {count}": "💩 today: {count}",
     "{name} a quest'ora? La notte porta consiglio, e anche 💩.":
         "{name} at this hour? Night brings wisdom, and 💩 too.",
@@ -144,9 +145,10 @@ EN = {
         "{name} in the small hours and 💩 again: need a doctor?",
     "Il pranzo non è andato giù a {name}: ancora!":
         "Lunch did not sit well with {name}: again!",
+    # Mentions of the bot
     "💬 Cosa vuoi dirmi?": "💬 What do you want to tell me?",
 
-    # conquest game
+    # /conquests
     "Prima la 💩, poi la conquista 😏": "First the 💩, then the conquest 😏",
     "📍 Manda la posizione entro 15 minuti per conquistare la zona!": "📍 Send your location within 15 minutes to conquer the tile!",
     "🚩 {name} conquista una nuova zona! Zone: {total}": "🚩 {name} conquers a new tile! Tiles: {total}",
@@ -167,6 +169,7 @@ EN = {
     "zone perse: {n}": "tiles lost: {n}",
     "Zona di {name}": "Tiles of {name}",
     "Zone del gruppo": "Tiles of the group",
+    # Messages with "run"
     "{name} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu.":
         "{name} what the hell are you writing *Run* for? I only work with my own commands, not with the ones you make up.",
     "{name}, *Run* non è un comando. Funziono solo con quelli veri, non con quelli che ti inventi tu.":
@@ -174,7 +177,7 @@ EN = {
     "{name}, ma sei serio? *Run*?! Guarda il menu dei comandi, poi riprova.":
         "{name}, seriously? *Run*?! Check the command menu, then try again.",
 
-    # arguments
+    # Shared: arguments, dates and people
     "⚠️ Formato non valido. Usa: {usage}": "⚠️ Invalid format. Use: {usage}",
     "⚠️ Errore: {error}": "⚠️ Error: {error}",
     "Data non valida. Esempi: 05-03-2026, 5/3/26, 5.3 (anno corrente), oggi, ieri.":
@@ -198,26 +201,27 @@ EN = {
     "🤷 Nessun dato disponibile per {name}.": "🤷 No data available for {name}.",
     "ℹ️ Ci sono dati storici ancora da collegare: usa /collega_storico.": "ℹ️ There is old history still to link: use /link_history.",
 
-    # leaderboards and statistics
+    # /leaderboard_month, /leaderboard_year
     "Nel mese {date} non sono state contate 💩.": "No 💩 was counted in the month {date}.",
     "Nell'anno {date} non sono state contate 💩.": "No 💩 was counted in the year {date}.",
     "🏆 *Classifica del mese {date}*": "🏆 *Leaderboard of the month {date}*",
     "🏆 *Classifica dell'anno {date}*": "🏆 *Leaderboard of the year {date}*",
     "_💩 finora → previsione a fine mese_": "_💩 so far → forecast at the end of the month_",
     "_💩 finora → previsione a fine anno_": "_💩 so far → forecast at the end of the year_",
+    # /stats_month, /stats_year
     "🤷 Nessuna statistica disponibile per il mese {date}.": "🤷 No statistics available for the month {date}.",
     "🤷 Nessuna statistica disponibile per l'anno {date}.": "🤷 No statistics available for the year {date}.",
     "📊 *Statistiche del mese {date}*": "📊 *Statistics of the month {date}*",
     "📊 *Statistiche dell'anno {date}*": "📊 *Statistics of the year {date}*",
     "💩 al giorno: media · mediana · varianza": "💩 per day: mean · median · variance",
 
-    # /add_poop, /remove_poop, /day_count, /last_poop
+    # /add_poop
     "🔒 Solo gli admin del gruppo possono modificare i conteggi degli altri.":
         "🔒 Only the group admins can change the counts of somebody else.",
-    "⚠️ Il conteggio di {name} nel giorno {date} non può essere aggiornato poiché era già 0 💩.":
-        "⚠️ The count of {name} on {date} cannot be changed: it was already 0 💩.",
+    # /day_count
     "il giorno {date}": "on {date}",
     "oggi": "today",
+    # /last_poop
     "Nessun dato sull'ultima 💩 di {name}: si comincia oggi.": "No data on the last 💩 of {name}: it starts today.",
     "{name} oggi ha già fatto 💩: il dovere è compiuto.": "{name} already did 💩 today: duty done.",
     "{name} oggi ha già dato 💩. Riposa.": "{name} already delivered 💩 today. Resting.",
@@ -227,6 +231,7 @@ EN = {
     "{name} non fa 💩 da {days} giorni: serve una prugna.": "{name} has had no 💩 for {days} days: a prune is needed.",
     "{name} non fa 💩 da {days} giorni: serve un intervento.": "{name} has had no 💩 for {days} days: time for an intervention.",
     "{name} non fa 💩 da {days} giorni?! Il bagno lo aspetta, ed è preoccupato.": "{name} has had no 💩 for {days} days?! The bathroom is waiting, and worried.",
+    # /day_count
     "{name} {day} non ha fatto 💩: giornata di sciopero?": "{name} did no 💩 {day}: on strike?",
     "{name} {day}: zero 💩. Il registro è vuoto.": "{name} {day}: zero 💩. The record is empty.",
     "{name} {day} ha fatto 💩 {count} volta: nella norma.": "{name} {day} did 💩 {count} time: normal.",
@@ -234,11 +239,15 @@ EN = {
     "{name} {day}: {count} 💩, regolare come un orologio.": "{name} {day}: {count} 💩, regular as clockwork.",
     "{name} {day}: {count} 💩. Che cosa ha mangiato?": "{name} {day}: {count} 💩. What did they eat?",
     "{name} {day}: {count} 💩, giornata da record.": "{name} {day}: {count} 💩, record-breaking day.",
+    # /add_poop
     "Fatto: {name} il {date} sale a {count} 💩. La storia è riscritta.":
         "Done: {name} goes up to {count} 💩 on {date}. History rewritten.",
     "{name} il {date} ora ha {count} 💩. Meglio tardi che mai.":
         "{name} now has {count} 💩 on {date}. Better late than never.",
     "Registrato: {name} il {date} arriva a {count} 💩.": "Recorded: {name} reaches {count} 💩 on {date}.",
+    # /remove_poop
+    "⚠️ Il conteggio di {name} nel giorno {date} non può essere aggiornato poiché era già 0 💩.":
+        "⚠️ The count of {name} on {date} cannot be changed: it was already 0 💩.",
     "Cancellata: {name} il {date} scende a {count} 💩. Nessuno ha visto niente.":
         "Erased: {name} drops to {count} 💩 on {date}. Nobody saw anything.",
     "{name} il {date} ora ha {count} 💩. Tirato lo sciacquone sul passato.":
@@ -266,7 +275,7 @@ EN = {
     "🔗 Collegati {days} giorni di dati storici di «{username}» a {name}.":
         "🔗 Linked {days} days of old history of «{username}» to {name}.",
 
-    # words used inside other sentences
+    # Shared: words used inside other sentences
     "volta": "time",
     "volte": "times",
     "giorno": "day",
@@ -352,7 +361,7 @@ EN = {
     "📍 Nessuna serie in corso: oggi è il giorno buono per iniziarne una!":
         "📍 No streak in progress: today is the right day to start one!",
 
-    # midnight announcement
+    # Group messages: midnight announcement
     " a testa": " each",
     "🗺️ *Stagione {season} finita!*": "🗺️ *Season {season} is over!*",
     "🚩 Conquistatore: {names} con {n} conquiste": "🚩 Conqueror: {names} with {n} conquests",
@@ -368,7 +377,7 @@ EN = {
     "Complimenti! Si riparte da zero: buon {month} e buone 💩 🧻":
         "Well done! Back to zero: happy {month} and happy 💩 🧻",
 
-    # charts
+    # Shared: charts
     "Classifica di {title}": "Leaderboard of {title}",
     "Classifica del {title}": "Leaderboard of {title}",
     "Totale": "Total",
@@ -380,7 +389,7 @@ EN = {
     "Volte al giorno": "Times per day",
     "Giorni": "Days",
     "Distribuzione giornaliera  (◆ media, — mediana)": "Daily distribution  (◆ mean, — median)",
-    # leaderboards, statistics and records compared with the group (#201)
+    # Shared: leaderboards, statistics and records compared with the group (#201)
     "In testa a pari merito con {value}: {names}.": "Tied for the lead with {value}: {names}.",
     "{name} è in testa con {value}, {gap} più di {other}.": "{name} leads with {value}, {gap} more than {other}.",
     "{name}: {place}° con {value}, a {gap} da {other}": "{name}: #{place} with {value}, {gap} behind {other}",

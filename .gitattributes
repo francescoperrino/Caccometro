@@ -4,3 +4,5 @@
 .githooks/* text eol=lf
 # The infographics are drawn with LF by tools/draw_infographics.py: keep them LF on every clone.
 *.svg text eol=lf
+# docs/replies.md is written with LF by tools/write_replies.py, like the infographics.
+docs/replies.md text eol=lf
