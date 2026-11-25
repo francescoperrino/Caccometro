@@ -106,6 +106,7 @@ The version is in `caccometro/__init__.py` (`__version__`, [Semantic Versioning]
 3. Deploy with `tools/deploy.py`, including `caccometro/__init__.py`.
 4. `tools/bot_version.py` writes "Versione X.Y.Z" / "Version X.Y.Z" at the end of the descriptions of the production and development bots, in Italian and English (the description of each language must already be there).
 5. If the commands changed, register the menus again on both bots with `tools/register_menus.py dev` and `prod` ([deployment.md](deployment.md#command-menus)). The menus already set in single chats with `/language` keep the old list until the chat sends `/language` again.
+6. If the Mini App changed, take its README screenshots again: map, leaderboard, statistics and trophies, light theme, in a headless browser 390 px wide with fake data, saved as JPEG 390 px wide in `assets/screenshots/miniapp_<tab>_<en|it>.jpg`. No hook does it: it needs a browser.
 
 The charts in the README and the infographics in `docs/images/` carry the version too: the commit of the bump redraws them (`tools/sample_charts.py` and `tools/draw_infographics.py`, see [CONTRIBUTING.md](../CONTRIBUTING.md#git-hooks)).
 
