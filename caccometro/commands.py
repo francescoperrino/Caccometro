@@ -277,8 +277,8 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time
     names = {s['user'].user_id: escape_md(s['user'].mention) for s in statistics}
     message += "".join(ranked_line(position, names[s['user'].user_id],
                                    f"{s['mean']:.2f} · {s['median']:.1f} · {s['variance']:.2f}")
-                       for position, s in zip(tie_positions([s['mean'] for s in statistics]), statistics))
-    standing = standing_lines([(s['user'].user_id, s['mean']) for s in statistics], names, sender.user_id,
+                       for position, s in zip(tie_positions([round(s['mean'], 2) for s in statistics]), statistics))
+    standing = standing_lines([(s['user'].user_id, round(s['mean'], 2)) for s in statistics], names, sender.user_id,
                               lambda value: tr("{value} al giorno").format(value=f"{value:.2f}"))
     if sender.user_id in names:
         start, end = period_bounds(time_period, date)

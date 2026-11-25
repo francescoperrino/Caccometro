@@ -366,6 +366,7 @@ EN = {
     "abbastanza regolare": "fairly regular",
     "a sbalzi": "up and down",
     " (record del gruppo)": " (group record)",
+    " (record del gruppo, a pari merito)": " (group record, tied)",
     " ({place}° su {total})": " (#{place} of {total})",
 }
 

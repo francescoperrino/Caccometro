@@ -121,8 +121,10 @@ def _place(places, key):
     """' (#2 of 5)' after a record line: where the person stands among the group; nothing when there is nobody to compare."""
     if key not in places:
         return ""
-    place, total = places[key]
-    return tr(" (record del gruppo)") if place == 1 else tr(" ({place}° su {total})").format(place=place, total=total)
+    place, total, shared = places[key]
+    if place == 1:
+        return tr(" (record del gruppo, a pari merito)") if shared else tr(" (record del gruppo)")
+    return tr(" ({place}° su {total})").format(place=place, total=total)
 
 
 def format_user_record(name, records: UserRecords, places=None):

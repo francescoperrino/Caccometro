@@ -135,6 +135,8 @@ def test_record_places_compare_a_person_with_the_group():
     from caccometro.analysis import record_places
     rows = {1: [("2026-01-01", 3)], 2: [("2026-01-01", 1)]}
     people = {user: analyze_user(user_rows, date(2026, 1, 10)) for user, user_rows in rows.items()}
-    assert record_places(1, people)["daily"] == (1, 2)
-    assert record_places(2, people)["daily"] == (2, 2)
+    assert record_places(1, people)["daily"] == (1, 2, False)
+    assert record_places(2, people)["daily"] == (2, 2, False)
     assert record_places(1, {1: people[1]}) == {}
+    tied = {user: analyze_user([("2026-01-01", 3)], date(2026, 1, 10)) for user in (1, 2)}
+    assert record_places(1, tied)["daily"] == (1, 2, True)

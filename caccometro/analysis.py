@@ -303,7 +303,7 @@ RECORD_KEYS = ('daily', 'best_month', 'worst_month', 'streak_days', 'streak_coun
 
 
 def record_places(user_id, people):
-    """{metric: (place, how many have it)} of one person's records among those of everybody (people: {user_id: UserRecords}).
+    """{metric: (place, how many have it, shared)} of one person's records among those of everybody (people: {user_id: UserRecords}).
 
     Ties share the place; in 'worst_month' the lower is better, like the Mini App. Metrics held by one person only are left out.
     """
@@ -313,5 +313,6 @@ def record_places(user_id, people):
         if user_id not in values or len(values) < 2:
             continue
         mine = values[user_id]
-        places[key] = (1 + sum((v < mine) if key == 'worst_month' else (v > mine) for v in values.values()), len(values))
+        place = 1 + sum((v < mine) if key == 'worst_month' else (v > mine) for v in values.values())
+        places[key] = (place, len(values), sum(v == mine for v in values.values()) > 1)
     return places
