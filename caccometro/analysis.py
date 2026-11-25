@@ -288,3 +288,31 @@ def regularity(counts):
     mean = sum(counts) / len(counts)
     dispersion = sum((x - mean) ** 2 for x in counts) / (len(counts) - 1) / mean
     return next((label for limit, label in REGULARITY_STEPS if dispersion < limit), 'a sbalzi')
+
+
+def period_regularity(daily, first_days, user_id, start, end, today):
+    """regularity() of one person in a period ('YYYY-MM-DD' bounds), on whole days only:
+    from their first 💩 (not before they joined) to yesterday."""
+    first = max(date.fromisoformat(start), date.fromisoformat(first_days.get(user_id, start)))
+    last = min(date.fromisoformat(end), today - timedelta(days=1))
+    return regularity([daily.get(user_id, {}).get((first + timedelta(days=i)).isoformat(), 0)
+                       for i in range((last - first).days + 1)])
+
+
+RECORD_KEYS = ('daily', 'best_month', 'worst_month', 'streak_days', 'streak_count', 'gap_days')
+
+
+def record_places(user_id, people):
+    """{metric: (place, how many have it, shared)} of one person's records among those of everybody (people: {user_id: UserRecords}).
+
+    Ties share the place; in 'worst_month' the lower is better, like the Mini App. Metrics held by one person only are left out.
+    """
+    places = {}
+    for key in RECORD_KEYS:
+        values = {u: getattr(r, key).value for u, r in people.items() if getattr(r, key) is not None}
+        if user_id not in values or len(values) < 2:
+            continue
+        mine = values[user_id]
+        place = 1 + sum((v < mine) if key == 'worst_month' else (v > mine) for v in values.values())
+        places[key] = (place, len(values), sum(v == mine for v in values.values()) > 1)
+    return places

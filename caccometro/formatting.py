@@ -68,12 +68,72 @@ def _month_label(months):
     return tr("nei mesi") if len(months) > 1 else tr("nel mese")
 
 
-def format_user_record(name, records: UserRecords):
+# ---------------------------------------------------------------- leaderboards and statistics
+
+def tie_positions(values):
+    """The place of each value of a list sorted best first: equal values share the place (1, 2, 2, 4)."""
+    return [1 + values.index(value) for value in values]
+
+
+def flame(status):
+    """' 🔥5' (' ⏳5' while today's 💩 is missing) after a name: the streak in progress, from 3 days on."""
+    if status.streak_days < 3:
+        return ""
+    return f" {'🔥' if status.streak_active_today else '⏳'}{status.streak_days}"
+
+
+def _gap(a, b):
+    difference = a - b
+    return str(int(difference)) if difference == int(difference) else f"{difference:.2f}"
+
+
+def standing_lines(rows, names, sender_id, unit, forecast=None):
+    """Who leads and where the sender is, as sentences for the whole chat (the Mini App's "answer", in the third person).
+
+    rows: [(user_id, value)] best first; names: {user_id: name escaped for Markdown}; unit: value -> text;
+    forecast: {user_id: total at the end of the period}, to add the place at this pace for the sender.
+    """
+    if len(rows) < 2:
+        return []
+    top = rows[0][1]
+    leaders = [user_id for user_id, value in rows if value == top]
+    if len(leaders) > 1:
+        lines = [tr("In testa a pari merito con {value}: {names}.").format(
+            value=unit(top), names=", ".join(names[user_id] for user_id in leaders))]
+    else:
+        other, below = next((user_id, value) for user_id, value in rows if value < top)
+        lines = [tr("{name} è in testa con {value}, {gap} più di {other}.").format(
+            name=names[leaders[0]], value=unit(top), gap=_gap(top, below), other=names[other])]
+    mine = next((value for user_id, value in rows if user_id == sender_id), None)
+    if mine is not None and mine < top:
+        above_id, above = min(((user_id, value) for user_id, value in rows if value > mine), key=lambda row: row[1])
+        line = tr("{name}: {place}° con {value}, a {gap} da {other}").format(
+            name=names[sender_id], place=1 + sum(value > mine for _, value in rows), value=unit(mine),
+            gap=_gap(above, mine), other=names[above_id])
+        if forecast and sender_id in forecast:
+            line += tr(", a questo ritmo {place}° (~{value} 💩)").format(
+                place=1 + sum(total > forecast[sender_id] for total in forecast.values()), value=forecast[sender_id])
+        lines.append(line + ".")
+    return lines
+
+
+def _place(places, key):
+    """' (#2 of 5)' after a record line: where the person stands among the group; nothing when there is nobody to compare."""
+    if key not in places:
+        return ""
+    place, total, shared = places[key]
+    if place == 1:
+        return tr(" (record del gruppo, a pari merito)") if shared else tr(" (record del gruppo)")
+    return tr(" ({place}° su {total})").format(place=place, total=total)
+
+
+def format_user_record(name, records: UserRecords, places=None):
     """The /records message of one user: every record followed by where the user stands right now.
 
-    name: the user's name, already escaped for Markdown.
+    name: the user's name, already escaped for Markdown; places: analysis.record_places, the place among the group.
     """
     status = records.status
+    places = places or {}
     lines = [f"📊 {bold(tr('Record per {name}').format(name=name))} 📊\n"]
     record_flag = tr(" 🔥 è il tuo record!")
     no_streak = tr("   ↳ In corso: nessuna serie")
@@ -87,6 +147,7 @@ def format_user_record(name, records: UserRecords):
     else:
         lines.append(tr("🥵 Hai fatto 💩 {value} {times} il {days}.").format(
             value=daily.value, times=_times(daily.value), days=_recent(daily.when, _date)))
+    lines[-1] += _place(places, 'daily')
     flag = record_flag if _matches_record(status.today_count, daily.value) else ""
     lines.append(tr("   ↳ Oggi: {count} 💩").format(count=status.today_count) + flag)
 
@@ -97,11 +158,13 @@ def format_user_record(name, records: UserRecords):
             value=best.value, times=_times(best.value), label=_month_label(best.when), months=_recent(best.when, _month)))
     else:
         lines.append(tr("🗓️ Il record mensile sarà disponibile dopo il primo mese completo."))
+    lines[-1] += _place(places, 'best_month')
     if worst is not None:
         lines.append(tr("😭 Hai fatto solo 💩 {value} {times} {label} {months}.").format(
             value=worst.value, times=_times(worst.value), label=_month_label(worst.when), months=_recent(worst.when, _month)))
     else:
         lines.append(tr("🗓️ Il mese peggiore sarà disponibile dopo almeno due mesi di dati."))
+    lines[-1] += _place(places, 'worst_month')
     flag = ""
     if best is not None and status.month_count > best.value:
         flag = tr(" 🔥 già oltre il tuo record mensile!")
@@ -113,6 +176,7 @@ def format_user_record(name, records: UserRecords):
     streak = records.streak_days
     lines.append(tr("🥳 Hai fatto 💩 per {days} ({when}).").format(
         days=_consecutive_days(streak.value), when=_recent(streak.when, _period)))
+    lines[-1] += _place(places, 'streak_days')
     if status.streak_days > 0:
         until = "" if status.streak_active_today else tr(" (fino a ieri)")
         flag = record_flag if _matches_record(status.streak_days, streak.value) else ""
@@ -125,6 +189,7 @@ def format_user_record(name, records: UserRecords):
     streak_count = records.streak_count
     lines.append(tr("🫣 Hai fatto 💩 {value} {times} in una serie di giorni consecutivi ({when}).").format(
         value=streak_count.value, times=_times(streak_count.value), when=_recent(streak_count.when, _period)))
+    lines[-1] += _place(places, 'streak_count')
     if status.streak_count > 0:
         flag = record_flag if _matches_record(status.streak_count, streak_count.value) else ""
         lines.append(tr("   ↳ In corso: {count} 💩 nella serie").format(count=status.streak_count) + flag)
@@ -138,6 +203,7 @@ def format_user_record(name, records: UserRecords):
             days=_consecutive_days(gap.value), when=_recent(gap.when, _period)))
     else:
         lines.append(tr("🤢 Non ci sono ancora giorni senza 💩 tra la prima e l'ultima registrazione."))
+    lines[-1] += _place(places, 'gap_days')
     if status.gap_days == 0:
         lines.append(tr("   ↳ In corso: oggi hai fatto 💩, nessuna pausa"))
     else:

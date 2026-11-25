@@ -7,7 +7,8 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from caccometro import __version__, i18n, maps, miniapp
-from caccometro.analysis import FORECAST_WINDOW_DAYS, analyze_group, analyze_user, forecast_totals, period_statistics
+from caccometro.analysis import (FORECAST_WINDOW_DAYS, analyze_group, analyze_user, forecast_totals, period_regularity,
+                                 period_statistics, record_places)
 from caccometro.charts import generate_rank_chart, generate_statistics_chart
 from caccometro.chat import escape_md, is_chat_admin, register_sender, register_user, reply_chart, reply_charts, where
 from caccometro.conquest import holdings, mention_of, visited
@@ -16,11 +17,11 @@ from caccometro.i18n import MONTHS, tr
 from caccometro.database import (init_database, find_user_by_username, add_count, get_count, get_daily_counts,
                                  get_daily_counts_between,
                                  get_rank, get_users, get_record, get_all_user_rows, get_days_since_last_poop,
-                                 list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username,
+                                 get_first_days, list_legacy_users, count_legacy_orphans, link_legacy_username, link_legacy_by_username,
                                  set_language, get_timed_conquests)
 from caccometro.menus import set_chat_menu
-from caccometro.formatting import (bold, format_group_record, format_group_trophies, format_season_line, format_user_record,
-                                   format_user_trophies)
+from caccometro.formatting import (bold, flame, format_group_record, format_group_trophies, format_season_line,
+                                   format_user_record, format_user_trophies, standing_lines, tie_positions)
 from caccometro.trophies import season_of, season_results, trophies_by_user
 
 logger = logging.getLogger(__name__)
@@ -223,11 +224,14 @@ async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text(empty.format(date=date) + legacy_hint(update.message.chat_id))
         return
 
-    # Ongoing period: forecast of the total at its end, next to each count
+    # Ongoing period: forecast of the total at its end, next to each count, and the streaks in progress next to the names
     today = now_rome().date()
     start_period, end_period = period_bounds(time_period, date)
-    forecast = {}
+    forecast, flames = {}, {}
     if start_period <= today.isoformat() <= end_period:
+        rows_by_user, _ = get_all_user_rows(update.message.chat_id)
+        flames = {user_id: flame(analyze_user(rows, today).status)
+                  for user_id, rows in rows_by_user.items() if any(c > 0 for _, c in rows)}
         recent = get_daily_counts_between(update.message.chat_id,
                                           (today - timedelta(days=FORECAST_WINDOW_DAYS - 1)).isoformat(),
                                           today.isoformat())
@@ -236,9 +240,14 @@ async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     message = (tr("🏆 *Classifica del mese {date}*") if month else tr("🏆 *Classifica dell'anno {date}*")).format(date=date) + "\n"
     if forecast:
         message += (tr("_💩 finora → previsione a fine mese_") if month else tr("_💩 finora → previsione a fine anno_")) + "\n"
-    message += "\n" + "".join(ranked_line(i, escape_md(user.mention),
+    names = {user.user_id: escape_md(user.mention) for user, _ in rank}
+    message += "\n" + "".join(ranked_line(position, names[user.user_id] + flames.get(user.user_id, ""),
                                          f"{total_count} 💩" + (f" → {forecast[user.user_id]}" if forecast else ""))
-                              for i, (user, total_count) in enumerate(rank, start=1))
+                              for position, (user, total_count) in zip(tie_positions([t for _, t in rank]), rank))
+    standing = standing_lines([(user.user_id, total) for user, total in rank], names, sender.user_id,
+                              lambda n: f"{n} 💩", forecast)
+    if standing:
+        message += "\n" + "\n".join(standing)
 
     daily_counts = get_daily_counts(update.message.chat_id, time_period, date)
     await reply_chart(update, generate_rank_chart(rank, daily_counts, time_period, date, forecast), message)
@@ -265,9 +274,21 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time
 
     message = (tr("📊 *Statistiche del mese {date}*") if month else tr("📊 *Statistiche dell'anno {date}*")).format(date=date)
     message += "\n" + tr("💩 al giorno: media · mediana · varianza") + "\n\n"
-    message += "".join(ranked_line(i, escape_md(s['user'].mention),
+    names = {s['user'].user_id: escape_md(s['user'].mention) for s in statistics}
+    message += "".join(ranked_line(position, names[s['user'].user_id],
                                    f"{s['mean']:.2f} · {s['median']:.1f} · {s['variance']:.2f}")
-                       for i, s in enumerate(statistics, start=1))
+                       for position, s in zip(tie_positions([round(s['mean'], 2) for s in statistics]), statistics))
+    standing = standing_lines([(s['user'].user_id, round(s['mean'], 2)) for s in statistics], names, sender.user_id,
+                              lambda value: tr("{value} al giorno").format(value=f"{value:.2f}"))
+    if sender.user_id in names:
+        start, end = period_bounds(time_period, date)
+        label = period_regularity(daily_counts, get_first_days(chat_id), sender.user_id, start, end, now_rome().date())
+        if label:
+            labels = {'molto regolare': tr("molto regolare"), 'abbastanza regolare': tr("abbastanza regolare"),
+                      'a sbalzi': tr("a sbalzi")}  # literal tr() calls: the dictionary test finds them
+            standing.append(tr("{name}, come vai: {label}.").format(name=names[sender.user_id], label=labels[label]))
+    if standing:
+        message += "\n" + "\n".join(standing)
 
     await reply_chart(update, generate_statistics_chart(statistics, daily_counts, time_period, date), message)
 
@@ -315,8 +336,10 @@ async def records_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(tr("Nessun dato disponibile per {name}.").format(name=target.mention)
                                         + legacy_hint(update.message.chat_id))
         return
-    records = analyze_user(rows, now_rome().date())
-    message = format_user_record(escape_md(target.mention), records)
+    today = now_rome().date()
+    people = {user_id: analyze_user(user_rows, today) for user_id, user_rows in get_all_user_rows(chat_id)[0].items()
+              if any(c > 0 for _, c in user_rows)}
+    message = format_user_record(escape_md(target.mention), analyze_user(rows, today), record_places(target.user_id, people))
 
     await update.message.reply_text(message, parse_mode='Markdown')
 
@@ -368,8 +391,8 @@ async def conquests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         ranking = sorted(counts.items(), key=lambda item: (-item[1], item[0] != king))  # on a tie the king first
         message = tr("🗺️ *Conquiste*") + "\n\n" + "".join(
-            ranked_line(i, escape_md(mention_of(users, user_id)) + (" 👑" if user_id == king else ""), f"{held} 🚩")
-            for i, (user_id, held) in enumerate(ranking, start=1))
+            ranked_line(position, escape_md(mention_of(users, user_id)) + (" 👑" if user_id == king else ""), f"{held} 🚩")
+            for position, (user_id, held) in zip(tie_positions([held for _, held in ranking]), ranking))
         season = season_of(now_rome().date())
         if season in (results := season_results(timed)):
             message += "\n" + format_season_line(season, results[season], {u: escape_md(mention_of(users, u)) for u in users})
