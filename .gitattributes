@@ -2,3 +2,5 @@
 *.py text eol=crlf
 # Shell scripts must stay LF, or the shebang breaks.
 .githooks/* text eol=lf
+# The infographics are drawn with LF by tools/draw_infographics.py: keep them LF on every clone.
+*.svg text eol=lf
