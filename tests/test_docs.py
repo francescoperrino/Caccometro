@@ -33,13 +33,6 @@ def architecture():
     return read("docs/architecture.md")
 
 
-def code_block_after(readme, marker):
-    """The fenced block that follows the first line containing `marker`."""
-    start = readme.index(marker)
-    start = readme.index("```", start) + 3
-    return readme[start:readme.index("```", start)]
-
-
 def code_block_containing(readme, marker):
     """The fenced block that contains the first occurrence of `marker`."""
     at = readme.index(marker)
@@ -52,7 +45,6 @@ def handled_commands(language):
     return {names[0 if language == "en" else 1] for names in COMMANDS}
 
 
-MENUS = {"it": "Italian menu", "en": "English menu"}   # the line before the menu block of each language
 
 
 def test_every_italian_command_is_in_the_italian_readme_table():
@@ -62,16 +54,19 @@ def test_every_italian_command_is_in_the_italian_readme_table():
 
 
 def test_every_command_is_in_the_readme_table(readme):
-    # The Italian names are in the Italian menu of docs/deployment.md (/collega_storico in the sentence under it)
+    # The Italian names are in the menu table of docs/deployment.md
     for english in handled_commands("en"):
         assert re.search(rf"^\| `/{english}[ `]", readme, re.MULTILINE), f"/{english} is not in the commands table"
 
 
-@pytest.mark.parametrize("language", MENUS)
-def test_the_menu_in_the_docs_is_the_menu_of_the_code(deployment, language):
-    from caccometro.menus import menu
-    block = code_block_after(deployment, MENUS[language]).strip().splitlines()
-    assert block == [f"{name} - {description}" for name, description in menu(language)]
+def test_the_menu_table_in_the_docs_is_the_menu_of_the_code(deployment):
+    from caccometro.menus import ADMIN_ONLY, MENU
+    rows = re.findall(r"^\| `/.*\|$", deployment, re.MULTILINE)
+    expected = []
+    for en, it, en_text, it_text in MENU:
+        mark = " (admins)" if en in ADMIN_ONLY else ""
+        expected.append(f"| `/{en}`{mark} | {en_text} | `/{it}`{mark} | {it_text} |")
+    assert [row.rstrip("\r") for row in rows] == expected
 
 
 def test_every_module_is_in_the_architecture_tree(architecture):
