@@ -34,27 +34,27 @@ Every sentence the bot can send, in English and Italian, from `caccometro/i18n.p
 | English | Italian |
 | --- | --- |
 | Records of {name} | Record per {name} |
-| 🔥 it is your record! | 🔥 è il tuo record! |
-| 🔥 already beyond your monthly record! | 🔥 già oltre il tuo record mensile! |
+| 🔥 it is the record! | 🔥 è il record! |
+| 🔥 already beyond the monthly record! | 🔥 già oltre il record mensile! |
 | 🔥 monthly record equalled! | 🔥 record mensile eguagliato! |
 | 🔥 already beyond the record! | 🔥 già oltre il record! |
 | (until yesterday) | (fino a ieri) |
-| 🥵 You did 💩 {value} {times} on {count} different days (the latest: {days}). | 🥵 Hai fatto 💩 {value} {times} in {count} giorni diversi (gli ultimi: {days}). |
-| 🥵 You did 💩 {value} {times} on {days}. | 🥵 Hai fatto 💩 {value} {times} il {days}. |
+| 🥵 Most 💩 in a day: {value} {times} on {count} different days (the latest: {days}). | 🥵 Più 💩 in un giorno: {value} {times} in {count} giorni diversi (gli ultimi: {days}). |
+| 🥵 Most 💩 in a day: {value} {times} on {days}. | 🥵 Più 💩 in un giorno: {value} {times} il {days}. |
 | ↳ Today: {count} 💩 | ↳ Oggi: {count} 💩 |
-| 🤩 You did 💩 {value} {times} {label} {months}. | 🤩 Hai fatto 💩 {value} {times} {label} {months}. |
-| 😭 You only did 💩 {value} {times} {label} {months}. | 😭 Hai fatto solo 💩 {value} {times} {label} {months}. |
+| 🤩 Best month: {value} 💩 {label} {months}. | 🤩 Mese migliore: {value} 💩 {label} {months}. |
+| 😭 Worst month: only {value} 💩 {label} {months}. | 😭 Mese peggiore: solo {value} 💩 {label} {months}. |
 | 🗓️ The monthly record will be available after the first complete month. | 🗓️ Il record mensile sarà disponibile dopo il primo mese completo. |
 | 🗓️ The worst month will be available after at least two months of data. | 🗓️ Il mese peggiore sarà disponibile dopo almeno due mesi di dati. |
 | ↳ This month: {count} 💩 so far | ↳ Questo mese: {count} 💩 finora |
-| 🥳 You did 💩 for {days} ({when}). | 🥳 Hai fatto 💩 per {days} ({when}). |
+| 🥳 Longest streak: {days} ({when}). | 🥳 Serie più lunga: {days} ({when}). |
 | ↳ Now: {count} {days} in a row | ↳ In corso: {count} {days} di fila |
 | ↳ Now: no streak | ↳ In corso: nessuna serie |
-| 🫣 You did 💩 {value} {times} in one streak of consecutive days ({when}). | 🫣 Hai fatto 💩 {value} {times} in una serie di giorni consecutivi ({when}). |
+| 🫣 Most 💩 in a streak: {value} {times} ({when}). | 🫣 Più 💩 in una serie: {value} {times} ({when}). |
 | ↳ Now: {count} 💩 in the streak | ↳ In corso: {count} 💩 nella serie |
-| 🤢 You did no 💩 for {days} ({when}). | 🤢 Non hai fatto 💩 per {days} ({when}). |
+| 🤢 Longest pause: {days} ({when}). | 🤢 Pausa più lunga: {days} ({when}). |
 | 🤢 There are no days without 💩 yet between the first and the last record. | 🤢 Non ci sono ancora giorni senza 💩 tra la prima e l'ultima registrazione. |
-| ↳ Now: you did 💩 today, no pause | ↳ In corso: oggi hai fatto 💩, nessuna pausa |
+| ↳ Now: 💩 done today, no pause | ↳ In corso: 💩 fatta oggi, nessuna pausa |
 | ↳ Now: {count} {days} without 💩 | ↳ In corso: {count} {days} senza 💩 |
 
 ## `/records` (`/record`) of the group
