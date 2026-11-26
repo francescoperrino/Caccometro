@@ -231,6 +231,7 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
         table = ax_table.table(cellText=table_data, colLabels=[''] + header + [tr('Totale')],
                                colWidths=[name_width] + [step_width] * len(header) + [total_width],
                                cellLoc='center', bbox=[0, 0, 1, 1])
+        table.set_in_layout(False)  # it fills its axes (bbox above): measuring its 400 cells to fit the picture halved the speed
         table.auto_set_font_size(False)
         table.set_fontsize(11)  # one size for names, counts and totals
         last = len(header) + 1
