@@ -269,10 +269,13 @@
   .story .pill { align-self: flex-start; background: rgba(255, 250, 243, .2); border-radius: 999px; padding: 6px 14px; font-weight: 800; font-size: 16px; }
   .story .gap { height: 20px; }
   .story .hintbar { text-align: center; font-size: 13px; opacity: .8; font-weight: 700; }
-  .story .picture { display: grid; place-items: center; width: min(100%, calc((100vh - 260px) * .8)); aspect-ratio: 4 / 5; align-self: center;
+  .story .picture { display: grid; place-items: center; width: min(100%, calc((100vh - 320px) * .8)); aspect-ratio: 4 / 5; align-self: center;
                     overflow: hidden; font-size: 28px; font-weight: 800; }
   .story .picture img { width: 100%; height: 100%; display: block; }
   .story .share { min-height: 52px; margin-top: 14px; border: 0; border-radius: 999px; background: #fffaf3; color: #2f4f8f; font-size: 18px; font-weight: 800; cursor: pointer; }
+  .story .share, .story .sharemore { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .story .share svg, .story .sharemore svg { display: block; width: 26px; height: 26px; }
+  .story .sharemore { min-height: 48px; margin-top: 10px; border: 2px solid #fffaf3; border-radius: 999px; background: none; color: #fffaf3; font-size: 17px; font-weight: 800; cursor: pointer; }
   .story .sharenote { text-align: center; font-size: 14px; opacity: .9; margin-top: 8px; }
   .story .sharenote button { margin-top: 8px; min-height: 40px; padding: 0 16px; border: 2px solid currentColor; border-radius: 999px; background: none; color: inherit; font-weight: 800; cursor: pointer; }
   .story .picture { border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, .35); }  /* the picture, framed, on the background of the month */
@@ -345,8 +348,11 @@ const EN = {
   '💩 in meno ({n} a {month}).': 'fewer 💩 ({n} in {month}).',
   'come a {month}.': 'as in {month}.',
   'Come va: {label}': 'How it goes: {label}',
+  'Manda nel gruppo': 'Send to the group',
+  'Manda in chat': 'Send to this chat',
   'Condividi': 'Share',
-  'Il bot ti manda l’immagine in privato: da lì la inoltri o la salvi.': 'The bot sends you the picture in private: forward it or save it from there.',
+  'Salva sul telefono': 'Save to phone',
+  'Fatto! L’immagine è nel gruppo.': 'Done! The picture is in the group.',
   'Fatto! L’immagine è nella chat privata col bot.': 'Done! The picture is in your private chat with the bot.',
   'Prima avvia il bot in privato, poi riprova.': 'First start the bot in private, then try again.',
   'Apri il bot': 'Open the bot',
@@ -473,6 +479,10 @@ const ICONS = {
   map: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
   rank: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
   stats: '<path d="M3 20h18"/><path d="M4 16l5-6 4 3 7-8"/>',
+  download: '<path d="M12 3v12M8 11l4 4 4-4"/><path d="M5 20h14"/>',
+  share: '<path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5v9h14v-9h-1"/>',
+  // the logo of Telegram (its official shape), on the button that sends the picture in the chat
+  telegram: '<path fill="#26a5e4" stroke="none" d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>',
   trophies: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"/>',
 };
 
@@ -1235,20 +1245,42 @@ function showApp(chatId, data, openOn) {
     const pictureUrl = pictures.get(recap);
     const picture = el('div', { className: 'picture' }, ...(pictureUrl ? [el('img', { src: pictureUrl, alt: recapTitle() })] : ['…']));
     if (!pictures.has(recap)) loadPicture(recap);
-    const note = div('sharenote', tr('Il bot ti manda l’immagine in privato: da lì la inoltri o la salvi.'));
-    screens.push([null, null, [picture,
-      el('button', { className: 'share', onclick: event => { event.stopPropagation(); share(note); } }, '📤 ', tr('Condividi')), note]]);
+    const note = div('sharenote', '');
+    const button = (className, name, label, action) =>
+      el('button', { className, onclick: event => { event.stopPropagation(); action(note); } }, icon(name), tr(label));
+    // the share sheet of the system where the web view has one (iPhone, Mac), otherwise Telegram's download (Bot API 8.0,
+    // Android): the label says which; without either only the first button (#217)
+    const second = canShareFiles ? [button('sharemore', 'share', 'Condividi', saveOrShare)]
+      : tg.isVersionAtLeast?.('8.0') ? [button('sharemore', 'download', 'Salva sul telefono', saveOrShare)] : [];
+    screens.push([null, null, [picture, button('share', 'telegram', inGroup ? 'Manda nel gruppo' : 'Manda in chat', shareHere), ...second, note]]);
     return screens;
   }
 
-  async function share(note) {
+  const inGroup = Number(chatId) < 0;  // a private chat has the id of the user
+  const canShareFiles = !!navigator.canShare?.({ files: [new File([''], 'caccometro.png', { type: 'image/png' })] });
+  const post = action => fetch(recapUrl() + '&to=' + action, { method: 'POST', headers: { Authorization: 'tma ' + tg.initData } })
+    .catch(() => null);
+  const done = (note, text) => { tg.HapticFeedback?.notificationOccurred('success'); note.replaceChildren(tr(text)); };
+  const failed = (note, response) =>
+    note.replaceChildren(tr(response?.status === 429 ? 'Aspetta qualche secondo e riprova.' : 'Qualcosa è andato storto, riprova.'));
+
+  // the share sheet of the system (WhatsApp, Instagram…) where the web view has one, otherwise Telegram's download
+  async function saveOrShare(note) {
+    const url = pictures.get(recap);
+    if (url && canShareFiles)
+      return navigator.share({ files: [new File([await (await fetch(url)).blob()], 'caccometro.png', { type: 'image/png' })] }).catch(() => {});
     note.replaceChildren('…');
-    const response = await fetch(recapUrl(), { method: 'POST', headers: { Authorization: 'tma ' + tg.initData } })
-      .catch(() => null);
-    if (response?.ok) {
-      tg.HapticFeedback?.notificationOccurred('success');
-      return note.replaceChildren(tr('Fatto! L’immagine è nella chat privata col bot.'));
-    }
+    const response = await post('link');
+    if (!response?.ok) return failed(note, response);
+    note.replaceChildren();
+    tg.downloadFile({ url: (await response.json()).url, file_name: 'caccometro.png' });
+  }
+
+  // the bot sends the picture in this chat: the group, or the private chat with the bot
+  async function shareHere(note) {
+    note.replaceChildren('…');
+    const response = await post('chat');
+    if (response?.ok) return done(note, inGroup ? 'Fatto! L’immagine è nel gruppo.' : 'Fatto! L’immagine è nella chat privata col bot.');
     const body = response?.status === 403 ? await response.json().catch(() => ({})) : {};
     if (body.error === 'start')
       return note.replaceChildren(tr('Prima avvia il bot in privato, poi riprova.'), el('br'),

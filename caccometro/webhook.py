@@ -13,7 +13,6 @@ from caccometro.bot import application, outcome_of, update_log
 from caccometro.chat import PHOTO_READ_TIMEOUT
 from caccometro.commands import MAX_YEAR, MIN_YEAR
 from caccometro.config import BOT_TOKEN, BOT_USERNAME, PROJECT_DIR, WEBHOOK_SECRET, now_rome
-from caccometro.i18n import month_name, tr
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +151,8 @@ _shared = {}        # user_id -> time of the last recap image sent
 @app.route('/api/recap', methods=['GET', 'POST'])
 async def api_recap():
     """The picture of the recap (#195) of the signed user: GET gives it to the Mini App, which shows it on its last screen;
-    POST sends the same picture to the user's private chat, from where it can be forwarded or saved."""
+    POST sends the same picture in the chat (the group, or the private chat with the bot), and POST with to=link gives
+    a short-lived link to it for the download of Telegram (#217)."""
     chat_id, user_id, error = await member_chat()
     if error:
         return error
@@ -162,22 +162,37 @@ async def api_recap():
     i18n.use(database.get_language(chat_id))
     if request.method == 'GET':
         return Response(miniapp.recap_image(chat_id, user_id, recap), mimetype='image/png')
+    if request.args.get('to') == 'link':
+        name = miniapp.recap_link(chat_id, user_id, recap.month is None, BOT_TOKEN)
+        return {'url': f"https://{request.host}/api/recap/{name}.png"}
     if time.time() - _shared.get(user_id, 0) < SHARE_SECONDS:
         return Response('too many requests', status=429)
     _shared[user_id] = time.time()
     try:
         async with application:
-            if recap.month is None:
-                caption = tr("✨ Il tuo {year}: inoltralo o salvalo per condividerlo.").format(year=recap.year)
-            else:
-                caption = tr("✨ Il tuo mese di {month}: inoltralo o salvalo per condividerlo.").format(month=month_name(recap.month))
-            await application.bot.send_photo(user_id, miniapp.recap_image(chat_id, user_id, recap), caption=caption,
-                                             read_timeout=PHOTO_READ_TIMEOUT)
-    except (BadRequest, Forbidden):  # the user never started the bot in private
+            await application.bot.send_photo(chat_id, miniapp.recap_image(chat_id, user_id, recap), read_timeout=PHOTO_READ_TIMEOUT)
+    except (BadRequest, Forbidden):  # in private: the user never started the bot; in a group: the bot cannot write there
         del _shared[user_id]
-        return {'error': 'start', 'bot': BOT_USERNAME}, 403
+        return {'error': 'start' if chat_id == user_id else 'chat', 'bot': BOT_USERNAME}, 403
     logger.info("Mini App: recap sent")
     return {'sent': True}
+
+
+@app.route('/api/recap/<name>.png')
+def recap_download(name):
+    """The recap picture behind a link of recap_link (#217): Telegram downloads it to the phone, without initData."""
+    try:
+        signed = miniapp.recap_of_link(name, BOT_TOKEN)
+    except ValueError:
+        signed = None
+    recap = signed and miniapp.recap_data(signed[0], signed[1], now_rome().date(), yearly=signed[2])
+    if not recap:
+        return Response('not found', status=404)
+    i18n.use(database.get_language(signed[0]))
+    # the headers the docs of downloadFile ask for, or the download may fail on Telegram Web
+    return Response(miniapp.recap_image(signed[0], signed[1], recap), mimetype='image/png',
+                    headers={'Content-Disposition': 'attachment; filename="caccometro.png"',
+                             'Access-Control-Allow-Origin': 'https://web.telegram.org'})
 
 
 @app.route('/')
