@@ -4,10 +4,10 @@ Usage (from the repository root, with the virtual environment active):
     python tools/deploy.py caccometro/*.py                       # dry run
     python tools/deploy.py caccometro/*.py --yes                 # real deploy
     python tools/deploy.py caccometro/*.py --wsgi <file> --yes   # also the WSGI file
-    python tools/deploy.py assets/fonts/* assets/emoji/* caccometro/*.py --yes   # with the chart assets
+    python tools/deploy.py assets/fonts/* assets/emoji/* assets/brand/* assets/recap/*/* caccometro/*.py --yes   # with the chart assets
     python tools/deploy.py --rollback backups/<stamp> --yes
 
-Allowed: top-level .py, caccometro/*.py, scripts/*.py, any file in assets/fonts/, assets/emoji/ and assets/webapp/
+Allowed: top-level .py, caccometro/*.py, scripts/*.py, any file in assets/fonts/, assets/emoji/, assets/brand/, assets/recap/generated/, assets/recap/code/ and assets/webapp/
 (uploaded first: charts.py loads them at import; the Mini App page), and the WSGI file (--wsgi, uploaded to WSGI below).
 A rollback restores the .py files of the backup; it does not delete files the deploy created.
 
@@ -37,7 +37,7 @@ FILES = f"{HOST}/api/v0/user/{USER}/files/path{REMOTE_HOME}"
 ROOT = f"{HOST}/api/v0/user/{USER}/files/path"
 WSGI = f"/var/www/{DOMAIN.replace('.', '_')}_wsgi.py"
 FOLDERS = ("caccometro", "scripts")
-ASSET_FOLDERS = ("assets/fonts", "assets/emoji", "assets/webapp")
+ASSET_FOLDERS = ("assets/fonts", "assets/emoji", "assets/brand", "assets/recap/generated", "assets/recap/code", "assets/webapp")
 
 
 def url(remote):

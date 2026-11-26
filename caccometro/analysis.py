@@ -316,3 +316,52 @@ def record_places(user_id, people):
         place = 1 + sum((v < mine) if key == 'worst_month' else (v > mine) for v in values.values())
         places[key] = (place, len(values), sum(v == mine for v in values.values()) > 1)
     return places
+
+
+RECAP_DAYS = 7         # the recap of the month just ended shows in the Mini App from the 1st to the 7th (#195)
+YEAR_RECAP_DAYS = 14   # the recap of the year just ended, from the 1st to the 14th of January: harder to miss
+
+
+class Recap(NamedTuple):
+    """One person's month or year in a few facts, for the recap of the Mini App (#195)."""
+    year: int
+    month: Optional[int]          # None for the recap of a whole year
+    total: int
+    days: int                     # days in the period
+    best_day: date                # the day with the most 💩, the earliest of ties
+    best_count: int
+    streak: Period                # the longest run of days with 💩 inside the period, the earliest of ties
+    streak_days: int
+    place: int                    # ties share the place, as in the leaderboards
+    people: int                   # how many had 💩 in the period
+    ahead: Optional[int]          # user_id of the closest one with more 💩; None for the first
+    ahead_gap: Optional[int]
+    previous_total: int           # 💩 of the period before (month or year)
+    regularity: Optional[str]     # as in period_regularity
+
+
+def recap(daily, user_id, year, month, first_days) -> Optional[Recap]:
+    """The recap of `user_id` for a month, or for the whole `year` when `month` is None; None without 💩 in it.
+
+    daily: {user_id: {'YYYY-MM-DD': count}} of that period and of the one before; first_days as in period_regularity.
+    """
+    if month is None:
+        first_day, last_day, previous_first = date(year, 1, 1), date(year, 12, 31), date(year - 1, 1, 1)
+    else:
+        first_day = date(year, month, 1)
+        last_day = date(*_next_month((year, month)), 1) - timedelta(days=1)
+        previous_first = (first_day - timedelta(days=1)).replace(day=1)
+    start, end = first_day.isoformat(), last_day.isoformat()
+    totals = {u: t for u, counts in daily.items() if (t := sum(c for d, c in counts.items() if start <= d <= end)) > 0}
+    if user_id not in totals:
+        return None
+    mine = {date.fromisoformat(d): c for d, c in daily[user_id].items() if start <= d <= end and c > 0}
+    best = max(mine, key=lambda d: (mine[d], -d.toordinal()))
+    run = max(_runs(sorted(mine), mine), key=lambda r: (r.days, -r.start.toordinal()))
+    total = totals[user_id]
+    above = [u for u, t in totals.items() if t > total]
+    ahead = min(above, key=lambda u: (totals[u], u)) if above else None
+    previous = sum(c for d, c in daily[user_id].items() if previous_first.isoformat() <= d < start)
+    return Recap(year, month, total, (last_day - first_day).days + 1, best, mine[best], Period(run.start, run.end), run.days,
+                 1 + len(above), len(totals), ahead, None if ahead is None else totals[ahead] - total, previous,
+                 period_regularity(daily, first_days, user_id, start, end, last_day + timedelta(days=1)))

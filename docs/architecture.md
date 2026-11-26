@@ -264,6 +264,7 @@ flowchart TD
     announce -->|"1"| chat
     announce -->|"4"| database
     announce -->|"1"| formatting
+    announce -->|"1"| miniapp
     announce -->|"4"| trophies
     bot -->|"15"| commands
     bot -->|"1"| menus
@@ -291,7 +292,8 @@ flowchart TD
     messages -->|"2"| maps
     messages -->|"1"| menus
     messages -->|"1"| trophies
-    miniapp -->|"6"| analysis
+    miniapp -->|"9"| analysis
+    miniapp -->|"1"| charts
     miniapp -->|"2"| conquest
     miniapp -->|"5"| database
     miniapp -->|"2"| maps
@@ -299,9 +301,10 @@ flowchart TD
     trophies -->|"3"| analysis
     trophies -->|"1"| conquest
     webhook -->|"3"| bot
+    webhook -->|"1"| chat
     webhook -->|"2"| commands
     webhook -->|"3"| database
-    webhook -->|"6"| miniapp
+    webhook -->|"9"| miniapp
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
@@ -535,8 +538,9 @@ The Mini App (#79) is one static page, `assets/webapp/index.html`, served by Fla
 
 - every call carries the signed `initData` in `Authorization: tma <initData>`; `miniapp.user_of` checks the signature with the bot token and refuses it after 24 hours (401);
 - `webhook.member_chat` checks the chat of every call: it must have a database (404 otherwise: the API never creates one) and the user must be a member: `getChatMember`, trusted for 5 minutes, refuses who left or was kicked (403); the private chat needs no check;
-- `/api/chat?chat=<id>` sends what does not depend on a period: the bot version (shown at the bottom of every tab), the language and today's date of the chat; the conquest map (`miniapp.conquest_data`: for each h3 resolution from 7, the tiles, to 1, the world, the hexagons with their owner, the tiles each member holds and ever conquered inside and the outline computed with `h3`, plus names, ranking, king, current season and `seasons`, the conquests and the tiles held of every season from `miniapp.season_boards`); and the records and trophies of the group and of each person (`miniapp.records_data`, the same functions as `/records` and `/trophies`). The saved locations never leave the server;
-- `/api/period?chat=<id>&year=<YYYY>[&month=<MM>]` sends a month or a year (`miniapp.period_data`): the leaderboard with the forecast like `/leaderboard_month`, the statistics like `/stats_month` with the regularity of each person (`analysis.regularity`, see [the study](research/regularity_index.md)), and the counts of every day for the charts drawn by the page.
+- `/api/chat?chat=<id>` sends what does not depend on a period: the bot version (shown at the bottom of every tab), the language and today's date of the chat; the conquest map (`miniapp.conquest_data`: for each h3 resolution from 7, the tiles, to 1, the world, the hexagons with their owner, the tiles each member holds and ever conquered inside and the outline computed with `h3`, plus names, ranking, king, current season and `seasons`, the conquests and the tiles held of every season from `miniapp.season_boards`); and the records and trophies of the group and of each person (`miniapp.records_data`, the same functions as `/records` and `/trophies`); `recaps`, the month just ended of the user who opens it from the 1st to the 7th, and the year just ended from the 1st to the 14th of January (`miniapp.recaps`, `analysis.recap`; #195). The saved locations never leave the server;
+- `/api/period?chat=<id>&year=<YYYY>[&month=<MM>]` sends a month or a year (`miniapp.period_data`): the leaderboard with the forecast like `/leaderboard_month`, the statistics like `/stats_month` with the regularity of each person (`analysis.regularity`, see [the study](research/regularity_index.md)), and the counts of every day for the charts drawn by the page;
+- `/api/recap?chat=<id>` draws the recap as a picture (`charts.generate_recap_image`, 1080x1350, on the background of the month or of the year in `assets/recap/`, `charts.RECAP_STYLE` picks the generated pictures or the drawn shapes): `GET` gives it to the page (`&year=1` for the year), which shows it as the last screen of the recap; with `POST` the bot sends it to the private chat of the signed user only, at most once every 30 seconds; 403 with `{"error": "start"}` when that user never started the bot. The midnight announcement of a new month carries a button with the direct link `startapp=<chat_id>_recap`, which opens the recap; on the 1st of January a second button, `_year`, opens the year. `/app/recap/<month>.jpg` serves the drawn backgrounds behind the screens of the recap.
 
 ```mermaid
 ---

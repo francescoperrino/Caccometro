@@ -22,6 +22,8 @@ Records and current status of the users' 💩 counts.
 | `regularity(counts)` | 'molto regolare', 'abbastanza regolare' or 'a sbalzi' from the daily counts (0 on days without), None with too little data. | only its own module |
 | `period_regularity(daily, first_days, user_id, start, end, today)` | regularity() of one person in a period ('YYYY-MM-DD' bounds), on whole days only: from their first 💩 (not before they joined) to yesterday. | `commands`, `miniapp` |
 | `record_places(user_id, people)` | {metric: (place, how many have it, shared)} of one person's records among those of everybody (people: {user_id: UserRecords}). | `commands` |
+| `class Recap` | One person's month or year in a few facts, for the recap of the Mini App (#195). | only its own module |
+| `recap(daily, user_id, year, month, first_days)` | The recap of `user_id` for a month, or for the whole `year` when `month` is None; None without 💩 in it. | `miniapp` |
 
 ## announce.py
 
@@ -31,6 +33,7 @@ Midnight announcement of the 💩 of the month (on January 1st also of the year,
 | --- | --- | --- |
 | `chat_ids()` | IDs of the chats that have a database. | only its own module |
 | `announcement(chat_id, today)` | Message for the chat on `today` (the first day of a month), in its language; None when there is nobody to celebrate. | only its own module |
+| `recap_button(chat_id, today)` | Buttons under the announcement of a new month that open the Mini App on the recap of the month just ended, and on the 1st of January on the recap of the year too (#195). | only its own module |
 | `async announce(today, dry_run)` | Send the announcement to every chat; a chat that fails (e.g. the bot was removed) does not stop the others. | only its own module |
 | `wait_for_midnight(now)` | Sleep until the next midnight in Italy when it is less than MAX_WAIT away; return that midnight, or None. | only its own module |
 | `main(argv)` | Entry point of the scheduled task. | only its own module |
@@ -79,6 +82,7 @@ Charts of /leaderboard_* and /stats_*: one shared style, PNG bytes in memory.
 | `positions(rank)` | Ranking positions with ties (20, 20, 18 -> 1, 1, 3). | only its own module |
 | `generate_rank_chart(rank, daily_counts, time_period, date, forecast)` | Ranking chart: a table of the counts per day (month) or per month (year) with the totals and the medals, and the cumulative counts of every user below it. | `commands` |
 | `generate_statistics_chart(statistics, daily_counts, time_period, date)` | Statistics chart: a normal curve per user built from the mean and the variance of the daily counts, and a box plot of the daily counts below it. | `commands` |
+| `generate_recap_image(recap, name)` | The picture of the recap (#195) to share: 1080x1350 (4:5, what Telegram shows whole), PNG bytes. | `miniapp` |
 
 ## chat.py
 
@@ -216,10 +220,10 @@ Translations of the bot messages: the Italian sentences are the keys, one dictio
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `use(language)` | Answer in `language` from now on, in the current update (or in the current chat of the announcement). | `announce`, `chat`, `commands` |
+| `use(language)` | Answer in `language` from now on, in the current update (or in the current chat of the announcement). | `announce`, `chat`, `commands`, `webhook` |
 | `current()` | The language in use. | `charts`, `commands` |
-| `tr(text)` | `text` (an Italian sentence) in the language in use; the Italian text when there is no translation. | `charts`, `commands`, `formatting`, `maps`, `messages` |
-| `month_name(number)` | Name of month `number` (1-12) in the language in use. | `charts`, `formatting` |
+| `tr(text)` | `text` (an Italian sentence) in the language in use; the Italian text when there is no translation. | `announce`, `charts`, `commands`, `formatting`, `maps`, `messages`, `webhook` |
+| `month_name(number)` | Name of month `number` (1-12) in the language in use. | `charts`, `formatting`, `webhook` |
 
 ## maps.py
 
@@ -275,7 +279,7 @@ Mini App (#79): who opened it (signed initData), which chats they may see, and t
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `direct_link(bot_username, chat_id)` | Link that opens the Mini App already on a chat; plain URL buttons are the only kind groups accept. | `commands` |
+| `direct_link(bot_username, chat_id, view)` | Link that opens the Mini App already on a chat, and with `view` ('recap' or 'year', #195) on the recap of the month or of the year; plain URL buttons can carry it, in groups too (web_app buttons only work in private chats). | `announce`, `commands` |
 | `user_of(init_data, token, now)` | The Telegram user (dict) who opened the Mini App, or None when initData is not signed by Telegram or too old. | `webhook` |
 | `known_chats()` | IDs of every chat that has a database: the API never opens (and so never creates) the database of another one. | `webhook` |
 | `async is_member(bot, chat_id, user_id)` | Whether the user is still in the chat; the private chat with the bot is always theirs. | `webhook` |
@@ -284,6 +288,9 @@ Mini App (#79): who opened it (signed initData), which chats they may see, and t
 | `records_data(rows_by_user, today, timed)` | Records of the group and of each person, and everyone's trophies (#190): what /records and /trophies show. | `webhook` |
 | `period_data(chat_id, time_period, period, today)` | Leaderboard with the forecast and statistics of a month ('MM-YYYY') or year ('YYYY'), like the commands (#190). | `webhook` |
 | `season_boards(timed)` | Every season with a conquest, oldest first (#190): the conquests each member made in it, stolen tiles included (the rule of the conqueror title), and the tiles each one held at its end (now, for the current season), with its king. | only its own module |
+| `recap_data(chat_id, user_id, today, yearly)` | The recap (#195) of one person: of the month just ended from the 1st to the RECAP_DAYS-th of a month, or with `yearly` of the year just ended from the 1st to the YEAR_RECAP_DAYS-th of January; None on other days or without 💩. | `webhook` |
+| `recaps(chat_id, user_id, today)` | The recaps to show today, the year first: none, one, or in early January the year and December. | `webhook` |
+| `recap_image(chat_id, user_id, recap)` | The recap as the PNG to share, with the names the chat knows. | `webhook` |
 
 ## trophies.py
 
@@ -311,8 +318,10 @@ Webhook: the Flask app the web server runs; Telegram posts every update to /webh
 | --- | --- | --- |
 | `async webhook()` | This function receives the update from Telegram and passes it to the library. | `@app.route('/webhook', methods=['POST'])` |
 | `mini_app()` | The Mini App page (#79): static, it asks /api for the data with the initData Telegram gives it. | `@app.route('/app')` |
+| `story_background(name)` | The drawn background of a month or of the year, behind the screens of the recap in the Mini App (#195). | `@app.route('/app/recap/<name>.jpg')` |
 | `mini_app_user()` | The user who opened the Mini App, from the 'Authorization: tma &lt;initData>' header; None if not signed. | only its own module |
-| `async member_chat()` | The chat of ?chat= when the signed user is one of its members: (chat_id, None), or (None, the error Response). | only its own module |
+| `async member_chat()` | The chat of ?chat= when the signed user is one of its members: (chat_id, user_id, None), or (None, None, the error Response). | only its own module |
 | `async api_chat()` | Data of one chat, only for its members (left or kicked users get 403). | `@app.route('/api/chat')` |
 | `async api_period()` | Leaderboard and statistics of ?year= (and ?month=) in one chat, only for its members. | `@app.route('/api/period')` |
+| `async api_recap()` | The picture of the recap (#195) of the signed user: GET gives it to the Mini App, which shows it on its last screen; POST sends the same picture to the user's private chat, from where it can be forwarded or saved. | `@app.route('/api/recap', methods=['GET', 'POST'])` |
 | `index()` | Welcome page, useful for testing if the web app works; the deploy reads the version here. | `@app.route('/')` |

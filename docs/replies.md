@@ -314,6 +314,24 @@ Every sentence the bot can send, in English and Italian, from `caccometro/i18n.p
 | 🌙 *Midnight: {month} is over!* | 🌙 *Mezzanotte: {month} è finito!* |
 | 🏅 💩 of the month | 🏅 💩 del mese |
 | Well done! Back to zero: happy {month} and happy 💩 🧻 | Complimenti! Si riparte da zero: buon {month} e buone 💩 🧻 |
+| ✨ Your month | ✨ Il tuo mese |
+| ✨ Your year | ✨ Il tuo anno |
+
+## Mini App: image of the recap of a month or a year (#195)
+
+| English | Italian |
+| --- | --- |
+| RECAP {period} | RIEPILOGO {period} |
+| #{place} of {total}! | {place}° posto su {total}! |
+| what a month! | che mese! |
+| what a year! | che anno! |
+| vs {month} | su {month} |
+| vs {year} | sul {year} |
+| on {month} {day} | il {day} {month} |
+| day streak | giorno di fila |
+| day streak | giorni di fila |
+| ✨ Your {month}: forward it or save it to share it. | ✨ Il tuo mese di {month}: inoltralo o salvalo per condividerlo. |
+| ✨ Your {year}: forward it or save it to share it. | ✨ Il tuo {year}: inoltralo o salvalo per condividerlo. |
 
 ## Shared: charts
 

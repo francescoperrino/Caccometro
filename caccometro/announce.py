@@ -16,11 +16,14 @@ import re
 import time
 from datetime import date, datetime, timedelta
 
-from caccometro import database, i18n
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+from caccometro import database, i18n, miniapp
 from caccometro.bot import application
 from caccometro.chat import escape_md
-from caccometro.config import now_rome
+from caccometro.config import BOT_USERNAME, now_rome
 from caccometro.formatting import format_new_period
+from caccometro.i18n import tr
 from caccometro.trophies import monthly_winners, season_of, season_results, yearly_winners
 
 logger = logging.getLogger(__name__)
@@ -52,6 +55,16 @@ def announcement(chat_id, today: date):
     return format_new_period(today, month, year, names, season)
 
 
+
+def recap_button(chat_id, today):
+    """Buttons under the announcement of a new month that open the Mini App on the recap of the month just ended, and on
+    the 1st of January on the recap of the year too (#195)."""
+    buttons = [InlineKeyboardButton(tr("✨ Il tuo mese"), url=miniapp.direct_link(BOT_USERNAME, chat_id, 'recap'))]
+    if today.month == 1:
+        buttons.insert(0, InlineKeyboardButton(tr("✨ Il tuo anno"), url=miniapp.direct_link(BOT_USERNAME, chat_id, 'year')))
+    return InlineKeyboardMarkup([buttons])
+
+
 async def announce(today: date, dry_run=False):
     """Send the announcement to every chat; a chat that fails (e.g. the bot was removed) does not stop the others."""
     messages = []
@@ -62,16 +75,16 @@ async def announce(today: date, dry_run=False):
             logger.exception(f"Announcement for chat {chat_id} failed")
             continue
         if text is not None:
-            messages.append((chat_id, text))
+            messages.append((chat_id, text, recap_button(chat_id, today)))
     if dry_run:
-        for chat_id, text in messages:
+        for chat_id, text, _ in messages:
             print(f"--- {chat_id}\n{text}\n")
         return
     sent = 0
     async with application.bot:
-        for chat_id, text in messages:
+        for chat_id, text, button in messages:
             try:
-                await application.bot.send_message(chat_id, text, parse_mode='Markdown')
+                await application.bot.send_message(chat_id, text, parse_mode='Markdown', reply_markup=button)
                 sent += 1
             except Exception:
                 logger.exception(f"Announcement for chat {chat_id} failed")

@@ -10,9 +10,9 @@ from urllib.parse import parse_qsl
 import h3
 from telegram.constants import ChatMemberStatus
 
-from caccometro import database, maps
-from caccometro.analysis import (FORECAST_WINDOW_DAYS, analyze_group, analyze_user, forecast_totals, period_regularity,
-                                 period_statistics)
+from caccometro import charts, database, maps
+from caccometro.analysis import (FORECAST_WINDOW_DAYS, RECAP_DAYS, YEAR_RECAP_DAYS, analyze_group, analyze_user, forecast_totals, recap,
+                                 period_regularity, period_statistics)
 from caccometro.config import ROME_TZ, now_rome, period_bounds
 from caccometro.conquest import holdings, mention_of
 from caccometro.trophies import season_of, season_results, trophies_by_user
@@ -24,9 +24,10 @@ MEMBER_SECONDS = 5 * 60      # a membership check is trusted this long, to spare
 _members = {}  # (user_id, chat_id) -> time of the last positive check
 
 
-def direct_link(bot_username, chat_id):
-    """Link that opens the Mini App already on a chat; plain URL buttons are the only kind groups accept."""
-    return f"https://t.me/{bot_username}/{SHORT_NAME}?startapp={chat_id}"
+def direct_link(bot_username, chat_id, view=None):
+    """Link that opens the Mini App already on a chat, and with `view` ('recap' or 'year', #195) on the recap of the month
+    or of the year; plain URL buttons can carry it, in groups too (web_app buttons only work in private chats)."""
+    return f"https://t.me/{bot_username}/{SHORT_NAME}?startapp={chat_id}" + (f'_{view}' if view else '')
 
 
 def user_of(init_data, token, now=None):
@@ -166,3 +167,32 @@ def season_boards(timed):
         held, king = holdings([(user_id, cell) for user_id, _, cell in timed[:last[season] + 1]])
         boards.append({'year': season[0], 'quarter': season[1], 'conquests': conquered[season], 'held': held, 'king': king})
     return boards
+
+
+def recap_data(chat_id, user_id, today, yearly=False):
+    """The recap (#195) of one person: of the month just ended from the 1st to the RECAP_DAYS-th of a month, or with
+    `yearly` of the year just ended from the 1st to the YEAR_RECAP_DAYS-th of January; None on other days or without 💩."""
+    if yearly:
+        if today.month != 1 or today.day > YEAR_RECAP_DAYS:
+            return None
+        year, month = today.year - 1, None
+        start, end = date(year - 1, 1, 1), date(year, 12, 31)
+    else:
+        if today.day > RECAP_DAYS:
+            return None
+        end = today.replace(day=1) - timedelta(days=1)
+        year, month = end.year, end.month
+        start = (end.replace(day=1) - timedelta(days=1)).replace(day=1)
+    daily = database.get_daily_counts_between(chat_id, start.isoformat(), end.isoformat())
+    return recap(daily, user_id, year, month, database.get_first_days(chat_id))
+
+
+def recaps(chat_id, user_id, today):
+    """The recaps to show today, the year first: none, one, or in early January the year and December."""
+    return [plain(r) for r in (recap_data(chat_id, user_id, today, yearly=True), recap_data(chat_id, user_id, today)) if r]
+
+
+def recap_image(chat_id, user_id, recap):
+    """The recap as the PNG to share, with the names the chat knows."""
+    users = database.get_users(chat_id)
+    return charts.generate_recap_image(recap, mention_of(users, user_id))

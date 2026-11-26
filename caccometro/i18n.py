@@ -376,6 +376,21 @@ EN = {
     "🏅 💩 del mese": "🏅 💩 of the month",
     "Complimenti! Si riparte da zero: buon {month} e buone 💩 🧻":
         "Well done! Back to zero: happy {month} and happy 💩 🧻",
+    "✨ Il tuo mese": "✨ Your month",
+    "✨ Il tuo anno": "✨ Your year",
+
+    # Mini App: image of the recap of a month or a year (#195)
+    "RIEPILOGO {period}": "RECAP {period}",
+    "{place}° posto su {total}!": "#{place} of {total}!",
+    "che mese!": "what a month!",
+    "che anno!": "what a year!",
+    "su {month}": "vs {month}",
+    "sul {year}": "vs {year}",
+    "il {day} {month}": "on {month} {day}",
+    "giorno di fila": "day streak",
+    "giorni di fila": "day streak",
+    "✨ Il tuo mese di {month}: inoltralo o salvalo per condividerlo.": "✨ Your {month}: forward it or save it to share it.",
+    "✨ Il tuo {year}: inoltralo o salvalo per condividerlo.": "✨ Your {year}: forward it or save it to share it.",
 
     # Shared: charts
     "Classifica di {title}": "Leaderboard of {title}",
