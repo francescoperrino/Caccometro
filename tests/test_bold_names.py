@@ -8,7 +8,7 @@ import asyncio
 
 import pytest
 
-from caccometro import commands, database
+from caccometro import cmd_records, database, formatting
 from caccometro.chat import escape_md
 from caccometro.formatting import ESCAPED, bold
 from conftest import make_context, make_update
@@ -55,7 +55,7 @@ def run(command, *args):
 def test_messages_with_the_name_in_bold_are_well_formed(chat_id):
     database.upsert_user(chat_id, 5, None, NAME)
     database.add_count(5, "2024-03-10", 2, chat_id)
-    bold_segments(commands.ranked_line(1, escape_md(NAME), 2))
-    for command, args in ((commands.records_command, ()), (commands.records_command, ("io",)),
-                          (commands.trophies_command, ()), (commands.trophies_command, ("io",))):
+    bold_segments(formatting.ranked_line(1, escape_md(NAME), 2))
+    for command, args in ((cmd_records.records_command, ()), (cmd_records.records_command, ("io",)),
+                          (cmd_records.trophies_command, ()), (cmd_records.trophies_command, ("io",))):
         assert bold_segments(run(command, *args)), (command, args)

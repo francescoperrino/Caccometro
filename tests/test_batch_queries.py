@@ -4,7 +4,7 @@ import threading
 
 import pytest
 
-from caccometro import commands, messages
+from caccometro import cmd_counts, cmd_leaderboards, messages
 from caccometro import database
 from caccometro import charts, i18n
 from caccometro.model import User
@@ -67,10 +67,10 @@ def test_daily_counts_and_rank_read_the_database_once_each(seed, chat_id, connec
 
 
 @pytest.mark.parametrize("command,arg", [
-    (commands.leaderboard_year_command, "2024"),
-    (commands.leaderboard_month_command, "03-2024"),
-    (commands.stats_year_command, "2024"),
-    (commands.stats_month_command, "03-2024"),
+    (cmd_leaderboards.leaderboard_year_command, "2024"),
+    (cmd_leaderboards.leaderboard_month_command, "03-2024"),
+    (cmd_leaderboards.stats_year_command, "2024"),
+    (cmd_leaderboards.stats_month_command, "03-2024"),
 ])
 def test_chart_commands_use_a_handful_of_connections(seed, connections, command, arg):
     seed_busy_chat(seed)
@@ -180,7 +180,7 @@ def test_concurrent_increments_are_not_lost(chat_id):
 def test_remove_poop_from_one_goes_to_zero(chat_id, seed):
     seed({"mario": {"2024-03-10": 1}})
     upd = make_update()
-    run(commands.remove_poop_command(upd, make_context("10-03-2024")))
+    run(cmd_counts.remove_poop_command(upd, make_context("10-03-2024")))
     assert "0 💩" in upd.message.reply_text.call_args[0][0]
     assert database.get_count(uid("mario"), "2024-03-10", chat_id) == 0
 
@@ -188,7 +188,7 @@ def test_remove_poop_from_one_goes_to_zero(chat_id, seed):
 def test_remove_poop_at_zero_is_refused(chat_id, seed):
     seed({"mario": {}})
     upd = make_update()
-    run(commands.remove_poop_command(upd, make_context("10-03-2024")))
+    run(cmd_counts.remove_poop_command(upd, make_context("10-03-2024")))
     assert "era già 0" in upd.message.reply_text.call_args[0][0]
     assert database.get_record(uid("mario"), chat_id) == []
 
@@ -196,7 +196,7 @@ def test_remove_poop_at_zero_is_refused(chat_id, seed):
 def test_add_poop_reports_the_new_count(chat_id, seed):
     seed({"mario": {"2024-03-10": 2}})
     upd = make_update()
-    run(commands.add_poop_command(upd, make_context("10-03-2024")))
+    run(cmd_counts.add_poop_command(upd, make_context("10-03-2024")))
     assert "3 💩" in upd.message.reply_text.call_args[0][0]
 
 

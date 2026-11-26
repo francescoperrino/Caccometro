@@ -19,7 +19,8 @@ MARKERS = ("<!-- drawn by tools/draw_dependencies.py: start -->", "<!-- drawn by
 # Layers from top to bottom. EVERYWHERE is imported by almost every module: its arrows would hide the others.
 LAYERS = [
     ("start", "🚪 Entry points", ["__main__", "webhook", "announce"]),
-    ("telegram", "✈️ Telegram: updates, commands, Mini App", ["bot", "commands", "messages", "chat", "menus", "miniapp"]),
+    ("telegram", "✈️ Telegram: updates, commands, Mini App", ["bot", "cmd_leaderboards", "cmd_records", "cmd_counts", "cmd_conquests", "cmd_settings",
+                                                         "arguments", "messages", "chat", "menus", "miniapp"]),
     ("replies", "💬 Replies: texts, charts, maps", ["formatting", "charts", "maps"]),
     ("rules", "🧮 Rules: pure functions", ["analysis", "trophies", "conquest"]),
     ("storage", "🗄️ Storage", ["database"]),

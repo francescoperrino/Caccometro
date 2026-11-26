@@ -9,7 +9,7 @@ import httpx
 import pytest
 from PIL import Image
 
-from caccometro import commands, maps
+from caccometro import cmd_conquests, maps
 from caccometro.conquest import cell_of
 from caccometro.model import User
 from conftest import REAL_CACHED_TILE, make_context, make_update, uid
@@ -172,7 +172,7 @@ def test_conquests_sends_the_group_tiles_region_country_and_world_maps_as_an_alb
     poop_and_conquer("mario", MILAN)
     monkeypatch.setattr(maps, "cached_tile", lambda *args: Image.new("RGB", (maps.TILE_SIZE, maps.TILE_SIZE)))
     upd = make_update(text="/conquests", username="mario")
-    asyncio.run(commands.conquests_command(upd, make_context()))
+    asyncio.run(cmd_conquests.conquests_command(upd, make_context()))
     album = upd.message.reply_media_group.call_args.args[0]
     assert len(album) == 4 and album[0].caption.startswith("🗺️")
 
@@ -181,7 +181,7 @@ def test_the_group_maps_go_from_the_closest_to_the_widest(chat_id, monkeypatch):
     poop_and_conquer("giulia", MILAN)
     drawn = []
     monkeypatch.setattr(maps, "draw", lambda *args, **kwargs: drawn.append(args[0]) or b"png")
-    asyncio.run(commands.conquests_command(make_update(text="/conquiste", username="giulia"), make_context()))
+    asyncio.run(cmd_conquests.conquests_command(make_update(text="/conquiste", username="giulia"), make_context()))
     assert drawn == ["Zone del gruppo", "Conquiste in Lombardia", "Conquiste in Italia", "Conquiste nel mondo"]
 
 
@@ -214,13 +214,13 @@ def test_conquests_of_a_person_draw_only_that_person_and_none_for_someone_withou
     drawn = []
     monkeypatch.setattr(maps, "draw", lambda *args, **kwargs: drawn.append((args, kwargs)) or b"png")
     upd = make_update(text="/conquiste io", username="giulia", user_id=uid("giulia"))
-    asyncio.run(commands.conquests_command(upd, make_context("io")))
+    asyncio.run(cmd_conquests.conquests_command(upd, make_context("io")))
     assert len(drawn) == 4 and all(kwargs["shares"][0] == uid("giulia") for _, kwargs in drawn)  # + her tiles map
     assert [args[0] for args, _ in drawn] == ["Zona di @giulia", "Conquiste in Lombardia", "Conquiste in Italia",
                                               "Conquiste nel mondo"]  # closest view first
     drawn.clear()
     upd = make_update(text="/conquiste io", username="anna", user_id=uid("anna"))
-    asyncio.run(commands.conquests_command(upd, make_context("io")))
+    asyncio.run(cmd_conquests.conquests_command(upd, make_context("io")))
     assert drawn == []
 
 

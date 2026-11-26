@@ -549,3 +549,13 @@ def change_count_sentence(name, date, count, delta):
                 tr("{name} il {date} ora ha {count} 💩. Tirato lo sciacquone sul passato."),
                 tr("Tolta: {name} il {date} resta con {count} 💩.")]
     return f"{emoji} " + random.choice(pool).format(name=name, date=date, count=count)
+
+
+MEDALS = {1: '🥇', 2: '🥈', 3: '🥉'}
+
+
+def ranked_line(position, name, value):
+    """One line of a ranking: a medal and the name in bold for the first three."""
+    if position in MEDALS:
+        return f"{MEDALS[position]} {bold(name)}: {value}\n"
+    return f"{position}. {name}: {value}\n"

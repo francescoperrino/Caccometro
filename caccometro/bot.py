@@ -14,10 +14,12 @@ from telegram.error import BadRequest, NetworkError
 from telegram.ext import Application, CommandHandler, ExtBot, MessageHandler, filters, ContextTypes
 from telegram.request import HTTPXRequest
 
-from caccometro.commands import (start_command, leaderboard_month_command, leaderboard_year_command,
-                                 stats_month_command, stats_year_command, records_command, add_poop_command,
-                                 remove_poop_command, day_count_command, last_poop_command, link_history_command,
-                                 trophies_command, language_command, conquests_command, app_command)
+from caccometro.cmd_conquests import conquests_command
+from caccometro.cmd_counts import add_poop_command, day_count_command, last_poop_command, remove_poop_command
+from caccometro.cmd_leaderboards import (leaderboard_month_command, leaderboard_year_command, stats_month_command,
+                                         stats_year_command)
+from caccometro.cmd_records import records_command, trophies_command
+from caccometro.cmd_settings import app_command, language_command, link_history_command, start_command
 from caccometro.config import BOT_TOKEN, PROJECT_DIR, ROME_TZ, RUN_MODE
 from caccometro.menus import MENU
 from caccometro.messages import handle_message, handle_migration

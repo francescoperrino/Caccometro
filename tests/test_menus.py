@@ -7,14 +7,14 @@ import pytest
 from telegram import BotCommandScopeChat, BotCommandScopeChatAdministrators
 from telegram.error import NetworkError
 
-from caccometro import commands, database, menus, messages
+from caccometro import cmd_settings, database, menus, messages
 from conftest import make_context, make_update
 
 
 def language(*args, member_status="administrator", chat_type="group"):
     """Send /language and return (update, context)."""
     upd, ctx = make_update(chat_type=chat_type), make_context(*args, member_status=member_status)
-    asyncio.run(commands.language_command(upd, ctx))
+    asyncio.run(cmd_settings.language_command(upd, ctx))
     return upd, ctx
 
 
@@ -54,7 +54,7 @@ def test_a_failed_menu_keeps_the_language_and_the_reply(chat_id, caplog):
     upd, ctx = make_update(), make_context("en", member_status="administrator")
     ctx.bot.set_my_commands.side_effect = NetworkError("httpx.ProxyError: 503 Service Unavailable")
     with caplog.at_level(logging.WARNING, logger="caccometro"):
-        asyncio.run(commands.language_command(upd, ctx))
+        asyncio.run(cmd_settings.language_command(upd, ctx))
     assert database.get_language(chat_id) == "en"
     upd.message.reply_text.assert_called_once_with("From now on I speak English 🇬🇧")
     assert "Could not set the menu" in caplog.text

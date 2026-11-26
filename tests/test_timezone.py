@@ -2,7 +2,7 @@
 import asyncio
 from datetime import datetime, timezone
 
-from caccometro import commands, database, messages
+from caccometro import cmd_leaderboards, cmd_records, database, messages
 from caccometro.model import User
 from conftest import make_context, make_update, uid
 
@@ -19,7 +19,7 @@ def test_constipation_days_uses_rome_today(seed, chat_id, monkeypatch):
 
 
 def statistics_caption(command, monkeypatch, now):
-    monkeypatch.setattr(commands, "now_rome", lambda: now)
+    monkeypatch.setattr(cmd_leaderboards, "now_rome", lambda: now)
     upd = make_update()
     asyncio.run(command(upd, make_context()))
     return upd.message.reply_photo.call_args.kwargs["caption"]
@@ -28,13 +28,13 @@ def statistics_caption(command, monkeypatch, now):
 def test_statistics_current_month_uses_rome_today(seed, monkeypatch):
     # "Today" in Rome is March 10, 2024: the current month has 10 valid days, not 31
     seed({"mario": {"2024-03-02": 5}})
-    caption = statistics_caption(commands.stats_month_command, monkeypatch, datetime(2024, 3, 10, 0, 30))
+    caption = statistics_caption(cmd_leaderboards.stats_month_command, monkeypatch, datetime(2024, 3, 10, 0, 30))
     assert ": 0.50 ·" in caption  # mean 5 / 10
 
 
 def test_statistics_current_year_uses_rome_today(seed, monkeypatch):
     seed({"mario": {"2024-01-02": 4}})
-    caption = statistics_caption(commands.stats_year_command, monkeypatch, datetime(2024, 1, 10, 0, 30))
+    caption = statistics_caption(cmd_leaderboards.stats_year_command, monkeypatch, datetime(2024, 1, 10, 0, 30))
     assert ": 0.40 ·" in caption  # mean 4 / 10
 
 
@@ -42,9 +42,9 @@ def test_record_uses_rome_today_for_the_current_month_and_status(seed, monkeypat
     """/records decides "today" and "the current month" with the Rome date, not the server date."""
 
     seed({"mario": {"2024-03-10": 2, "2024-04-01": 1}})
-    monkeypatch.setattr(commands, "now_rome", lambda: datetime(2024, 4, 1, 0, 30))
+    monkeypatch.setattr(cmd_records, "now_rome", lambda: datetime(2024, 4, 1, 0, 30))
     upd = make_update()
-    asyncio.run(commands.records_command(upd, make_context("io")))
+    asyncio.run(cmd_records.records_command(upd, make_context("io")))
     text = upd.message.reply_text.call_args[0][0]
     assert "↳ Oggi: 1" in text                      # April 1st is "today" in Rome
     assert "nel mese 03-2024" in text               # March is completed, April is the current month

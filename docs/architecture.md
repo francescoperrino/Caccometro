@@ -156,37 +156,42 @@ flowchart TD
 ## Modules
 
 ```
-caccometro/          the bot, as a Python package
-  __init__.py        version (__version__)
-  __main__.py        python -m caccometro: start in polling mode
-  config.py          environment variables, date formats, Italian time
-  bot.py             python-telegram-bot Application, logging, send retries, command registration
-  webhook.py         Flask app that receives the updates from Telegram (production)
-  commands.py        the commands (/leaderboard_month, /records, ...) and the permission checks
-  messages.py        counting the 💩 in messages and stickers, conquests from locations
-  chat.py            shared helpers on Telegram users and messages
-  i18n.py            translations: the Italian sentences are the keys, one dictionary per language
-  menus.py           command names and menu descriptions in both languages, menu of a chat
-  database.py        SQLite database: schema, migration, queries
-  model.py           data types shared by every layer: User
-  analysis.py        records, streaks, statistics and forecasts (pure functions, no database)
-  conquest.py        conquest game: h3 tiles, 15 minute window, ownership and king of the hill (pure functions)
-  trophies.py        trophies: 15-day streaks, 💩 of the month and of the year, conquest seasons (pure functions)
-  formatting.py      texts of /records, /trophies and the midnight announcement
-  announce.py        midnight announcement of the 💩 of the month (scheduled task)
-  charts.py          ranking and statistics charts (PNG in memory)
-  maps.py            conquest maps over OpenStreetMap tiles (JPEG in memory, tile cache in tile_cache/)
-  miniapp.py         Mini App: signed initData, membership checks, direct link, data of the map, seasons, records and periods
-assets/webapp/       the Mini App page (static HTML and JavaScript, libraries from a CDN)
-scripts/set_webhook.py   registers the webhook on Telegram (once)
-tools/               service scripts: deploy, database backups, log download and summary, bot version, command menus, README charts and maps, page of the replies, module diagram, pages of the functions and of the use cases
-.githooks/           git hooks (pre-commit, commit-msg), enabled with core.hooksPath
-.gitattributes       line endings of the .py files (CRLF) and of the hooks (LF)
-tests/               pytest tests
-.github/workflows/tests.yml   CI: pytest on Python 3.10 on every pull request and every push to main
-requirements.txt     bot dependencies (requirements-dev.txt: the test ones too)
-wsgi.py              template of the WSGI file for the hosting
-assets/              avatar, animation, fonts, medal images of the charts, README charts (screenshots/)
+caccometro/           the bot, as a Python package
+  __init__.py         version (__version__)
+  __main__.py         python -m caccometro: start in polling mode
+  config.py           environment variables, date formats, Italian time
+  bot.py              python-telegram-bot Application, logging, send retries, command registration
+  webhook.py          Flask app that receives the updates from Telegram (production)
+  arguments.py        arguments of the commands: months, years, dates, the person a command refers to
+  cmd_leaderboards.py /leaderboard_month, /leaderboard_year, /stats_month, /stats_year
+  cmd_records.py      /records and /trophies
+  cmd_counts.py       /add_poop, /remove_poop, /day_count, /last_poop and who may change a count
+  cmd_conquests.py    /conquests
+  cmd_settings.py     /start, /app, /language, /link_history
+  messages.py         counting the 💩 in messages and stickers, conquests from locations
+  chat.py             shared helpers on Telegram users and messages
+  i18n.py             translations: the Italian sentences are the keys, one dictionary per language
+  menus.py            command names and menu descriptions in both languages, menu of a chat
+  database.py         SQLite database: schema, migration, queries
+  model.py            data types shared by every layer: User
+  analysis.py         records, streaks, statistics and forecasts (pure functions, no database)
+  conquest.py         conquest game: h3 tiles, 15 minute window, ownership and king of the hill (pure functions)
+  trophies.py         trophies: 15-day streaks, 💩 of the month and of the year, conquest seasons (pure functions)
+  formatting.py       texts of /records, /trophies and the midnight announcement
+  announce.py         midnight announcement of the 💩 of the month (scheduled task)
+  charts.py           ranking and statistics charts (PNG in memory)
+  maps.py             conquest maps over OpenStreetMap tiles (JPEG in memory, tile cache in tile_cache/)
+  miniapp.py          Mini App: signed initData, membership checks, direct link, data of the map, seasons, records and periods
+assets/webapp/        the Mini App page (static HTML and JavaScript, libraries from a CDN)
+scripts/set_webhook.py registers the webhook on Telegram (once)
+tools/                service scripts: deploy, database backups, log download and summary, bot version, command menus, README charts and maps, page of the replies, module diagram, pages of the functions and of the use cases
+.githooks/            git hooks (pre-commit, commit-msg), enabled with core.hooksPath
+.gitattributes        line endings of the .py files (CRLF) and of the hooks (LF)
+tests/                pytest tests
+.github/workflows/tests.yml CI: pytest on Python 3.10 on every pull request and every push to main
+requirements.txt      bot dependencies (requirements-dev.txt: the test ones too)
+wsgi.py               template of the WSGI file for the hosting
+assets/               avatar, animation, fonts, medal images of the charts, README charts (screenshots/)
 ```
 
 Every public function and class, with what it does and which modules use it, is in [functions.md](functions.md), written from the code by `tools/write_functions.py`; which of them each use case calls is in [use_cases.md](use_cases.md), written by `tools/write_use_cases.py`.
@@ -240,7 +245,12 @@ flowchart TD
     end
     subgraph telegram["✈️ Telegram: updates, commands, Mini App"]
         bot("<b>bot.py</b>")
-        commands("<b>commands.py</b>")
+        cmd_leaderboards("<b>cmd_leaderboards.py</b>")
+        cmd_records("<b>cmd_records.py</b>")
+        cmd_counts("<b>cmd_counts.py</b>")
+        cmd_conquests("<b>cmd_conquests.py</b>")
+        cmd_settings("<b>cmd_settings.py</b>")
+        arguments("<b>arguments.py</b>")
         messages("<b>messages.py</b>")
         chat("<b>chat.py</b>")
         menus("<b>menus.py</b>")
@@ -270,21 +280,45 @@ flowchart TD
     announce -->|"1"| formatting
     announce -->|"1"| miniapp
     announce -->|"4"| trophies
-    bot -->|"15"| commands
+    arguments -->|"1"| chat
+    arguments -->|"1"| database
+    bot -->|"1"| cmd_conquests
+    bot -->|"4"| cmd_counts
+    bot -->|"4"| cmd_leaderboards
+    bot -->|"2"| cmd_records
+    bot -->|"4"| cmd_settings
     bot -->|"1"| menus
     bot -->|"2"| messages
-    chat -->|"2"| database
+    chat -->|"3"| database
     chat -->|"1"| model
-    commands -->|"7"| analysis
-    commands -->|"2"| charts
-    commands -->|"7"| chat
-    commands -->|"3"| conquest
-    commands -->|"18"| database
-    commands -->|"12"| formatting
-    commands -->|"6"| maps
-    commands -->|"1"| menus
-    commands -->|"1"| miniapp
-    commands -->|"3"| trophies
+    cmd_conquests -->|"1"| arguments
+    cmd_conquests -->|"3"| chat
+    cmd_conquests -->|"3"| conquest
+    cmd_conquests -->|"2"| database
+    cmd_conquests -->|"3"| formatting
+    cmd_conquests -->|"6"| maps
+    cmd_conquests -->|"2"| trophies
+    cmd_counts -->|"3"| arguments
+    cmd_counts -->|"3"| chat
+    cmd_counts -->|"3"| database
+    cmd_counts -->|"3"| formatting
+    cmd_leaderboards -->|"5"| analysis
+    cmd_leaderboards -->|"2"| arguments
+    cmd_leaderboards -->|"2"| charts
+    cmd_leaderboards -->|"4"| chat
+    cmd_leaderboards -->|"6"| database
+    cmd_leaderboards -->|"4"| formatting
+    cmd_records -->|"3"| analysis
+    cmd_records -->|"1"| arguments
+    cmd_records -->|"3"| chat
+    cmd_records -->|"3"| database
+    cmd_records -->|"4"| formatting
+    cmd_records -->|"1"| trophies
+    cmd_settings -->|"2"| arguments
+    cmd_settings -->|"4"| chat
+    cmd_settings -->|"7"| database
+    cmd_settings -->|"1"| menus
+    cmd_settings -->|"1"| miniapp
     database -->|"1"| model
     formatting -->|"4"| analysis
     formatting -->|"1"| trophies
@@ -305,16 +339,16 @@ flowchart TD
     miniapp -->|"3"| trophies
     trophies -->|"3"| analysis
     trophies -->|"1"| conquest
+    webhook -->|"2"| arguments
     webhook -->|"3"| bot
     webhook -->|"1"| chat
-    webhook -->|"2"| commands
     webhook -->|"3"| database
     webhook -->|"11"| miniapp
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     class __main__,webhook,announce person
-    class bot,commands,messages,chat,menus,miniapp,formatting,charts,maps,analysis,trophies,conquest,database,model step
+    class bot,cmd_leaderboards,cmd_records,cmd_counts,cmd_conquests,cmd_settings,arguments,messages,chat,menus,miniapp,formatting,charts,maps,analysis,trophies,conquest,database,model step
     class analysis,trophies,conquest main
 ```
 
@@ -366,7 +400,7 @@ flowchart TD
     seen{"update_id new?<br/>(the last 500 are kept)"}
     kind{"What is it?"}
     poop("💩 <b>3. Count</b><br/>+1 on the day it was sent,<br/>Italian time; opens the<br/>15-minute window")
-    cmd("📊 <b>3. Command</b><br/>commands.py reads the database,<br/>computes with analysis.py<br/>and trophies.py")
+    cmd("📊 <b>3. Command</b><br/>a cmd_*.py module reads the database,<br/>computes with analysis.py<br/>and trophies.py")
     loc("📍 <b>3. Location</b><br/>messages.py conquers the tile<br/>if a 💩 came in the last 15 min,<br/>zoom map from maps.py")
     reply("💬 <b>4. Reply</b><br/>text or chart in the chat language;<br/>RetryingRequest: up to 6 attempts")
     r403["403, dropped"]

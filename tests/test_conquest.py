@@ -3,7 +3,7 @@ import asyncio
 import sqlite3
 from datetime import datetime, timedelta, timezone
 
-from caccometro import commands, conquest, database, messages
+from caccometro import cmd_conquests, cmd_counts, conquest, database, messages
 from conftest import make_context, make_update, uid
 
 MILAN, ROME = (45.4642, 9.19), (41.9028, 12.4964)
@@ -79,7 +79,7 @@ def test_the_window_closes_after_15_minutes_and_does_not_go_backwards(chat_id):
 
 
 def test_add_poop_does_not_open_the_window(chat_id):
-    asyncio.run(commands.add_poop_command(make_update(username="mario", user_id=uid("mario")), make_context("oggi")))
+    asyncio.run(cmd_counts.add_poop_command(make_update(username="mario", user_id=uid("mario")), make_context("oggi")))
     assert send("mario", location=MILAN) == "Prima la 💩, poi la conquista 😏"
 
 
@@ -105,22 +105,22 @@ def test_new_stolen_and_defended_tiles_and_the_king(chat_id):
 
 
 def test_conquests_command(chat_id, monkeypatch):
-    monkeypatch.setattr(commands, "now_rome", lambda: datetime(2026, 11, 20, 12))
+    monkeypatch.setattr(cmd_conquests, "now_rome", lambda: datetime(2026, 11, 20, 12))
     poop_and_conquer("mario", MILAN)
     poop_and_conquer("luigi", ROME, T0 + timedelta(hours=1))
     upd = make_update(username="mario", user_id=uid("mario"))
-    asyncio.run(commands.conquests_command(upd, make_context()))
+    asyncio.run(cmd_conquests.conquests_command(upd, make_context()))
     assert upd.message.reply_text.call_args.args[0] == (
         "🗺️ *Conquiste*\n\n🥇 *@mario 👑*: 1 🚩\n🥇 *@luigi*: 1 🚩\n"
         "\n🚩 Stagione ottobre–dicembre 2026: conquistatore *@mario* e *@luigi* (1), re *@mario*")
     upd = make_update(username="luigi", user_id=uid("luigi"))
-    asyncio.run(commands.conquests_command(upd, make_context("io")))
+    asyncio.run(cmd_conquests.conquests_command(upd, make_context("io")))
     assert upd.message.reply_text.call_args.args[0] == "🗺️ @luigi: 1 zone tenute, 1 visitate."
 
 
 def test_conquests_command_without_conquests(chat_id):
     upd = make_update()
-    asyncio.run(commands.conquests_command(upd, make_context()))
+    asyncio.run(cmd_conquests.conquests_command(upd, make_context()))
     assert upd.message.reply_text.call_args.args[0].startswith("Nessuna zona conquistata.")
 
 

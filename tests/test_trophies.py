@@ -2,7 +2,7 @@
 import asyncio
 from datetime import date, datetime, timedelta, timezone
 
-from caccometro import announce, commands, database, messages
+from caccometro import announce, cmd_records, database, messages
 from caccometro.analysis import Period
 from caccometro.formatting import format_group_trophies, format_new_period, format_user_trophies
 from caccometro.trophies import (SeasonResult, UserTrophies, Winners, monthly_winners, new_streak_trophy, season_results,
@@ -140,7 +140,7 @@ def test_poop_without_milestone_has_no_trophy(seed, monkeypatch):
 
 def trophies_text(*args, **update_kwargs):
     upd = make_update(**update_kwargs)
-    run(commands.trophies_command(upd, make_context(*args)))
+    run(cmd_records.trophies_command(upd, make_context(*args)))
     return upd.message.reply_text.call_args[0][0]
 
 

@@ -3,7 +3,7 @@ import asyncio
 import random
 from datetime import date, timedelta
 
-from caccometro import commands
+from caccometro import cmd_records
 from caccometro import database
 from caccometro.analysis import Holder, Leaders, Period, analyze_group, analyze_user
 from conftest import make_context, make_tg_user, make_update, uid
@@ -165,7 +165,7 @@ def test_get_all_user_rows_reads_the_database_once(seed, chat_id, monkeypatch):
 
 def record(*args, reply_to=None, username="mario"):
     upd = make_update(username=username, reply_to=reply_to)
-    run(commands.records_command(upd, make_context(*args)))
+    run(cmd_records.records_command(upd, make_context(*args)))
     return upd.message.reply_text.call_args[0][0]
 
 

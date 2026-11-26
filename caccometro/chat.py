@@ -1,4 +1,4 @@
-"""Helpers on Telegram updates shared by the commands and the message handler."""
+"""Helpers shared by the commands and the message handler: users, replies, permissions."""
 import logging
 
 from telegram import InputMediaPhoto, Update
@@ -6,7 +6,8 @@ from telegram.constants import ChatMemberStatus, MessageLimit
 from telegram.ext import ContextTypes
 
 from caccometro import i18n
-from caccometro.database import get_language, upsert_user
+from caccometro.database import get_language, list_legacy_users, upsert_user
+from caccometro.i18n import tr
 from caccometro.model import User
 
 logger = logging.getLogger(__name__)
@@ -94,3 +95,10 @@ async def is_chat_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.exception("Could not read the chat member status")
         return False
     return member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER)
+
+
+def legacy_hint(chat_id):
+    """Suffix for 'no data' replies when old username-based history is still waiting to be linked."""
+    if list_legacy_users(chat_id):
+        return "\n\n" + tr("ℹ️ Ci sono dati storici ancora da collegare: usa /collega_storico.")
+    return ""

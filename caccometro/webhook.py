@@ -11,7 +11,7 @@ from telegram.error import BadRequest, Forbidden
 from caccometro import __version__, database, i18n, miniapp
 from caccometro.bot import application, outcome_of, update_log
 from caccometro.chat import PHOTO_READ_TIMEOUT
-from caccometro.commands import MAX_YEAR, MIN_YEAR
+from caccometro.arguments import MAX_YEAR, MIN_YEAR
 from caccometro.config import BOT_TOKEN, BOT_USERNAME, PROJECT_DIR, WEBHOOK_SECRET, now_rome
 
 logger = logging.getLogger(__name__)
