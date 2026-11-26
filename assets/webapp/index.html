@@ -19,6 +19,7 @@
   #main { height: 100%; }
   .hint { color: var(--hint); padding: 16px; }
   .pane .hint { padding: 0; margin: 0; font-size: 14px; }
+  .pane .hint.detail { font-size: 12px; }  /* an explanation under the answer: smaller than the answer */
   .app { position: relative; height: 100%; display: flex; flex-direction: column; }
   :root { --safe-bottom: max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)); --dock: calc(84px + var(--safe-bottom)); }  /* room the floating dock takes at the bottom */
   .pane { flex: 1; min-height: 0; padding: 20px 16px var(--dock); display: flex; flex-direction: column; gap: 12px;
@@ -113,16 +114,19 @@
   @media (prefers-reduced-transparency: reduce) { .seg, .period .arrow, .chooser, .panel, nav { background-color: var(--card); -webkit-backdrop-filter: none; backdrop-filter: none; } }
   /* ---- the podium: the first three big, the leader in the middle and higher */
   .podium { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 8px; align-items: end; flex: none; }
-  .podium .step { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding: 12px 6px 14px;
+  .podium .step { position: relative; display: flex; flex-direction: column; justify-content: flex-end;  /* all at the bottom: the higher steps have the room on top */ align-items: center; gap: 2px; min-width: 0; padding: 12px 6px 14px;
                   border-radius: 24px; cursor: pointer; font: inherit; color: var(--text);
                   box-shadow: var(--solid-lift), inset 0 -5px 0 var(--tint); }  /* the person's colour as the base of the step */
-  .podium .p0 { padding-top: 18px; padding-bottom: 22px; }
-  .podium .medal { font-size: 26px; line-height: 1; }
-  .podium .p0 .medal { font-size: 34px; }
+  .podium .p0 { padding-top: 18px; padding-bottom: 22px; min-height: 206px; }
+  .podium .p1 { min-height: 176px; } .podium .p2 { min-height: 140px; }  /* fixed by place: the badge and the notes never change the shape */
+  .podium .you { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); margin: 0; }
+  .podium .medal { font-size: 30px; line-height: 1; margin-top: 4px; }
+  .podium .p0 .medal { font-size: 44px; } .podium .p1 .medal { font-size: 36px; }
+  .podium .crown { font-size: 18px; line-height: 1; }
   .podium .name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 700; }
   .podium .big { font-size: 24px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .podium .p0 .big { font-size: 30px; }
-  .podium .note { font-size: 12px; color: var(--hint); font-weight: 700; text-align: center; }
+  .podium .note { font-size: 11px; color: var(--hint); font-weight: 700; text-align: center; }
   /* ---- the compact list: position, name, one number */
   .ranks { display: flex; flex-direction: column; padding: 4px 0; flex: none; overflow: clip; }  /* clip, not hidden: my row can stick */
   .rank, .record { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 6px 16px; border: 0;
@@ -850,9 +854,11 @@ function showApp(chatId, data, openOn) {
     const tied = i => positions.filter(x => x === positions[i]).length > 1;
     const you = e => e.id === me ? [el('span', { className: 'you' }, tr('tu'))] : [];
     const step = (e, i) => el('button', { className: `step p${positions[i]}${e.id === me ? ' me' : ''}`, style: `--tint:${color(e.id)}`, onclick: () => openPerson(e.id) },
-      el('span', { className: 'medal' }, MEDALS[positions[i]] || ''), el('span', { className: 'name' }, e.label || plainName(e.id)), ...you(e),
-      ...(e.streak ? flame(e.id) : []),
-      el('span', { className: 'big' }, e.text ?? String(e.value)), ...(e.note ? [el('span', { className: 'note' }, e.note)] : []));
+      ...(entries.some(o => o.king) ? [el('span', { className: 'crown' }, e.king ? '👑' : '\u00a0')] : []),
+      el('span', { className: 'name' }, e.label || plainName(e.id)), ...you(e),
+      ...(e.streak ? (flame(e.id).length ? flame(e.id) : [el('span', { className: 'flame' }, '\u00a0')]) : []),  // an empty slot keeps the steps alike
+      el('span', { className: 'big' }, e.text ?? String(e.value)), ...(e.note ? [el('span', { className: 'note' }, e.note)] : []),
+      el('span', { className: 'medal' }, MEDALS[positions[i]] || ''));
     const top = entries.slice(0, 3).map(step);
     const rest = entries.slice(3).map((e, k) => el('button', { className: 'rank' + (e.id === me ? ' me' : ''), style: `--tint:${color(e.id)}`, onclick: () => openPerson(e.id) },
       el('span', { className: 'pos' }, String(positions[k + 3] + 1)), el('span', { className: 'name' }, e.label || plainName(e.id), ...you(e),
@@ -884,7 +890,7 @@ function showApp(chatId, data, openOn) {
     if (!c.ranking.length) return [el('p', { className: 'hint' }, tr('Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.'))];
     const switchView = seg([['season', tr('Stagione')], ['total', tr('Totale')]], conquestView, value => { conquestView = value; drawPeriod(); });
     if (conquestView === 'total') return [el('div', { className: 'period' }, switchView),
-      ...podium(c.ranking.map(r => ({ id: r.user, value: r.held, label: name(r.user), note: tr('zone tenute ora') })))];
+      ...podium(c.ranking.map(r => ({ id: r.user, value: r.held, label: plainName(r.user), king: r.user === c.king, note: tr('zone tenute ora') })))];
     const season = c.seasons[seasonIndex], ongoing = seasonIndex === c.seasons.length - 1;
     const nav_ = el('div', { className: 'period' }, switchView,
       el('button', { className: 'arrow', disabled: seasonIndex === 0, ariaLabel: tr('Stagione precedente'), onclick: () => { seasonIndex--; drawPeriod(); } }, '‹'),
@@ -892,9 +898,9 @@ function showApp(chatId, data, openOn) {
       el('button', { className: 'arrow', disabled: ongoing, ariaLabel: tr('Stagione successiva'), onclick: () => { seasonIndex++; drawPeriod(); } }, '›'));
     const people = Object.keys(season.conquests).map(Number).sort((x, y) => season.conquests[y] - season.conquests[x] || ids.indexOf(x) - ids.indexOf(y));
     return [nav_, ...podium(people.map(id => ({ id, value: season.conquests[id],
-        label: plainName(id) + (id === season.king ? ' 👑' : ''),
+        label: plainName(id), king: id === season.king,
         note: `${season.held[id] || 0} ${tr(ongoing ? 'zone tenute ora' : 'zone a fine stagione')}` }))),
-      el('p', { className: 'hint' }, tr(ongoing ? 'Conquiste di questa stagione, anche rubate: chi ne fa di più è il conquistatore. 👑 chi tiene più zone, il re.'
+      el('p', { className: 'hint detail' }, tr(ongoing ? 'Conquiste di questa stagione, anche rubate: chi ne fa di più è il conquistatore. 👑 chi tiene più zone, il re.'
         : 'Conquiste della stagione, anche rubate: il primo è stato il conquistatore. 👑 chi teneva più zone a fine stagione, il re.'))];
   }
 
@@ -921,11 +927,11 @@ function showApp(chatId, data, openOn) {
     // where I would finish at this pace: my place among the forecasts
     const finish = mine && mine.forecast !== null ? 1 + p.leaderboard.filter(r => r.forecast > mine.forecast).length : 0;
     return [answer(p.leaderboard, r => r.total, n => `${n} 💩`),
-      ...(finish ? [el('p', { className: 'hint' }, `${tr('A questo ritmo finisci')} ${ordinal(finish)} ${tr('con circa')} ${mine.forecast} 💩.`)] : []),
+      ...(finish ? [el('p', { className: 'hint detail' }, `${tr('A questo ritmo finisci')} ${ordinal(finish)} ${tr('con circa')} ${mine.forecast} 💩.`)] : []),
       ...podium(p.leaderboard.map(r => ({ id: r.user, value: r.total, text: `${r.total} 💩`, streak: p.start <= p.today && p.today <= p.end,
       note: r.forecast === null ? '' : `${tr(period.month === null ? 'a fine anno' : 'a fine mese')} ~${r.forecast}` }))),
       more(tr('Mostra grafico'), () => [leaderboardChart(p), ...(p.leaderboard.some(r => r.forecast !== null)
-        ? [el('p', { className: 'hint' }, tr('Previsione: a fine periodo, al ritmo degli ultimi 30 giorni.'))] : [])])];
+        ? [el('p', { className: 'hint detail' }, tr('Previsione: a fine periodo, al ritmo degli ultimi 30 giorni.'))] : [])])];
   }
 
   // How steady someone is, computed by the server (analysis.regularity); null: still too few days
