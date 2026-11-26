@@ -58,10 +58,15 @@ STYLE = {
 
 
 def _add_watermark(fig, credit=''):
-    """'Caccometro vX.Y.Z' (and the credit of the map data, if any) in small light text centred in the strip between the last card and the bottom of the image.
+    """Write 'Caccometro vX.Y.Z' (and the credit of the map data, if any) in small light text under the last card.
 
-    png_bytes crops 0.35 inch under the cards (pad_inches); the text is left out of the crop calculation
-    (set_in_layout) so that it uses that strip instead of making the image taller.
+    The text is centred in the strip between the last card and the bottom of the image. png_bytes crops 0.35 inch
+    under the cards (pad_inches); the text is left out of the crop calculation (set_in_layout) so that it uses that
+    strip instead of making the image taller.
+
+    Args:
+        fig (matplotlib.figure.Figure): the figure to write on.
+        credit (str): the credit of the map data, to add after the version.
     """
     renderer = fig.canvas.get_renderer()
     boxes = [ax.get_tightbbox(renderer).transformed(fig.transFigure.inverted()) for ax in fig.axes]
@@ -73,7 +78,15 @@ def _add_watermark(fig, credit=''):
 
 
 def png_bytes(fig, credit=''):
-    """Render a figure to PNG in memory and close it."""
+    """Render a figure to PNG in memory and close it.
+
+    Args:
+        fig (matplotlib.figure.Figure): the figure.
+        credit (str): the credit of the map data, written next to the version.
+
+    Returns:
+        bytes: the PNG image.
+    """
     _add_watermark(fig, credit)
     buffer = io.BytesIO()
     fig.savefig(buffer, format='png', dpi=110, bbox_inches='tight', pad_inches=0.35)
@@ -81,32 +94,77 @@ def png_bytes(fig, credit=''):
     return buffer.getvalue()
 
 def _normal_pdf(x, mean, std):
-    """Probability density of a normal distribution (same values as scipy.stats.norm.pdf, without scipy)."""
+    """Probability density of a normal distribution (same values as scipy.stats.norm.pdf, without scipy).
+
+    Args:
+        x (array-like): the points to evaluate.
+        mean (float): the mean.
+        std (float): the standard deviation, above 0.
+
+    Returns:
+        numpy.ndarray: the density at each point.
+    """
     z = (np.asarray(x, dtype=float) - mean) / std
     return np.exp(-0.5 * z * z) / (std * np.sqrt(2 * np.pi))
 
 def chart_label(name):
-    """Make a user name safe for matplotlib text ('$' would start a math expression)."""
+    """Make a user name safe for matplotlib text ('$' would start a math expression).
+
+    Args:
+        name (str): the name.
+
+    Returns:
+        str: the name with each '$' escaped.
+    """
     return name.replace('$', r'\$')
 
 NAME_MAX = 16       # characters of a name that fit the name column of the rank table; longer ones are cut
 
 
 def short_name(name):
-    """The name cut to NAME_MAX characters, with an ellipsis when cut."""
+    """The name cut to NAME_MAX characters, with an ellipsis when cut.
+
+    Args:
+        name (str): the name.
+
+    Returns:
+        str: the name, or its beginning followed by '…'.
+    """
     return name if len(name) <= NAME_MAX else name[:NAME_MAX - 1] + '…'
 
 def _user_style(i):
-    """Colour and line style of the i-th user (users sorted by name, so a user keeps the colour across charts)."""
+    """Colour and line style of the i-th user (users sorted by name, so a user keeps the colour across charts).
+
+    Args:
+        i (int): the position of the user among the users sorted by name.
+
+    Returns:
+        (colour, line_style): the 9th user and the following ones get a dashed line.
+    """
     return PALETTE[i % len(PALETTE)], '-' if i < len(PALETTE) else '--'
 
 def _decimal(value):
-    """Two decimals, with the decimal comma in Italian: 1.25 -> '1,25' ('1.25' in English)."""
+    """Two decimals, with the decimal comma in Italian: 1.25 gives '1,25' ('1.25' in English).
+
+    Args:
+        value (float): the number.
+
+    Returns:
+        str: the text.
+    """
     text = f'{value:.2f}'
     return text.replace('.', ',') if i18n.current() == 'it' else text
 
 def _period_info(time_period, date):
-    """Year, month (None for a year), number of days and title of the period."""
+    """The facts of a period that the charts need.
+
+    Args:
+        time_period (str): 'month' or 'year'.
+        date (str): 'MM-YYYY' or 'YYYY'.
+
+    Returns:
+        (year, month, days, title): month is None for a year; title is the name of the month and the year, or the year.
+    """
     if time_period == 'month':
         month, year = (int(part) for part in date.split('-'))
         return year, month, calendar.monthrange(year, month)[1], f'{month_name(month)} {year}'
@@ -114,7 +172,16 @@ def _period_info(time_period, date):
     return year, None, 366 if calendar.isleap(year) else 365, str(year)
 
 def _last_day_shown(year, month, days):
-    """Days of the period to draw: all of a past period, up to today for the current one."""
+    """Days of the period to draw: all of a past period, up to today for the current one.
+
+    Args:
+        year (int): the year of the period.
+        month (int): the month of the period, None for a year.
+        days (int): the days of the whole period.
+
+    Returns:
+        int: the number of days to draw.
+    """
     today = now_rome()
     if year == today.year and (month is None or month == today.month):
         return today.timetuple().tm_yday if month is None else today.day
@@ -124,13 +191,27 @@ FINE_GRID = '#f1e8dc'   # thin lines at every unit, behind the main grid
 
 
 def _fine_vlines(ax, xs):
-    """Thin vertical grid lines at the x positions `xs`."""
+    """Draw thin vertical grid lines.
+
+    Args:
+        ax (matplotlib.axes.Axes): the axes.
+        xs (iterable): the x positions of the lines.
+    """
     for x in xs:
         ax.axvline(x, color=FINE_GRID, linewidth=0.6, zorder=0)
 
 def _layered_grid(ax, top, round_to, fine_step=None):
-    """Y axis from 0 to `top` rounded up to `round_to`: a solid line at every power of ten step
-    (10, 20, ... or 100, 200, ...), a dashed one halfway (5, 15, ...) and, with `fine_step`, thin lines in between."""
+    """Set the y axis from 0 to a rounded top, with a layered grid.
+
+    A solid line at every power of ten step (10, 20, ... or 100, 200, ...), a dashed one halfway (5, 15, ...) and, with
+    `fine_step`, thin lines in between.
+
+    Args:
+        ax (matplotlib.axes.Axes): the axes.
+        top (float): the highest value to show.
+        round_to (int): the axis ends at the multiple of this number that is not below `top`.
+        fine_step (float): distance of the thin lines; None for none.
+    """
     max_y = max(round_to, ceil(top / round_to) * round_to)
     order = 10 ** floor(log10(max_y))
     tick = order / 2 if max_y / order <= 5 else order
@@ -145,7 +226,12 @@ def _layered_grid(ax, top, round_to, fine_step=None):
     ax.set_ylim(0, max_y)
 
 def add_cards(fig, axes):
-    """A rounded card behind every axes, its labels and its title included."""
+    """Put a rounded card behind every axes, its labels and its title included.
+
+    Args:
+        fig (matplotlib.figure.Figure): the figure.
+        axes (list): the axes that get a card; the cards share the same width.
+    """
     renderer = fig.canvas.get_renderer()
     boxes = [ax.get_tightbbox(renderer).transformed(fig.transFigure.inverted()) for ax in axes]
     left = min(box.x0 for box in boxes)  # same width for every card
@@ -158,25 +244,47 @@ def add_cards(fig, axes):
             facecolor=SURFACE, edgecolor='none', zorder=-1))
 
 def sorted_by_name(names):
-    """User IDs of `names` (user ID -> name) sorted by name, case-insensitive."""
+    """Sort users by name, ignoring the case.
+
+    Args:
+        names (dict): {user ID: name}.
+
+    Returns:
+        list: the user IDs sorted by name.
+    """
     return sorted(names, key=lambda user_id: (names[user_id].lower(), user_id))
 
 def _emoji(ax, image, xy, zoom, coords='axes fraction'):
-    """Draw an emoji image centred on xy."""
+    """Draw an emoji image centred on a point.
+
+    Args:
+        ax (matplotlib.axes.Axes): the axes.
+        image (numpy.ndarray): the picture of the emoji.
+        xy (tuple): where its centre goes.
+        zoom (float): the size of the picture.
+        coords (str): the coordinate system of `xy`.
+    """
     ax.add_artist(AnnotationBbox(OffsetImage(image, zoom=zoom), xy, xycoords=coords, frameon=False,
                                  zorder=6, annotation_clip=False))
 
 def _positions(rank):
-    """Ranking positions with ties (20, 20, 18 -> 1, 1, 3)."""
+    """Ranking positions with ties (20, 20, 18 give 1, 1, 3).
+
+    Args:
+        rank (list): [(user, total)] best first.
+
+    Returns:
+        list: the position of each entry.
+    """
     result = []
     for i, (_, total) in enumerate(rank):
         result.append(result[-1] if i and total == rank[i - 1][1] else i + 1)
     return result
 
 def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
-    """
-    Ranking chart: a table of the counts per day (month) or per month (year) with the totals and the
-    medals, and the cumulative counts of every user below it.
+    """Ranking chart: a table of the counts, the medals and the cumulative counts of every user below it.
+
+    The table has the counts per day (month) or per month (year) with the totals.
 
     Args:
         rank (list): (model.User, total) pairs, best first.
@@ -316,9 +424,9 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
         return png_bytes(fig)
 
 def generate_statistics_chart(statistics, daily_counts, time_period, date):
-    """
-    Statistics chart: a normal curve per user built from the mean and the variance of the daily counts,
-    and a box plot of the daily counts below it.
+    """Statistics chart: a normal curve per user and a box plot of the daily counts below it.
+
+    The curves are built from the mean and the variance of the daily counts.
 
     Args:
         statistics (list): dicts with 'user' (model.User), 'mean', 'median' and 'variance'.
@@ -438,13 +546,41 @@ PX = 180  # pixels per inch of the recap picture
 
 
 def _rounded(ax, x, y, w, h, radius, **style):
+    """Add a rounded rectangle to the axes.
+
+    Args:
+        ax (matplotlib.axes.Axes): the axes.
+        x (float): left edge.
+        y (float): top edge.
+        w (float): width.
+        h (float): height.
+        radius (float): radius of the corners.
+        **style: the style of the patch (facecolor, edgecolor, zorder...).
+
+    Returns:
+        matplotlib.patches.FancyBboxPatch: the rectangle.
+    """
     patch = FancyBboxPatch((x, y), w, h, boxstyle=f'round,pad=0,rounding_size={radius}', **style)
     ax.add_patch(patch)
     return patch
 
 
 def _picture(ax, image, x, y, w, h, clip=None, zorder=2):
-    """An image filling the box (x, y, w, h), cropped to its proportions like CSS cover."""
+    """Draw an image filling a box, cropped to its proportions like CSS cover.
+
+    Args:
+        ax (matplotlib.axes.Axes): the axes.
+        image (numpy.ndarray): the picture.
+        x (float): left edge of the box.
+        y (float): top edge of the box.
+        w (float): width of the box.
+        h (float): height of the box.
+        clip (matplotlib.patches.Patch): a shape the picture is clipped to.
+        zorder (int): the drawing order.
+
+    Returns:
+        matplotlib.image.AxesImage: the drawn image.
+    """
     rows, cols = image.shape[:2]
     if cols / rows > w / h:
         keep = round(rows * w / h)
@@ -459,16 +595,34 @@ def _picture(ax, image, x, y, w, h, clip=None, zorder=2):
 
 
 def _fade(ax, x, y, w, h, colours, clip, zorder=1):
-    """A vertical gradient through `colours` (RGBA tuples, top to bottom) on the box, clipped."""
+    """Draw a vertical gradient on a box, clipped to a shape.
+
+    Args:
+        ax (matplotlib.axes.Axes): the axes.
+        x (float): left edge of the box.
+        y (float): top edge of the box.
+        w (float): width of the box.
+        h (float): height of the box.
+        colours (list): the colours of the gradient, top to bottom (RGBA tuples).
+        clip (matplotlib.patches.Patch): the shape the gradient is clipped to.
+        zorder (int): the drawing order.
+    """
     ramp = mcolors.LinearSegmentedColormap.from_list('ramp', colours)(np.linspace(0, 1, 256))[:, None, :]
     ax.imshow(ramp, extent=(x, x + w, y + h, y), aspect='auto', zorder=zorder, interpolation='bilinear').set_clip_path(clip)
 
 
 def generate_recap_image(recap, name):
-    """The picture of the recap (#195) to share: 1080x1350 (4:5, what Telegram shows whole), PNG bytes.
+    """The picture of the recap to share: 1080x1350 (4:5, what Telegram shows whole).
 
     A panel with the picture of the month (or of the year) holds the mascot, the total, the name, the place and the change
     from the period before, then two boxes with the best day and the longest streak. The look is set by RECAP.
+
+    Args:
+        recap (Recap): the facts of the person.
+        name (str): the name written on the picture.
+
+    Returns:
+        bytes: the PNG image.
     """
     r = RECAP
     year_recap = recap.month is None
@@ -504,6 +658,20 @@ def generate_recap_image(recap, name):
         ax.set_ylim(height, 0)
 
         def text(x, y, value, size, colour=r['card'], weight='normal', alpha=1, ha='left', stroke=False, **more):
+            """Write a line of text on the picture, centred vertically on `y`.
+
+            Args:
+                x (float): where the text starts (or ends, or is centred, by `ha`).
+                y (float): the vertical centre.
+                value (str): the text.
+                size (float): the font size in points.
+                colour: the colour of the text.
+                weight: the font weight.
+                alpha (float): the opacity.
+                ha (str): the horizontal alignment.
+                stroke (bool): True to draw a thin dark outline.
+                **more: other options of ax.text.
+            """
             ax.text(x, y, value, fontsize=size, color=colour, fontweight=weight, alpha=alpha, ha=ha, va='center', zorder=5,
                     path_effects=outline if stroke else None, **more)
 

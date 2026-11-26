@@ -1,4 +1,4 @@
-"""Conquest game (#128): after a 💩 a location conquers the h3 hexagon it falls in; most tiles held = king of the hill."""
+"""Conquest game: after a 💩 a location conquers the h3 hexagon it falls in; most tiles held = king of the hill."""
 import h3
 
 RESOLUTION = 7               # hexagons of about 5 km², 2.6 km wide

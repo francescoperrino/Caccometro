@@ -1,8 +1,8 @@
-"""Conquest maps (#157): the tiles of a chat drawn over OpenStreetMap raster tiles, JPEG bytes in memory.
+"""Conquest maps: the tiles of a chat drawn over OpenStreetMap raster tiles, JPEG bytes in memory.
 
 Four views, each a level of the h3 grid: the zoom around a conquest (resolution 7, the real tiles), and for
-/conquests Lombardy (resolution 5), Italy (resolution 4) and the world (resolution 1), on fixed boxes. At the larger levels a hexagon stands for the
-tiles it contains: ownership, counts and the king stay at resolution 7.
+/conquests Lombardy (resolution 5), Italy (resolution 4) and the world (resolution 1), on fixed boxes. At the
+larger levels a hexagon stands for the tiles it contains: ownership, counts and the king stay at resolution 7.
 """
 import io
 import logging
@@ -48,7 +48,16 @@ WORLD = (1, 2, (-58, 80, -180, 180))           # the poles and Antarctica cut aw
 
 
 def _tile_xy(lat, lon, z):
-    """Position of a point in map tile units at zoom z (Web Mercator): x grows east, y grows south."""
+    """Position of a point in map tile units (Web Mercator): x grows east, y grows south.
+
+    Args:
+        lat (float): latitude in degrees.
+        lon (float): longitude in degrees.
+        z (int): the map zoom.
+
+    Returns:
+        (x, y): the position in tile units at that zoom.
+    """
     lat = max(-MAX_LAT, min(MAX_LAT, lat))
     n = 2 ** z
     s = math.sin(math.radians(lat))
@@ -56,7 +65,15 @@ def _tile_xy(lat, lon, z):
 
 
 def _outline(cell, z):
-    """Corners of an h3 cell in tile units, the longitudes unwrapped so a cell across 180° stays in one piece."""
+    """Corners of an h3 cell in tile units, the longitudes unwrapped so a cell across 180° stays in one piece.
+
+    Args:
+        cell (str): the h3 cell.
+        z (int): the map zoom.
+
+    Returns:
+        list: [(x, y)] of the corners.
+    """
     points, previous = [], None
     for lat, lon in h3.cell_to_boundary(cell):
         if previous is not None:
@@ -67,12 +84,27 @@ def _outline(cell, z):
 
 
 def owners(history):
-    """{cell: (user_id, index of its latest conquest)}: a tile belongs to its last conqueror."""
+    """The owner of every tile: a tile belongs to its last conqueror.
+
+    Args:
+        history (list): [(user_id, cell)] in the order the conquests were made.
+
+    Returns:
+        dict: {cell: (user_id, index of its latest conquest)}.
+    """
     return {cell: (user_id, i) for i, (user_id, cell) in enumerate(history)}
 
 
 def grouped(tiles, res):
-    """{cell at res: user_id}: each hexagon goes to the member holding most tiles inside, on a tie the latest."""
+    """Give each larger hexagon to the member who holds most tiles inside it, on a tie the latest.
+
+    Args:
+        tiles (dict): the result of owners().
+        res (int): the h3 resolution of the larger hexagons.
+
+    Returns:
+        dict: {cell at res: user_id}.
+    """
     tally = {}
     for cell, (user_id, i) in tiles.items():
         members = tally.setdefault(h3.cell_to_parent(cell, res), {})
@@ -82,7 +114,21 @@ def grouped(tiles, res):
 
 
 def _cached_tile(z, x, y, client, deadline):
-    """One map tile as a PIL image, from the cache when fresh; a stale copy is better than nothing."""
+    """One map tile, from the cache when fresh; a stale copy is better than nothing.
+
+    Args:
+        z (int): the map zoom.
+        x (int): the tile column.
+        y (int): the tile row.
+        client (httpx.Client): the client used to download it.
+        deadline (float): the time (as time.time()) after which no download is started.
+
+    Returns:
+        PIL.Image.Image: the tile, in RGB.
+
+    Raises:
+        TimeoutError: the deadline is over and the tile is not in the cache.
+    """
     path = CACHE_DIR / f'{z}_{x}_{y}.png'
     fresh = path.exists() and time.time() - path.stat().st_mtime < CACHE_SECONDS
     if not fresh:
@@ -117,7 +163,18 @@ def _trim_cache():
 
 
 def _basemap(z, x0, y0, x1, y1):
-    """The map tiles covering the box joined in one image, and the box of tile units the image spans."""
+    """The map tiles covering a box, joined in one image.
+
+    Args:
+        z (int): the map zoom.
+        x0 (float): left edge of the box, in tile units.
+        y0 (float): top edge of the box.
+        x1 (float): right edge of the box.
+        y1 (float): bottom edge of the box.
+
+    Returns:
+        (image, box): the image and the box of tile units it spans.
+    """
     n = 2 ** z
     xs = range(math.floor(x0), math.ceil(x1))
     ys = range(max(0, math.floor(y0)), min(n, math.ceil(y1)))
@@ -132,10 +189,26 @@ def _basemap(z, x0, y0, x1, y1):
 
 
 def _draw(title, z, box, hexagons, colors, legend, latest, grid=(), shares=None):
-    """The map image: hexagons {cell: user_id} in the colours of their members over the map tiles of the box,
-    the hexagon `latest` outlined, the cells of `grid` as a faint grid. legend: [(user_id, label)].
-    shares: (user_id, {cell: share of its tiles still held}, tiles lost): that member's hexagons, the lighter the more
-    tiles were lost inside (dashed when all of them), with a legend entry for the tiles lost."""
+    """Draw a map: the hexagons over the map tiles of a box.
+
+    Hexagons are in the colours of their members, the hexagon `latest` is outlined and the cells of `grid` form a
+    faint grid.
+
+    Args:
+        title (str): the title of the map.
+        z (int): the map zoom.
+        box (tuple): (x0, y0, x1, y1) in tile units.
+        hexagons (dict): {cell: user_id}.
+        colors (dict): {user_id: colour}.
+        legend (list): [(user_id, label)].
+        latest (str): the cell to outline; None for none.
+        grid (iterable): the cells drawn as a faint grid.
+        shares (tuple): (user_id, {cell: share of its tiles still held}, tiles lost): that member's hexagons, the lighter
+            the more tiles were lost inside (dashed when all of them), with a legend entry for the tiles lost.
+
+    Returns:
+        bytes: the JPEG image.
+    """
     image, (ix0, iy0, ix1, iy1) = _basemap(z, *box)
     x0, y0, x1, y1 = box
     n = 2 ** z
@@ -145,10 +218,24 @@ def _draw(title, z, box, hexagons, colors, legend, latest, grid=(), shares=None)
         ax.imshow(image, extent=(ix0, ix1, iy1, iy0), interpolation='lanczos')
 
         def shapes(cell):  # the copies show a hexagon across 180° on both edges of the world
+            """The polygons of a cell: copies, so a hexagon across 180° shows on both edges of the world.
+
+            Args:
+                cell (str): the h3 cell.
+
+            Returns:
+                list: three lists of points, shifted by one world to the left, none and to the right.
+            """
             points = _outline(cell, z)
             return [[(x + shift, y) for x, y in points] for shift in (-n, 0, n)]
 
         def hexagon(cell, **style):
+            """Draw a cell on the map.
+
+            Args:
+                cell (str): the h3 cell.
+                **style: the style of the polygon.
+            """
             for points in shapes(cell):
                 ax.add_patch(Polygon(points, closed=True, **style))
 
@@ -188,16 +275,30 @@ def _draw(title, z, box, hexagons, colors, legend, latest, grid=(), shares=None)
 
 
 def _jpeg(png):
-    """The image as JPEG: a street map is 1 MB as PNG, a fifth as JPEG, and Telegram recompresses photos anyway."""
+    """The image as JPEG: a street map is 1 MB as PNG, a fifth as JPEG, and Telegram recompresses photos anyway.
+
+    Args:
+        png (bytes): the PNG image.
+
+    Returns:
+        bytes: the JPEG image.
+    """
     out = io.BytesIO()
     Image.open(io.BytesIO(png)).convert('RGB').save(out, 'JPEG', quality=85)
     return out.getvalue()
 
 
 def _legend_and_colors(history, users):
-    """Legend [(user_id, 'name: tiles held')] by tiles held, and a colour per member who ever conquered.
+    """The legend of a map, and a colour per member who ever conquered.
 
     Colours follow the names, like the charts. shortcut: a 9th member reuses the first colour; fine for a group of friends.
+
+    Args:
+        history (list): [(user_id, cell)] in the order the conquests were made.
+        users (dict): {user_id: User}.
+
+    Returns:
+        (legend, colors): legend is [(user_id, 'name: tiles held')] by tiles held; colors is {user_id: colour}.
     """
     counts = holdings(history)[0]
     labels = {user_id: chart_label(short_name(mention_of(users, user_id))) for user_id, _ in history}
@@ -208,7 +309,16 @@ def _legend_and_colors(history, users):
 
 
 def zoom_map(history, users, title=None):
-    """Reply to a conquest: the real tiles around the tile just conquered, the last of `history`."""
+    """Reply to a conquest: the real tiles around the tile just conquered, the last of the history.
+
+    Args:
+        history (list): [(user_id, cell)] in the order the conquests were made.
+        users (dict): {user_id: User}.
+        title (str): the title of the map.
+
+    Returns:
+        bytes: the JPEG image.
+    """
     tiles = owners(history)
     new_cell = history[-1][1]
     x, y = _tile_xy(*h3.cell_to_latlng(new_cell), ZOOM_LEVEL)
@@ -221,31 +331,78 @@ def zoom_map(history, users, title=None):
 
 
 def group_zoom_map(history, users, user_id=None):
-    """/conquests: the real tiles of every member around the latest conquest of the group."""
+    """/conquests: the real tiles of every member around the latest conquest of the group.
+
+    Args:
+        history (list): [(user_id, cell)] in the order the conquests were made.
+        users (dict): {user_id: User}.
+        user_id (int): not used; every map builder takes it.
+
+    Returns:
+        bytes: the JPEG image.
+    """
     return zoom_map(history, users, tr('Zone del gruppo'))
 
 
 def world_map(history, users, user_id=None):
-    """/conquests: the whole world."""
+    """/conquests: the whole world.
+
+    Args:
+        history (list): [(user_id, cell)] in the order the conquests were made.
+        users (dict): {user_id: User}.
+        user_id (int): the member to show alone; None for everybody.
+
+    Returns:
+        bytes: the JPEG image.
+    """
     return _overview(history, users, tr('Conquiste nel mondo'), *WORLD, user_id=user_id)
 
 
 def region_map(history, users, user_id=None):
-    """/conquests: Lombardy."""
+    """/conquests: Lombardy.
+
+    Args:
+        history (list): [(user_id, cell)] in the order the conquests were made.
+        users (dict): {user_id: User}.
+        user_id (int): the member to show alone; None for everybody.
+
+    Returns:
+        bytes: the JPEG image.
+    """
     return _overview(history, users, tr('Conquiste in Lombardia'), *REGION, user_id=user_id)
 
 
 def country_map(history, users, user_id=None):
-    """/conquests: Italy."""
+    """/conquests: Italy.
+
+    Args:
+        history (list): [(user_id, cell)] in the order the conquests were made.
+        users (dict): {user_id: User}.
+        user_id (int): the member to show alone; None for everybody.
+
+    Returns:
+        bytes: the JPEG image.
+    """
     return _overview(history, users, tr('Conquiste in Italia'), *COUNTRY, user_id=user_id)
 
 
 def _overview(history, users, title, res, z, bounds, user_id=None):
-    """A map of every held tile grouped at resolution res over the bounds (south, north, west, east),
-    the parent of the latest conquest outlined.
+    """A map of every held tile grouped in larger hexagons over a box, the group of the latest conquest outlined.
 
-    With user_id only that member: each hexagon the member ever conquered in, full when every tile conquered inside
-    is still held, lighter the more of them were lost; no outline.
+    With a member only that member is shown: each hexagon the member ever conquered in, full when every tile conquered
+    inside is still held, lighter the more of them were lost; no outline.
+
+    Args:
+        history (list): [(user_id, cell)] in the order the conquests were made.
+        users (dict): {user_id: User}.
+        title (str): the title of the map.
+        res (int): the h3 resolution of the hexagons.
+        z (int): the map zoom.
+        bounds (tuple): (south, north, west, east) in degrees.
+        user_id (int): the member to show alone; None for everybody.
+
+    Returns:
+        bytes: the JPEG image.
     """
     south, north, west, east = bounds
     x0, y1 = _tile_xy(south, west, z)
@@ -260,7 +417,16 @@ def _overview(history, users, title, res, z, bounds, user_id=None):
 
 
 def _person_shares(history, user_id, res):
-    """(user_id, {cell at res: share of the member's tiles inside still held}, tiles lost) over every tile ever conquered."""
+    """How much of the tiles a member conquered inside each larger hexagon is still held.
+
+    Args:
+        history (list): [(user_id, cell)] in the order the conquests were made.
+        user_id (int): the member.
+        res (int): the h3 resolution of the hexagons.
+
+    Returns:
+        (user_id, shares, lost): shares is {cell at res: share of the member's tiles inside still held}; lost counts the tiles lost.
+    """
     tiles = owners(history)
     inside = {}  # parent -> [tiles still held, tiles conquered]
     for cell in {cell for owner, cell in history if owner == user_id}:
@@ -272,13 +438,31 @@ def _person_shares(history, user_id, res):
 
 
 def _person_label(legend, users, user_id):
-    """The legend entry of one member: 'name: tiles held', also for a member who lost every tile."""
+    """The legend entry of one member: 'name: tiles held', also for a member who lost every tile.
+
+    Args:
+        legend (list): [(user_id, label)] of the members with tiles.
+        users (dict): {user_id: User}.
+        user_id (int): the member.
+
+    Returns:
+        (user_id, label): the entry.
+    """
     return next((entry for entry in legend if entry[0] == user_id),
                 (user_id, f'{chart_label(short_name(mention_of(users, user_id)))}: 0'))
 
 
 def person_zoom_map(history, users, user_id):
-    """/conquests of one person: the real tiles around the member's latest conquest, held ones full, lost ones dashed."""
+    """/conquests of one person: the real tiles around the member's latest conquest, held ones full, lost ones dashed.
+
+    Args:
+        history (list): [(user_id, cell)] in the order the conquests were made.
+        users (dict): {user_id: User}.
+        user_id (int): the member.
+
+    Returns:
+        bytes: the JPEG image.
+    """
     center = next(cell for owner, cell in reversed(history) if owner == user_id)
     x, y = _tile_xy(*h3.cell_to_latlng(center), ZOOM_LEVEL)
     half = ZOOM_SPAN / 2
@@ -290,7 +474,16 @@ def person_zoom_map(history, users, user_id):
 
 
 def _grid_cells(res, bounds, margin=0.3):
-    """Every cell at res over the bounds, so the map shows the faint grid; the whole world when it spans 360°."""
+    """Every cell over a box, so the map shows the faint grid; the whole world when it spans 360°.
+
+    Args:
+        res (int): the h3 resolution of the cells.
+        bounds (tuple): (south, north, west, east) in degrees.
+        margin (float): degrees added on each side of the box.
+
+    Returns:
+        list: the h3 cells.
+    """
     south, north, west, east = bounds
     if east - west >= 360:
         return [cell for base in h3.get_res0_cells() for cell in h3.cell_to_children(base, res)]
@@ -299,7 +492,17 @@ def _grid_cells(res, bounds, margin=0.3):
 
 
 def render(builder, *args):
-    """builder(*args), or None when the map cannot be drawn (tiles unreachable): the reply then goes out as text."""
+    """Draw a map, or tell that it cannot be drawn.
+
+    When the tiles are unreachable the reply goes out as text.
+
+    Args:
+        builder (callable): one of the map functions.
+        *args: its arguments.
+
+    Returns:
+        bytes: the JPEG image, or None when drawing failed.
+    """
     try:
         return builder(*args)
     except Exception as error:

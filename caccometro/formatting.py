@@ -15,34 +15,91 @@ ESCAPED = re.compile(r"(\\[_*`\[])")
 
 
 def _bold(text):
-    """`text` in bold. Legacy Markdown shows the backslash of an escaped character written inside an entity, and an
-    unescaped `*` breaks the message, so the bold is closed and reopened around each escaped character
-    (which is then not bold): '@mario\\_rossi' becomes '*@mario*\\_*rossi*'."""
+    r"""Put a text in bold, keeping the escaped characters safe.
+
+    Legacy Markdown shows the backslash of an escaped character written inside an entity, and an unescaped `*`
+    breaks the message, so the bold is closed and reopened around each escaped character (which is then not bold):
+    '@mario\_rossi' becomes '*@mario*\_*rossi*'.
+
+    Args:
+        text (str): the text, with its special characters already escaped.
+
+    Returns:
+        str: the text in bold.
+    """
     return "".join(part if ESCAPED.fullmatch(part) else f"*{part}*" for part in ESCAPED.split(text) if part)
 
 
 def _times(n):
+    """The word 'time' or 'times' in the chat language.
+
+    Args:
+        n (int): the number the word goes with.
+
+    Returns:
+        str: the singular for 1, the plural otherwise.
+    """
     return tr("volta") if n == 1 else tr("volte")
 
 
 def _days(n):
+    """The word 'day' or 'days' in the chat language.
+
+    Args:
+        n (int): the number the word goes with.
+
+    Returns:
+        str: the singular for 1, the plural otherwise.
+    """
     return tr("giorno") if n == 1 else tr("giorni")
 
 
 def _matches_record(current, record_value):
-    """True when the current value equals the record; a record of 1 is not worth celebrating."""
+    """Tell whether a value equals the record; a record of 1 is not worth celebrating.
+
+    Args:
+        current (int): the value now.
+        record_value (int): the record.
+
+    Returns:
+        bool: True when the value is at least 2 and equal to the record.
+    """
     return current >= 2 and current == record_value
 
 
 def _consecutive_days(n):
+    """A number of days as '3 giorni consecutivi' in the chat language.
+
+    Args:
+        n (int): the number of days.
+
+    Returns:
+        str: the text, with the singular for 1.
+    """
     return (tr("{n} giorno consecutivo") if n == 1 else tr("{n} giorni consecutivi")).format(n=n)
 
 
 def _date(day):
+    """A day as DD-MM-YYYY.
+
+    Args:
+        day: the day.
+
+    Returns:
+        str: the text.
+    """
     return day.strftime(DISPLAY_FORMAT)
 
 
 def _period(period: Period):
+    """A period of days as one date, or as 'first - last'.
+
+    Args:
+        period (Period): the days.
+
+    Returns:
+        str: the text.
+    """
     if period.start == period.end:
         return _date(period.start)
     return f"{_date(period.start)} - {_date(period.end)}"
@@ -52,7 +109,16 @@ RECENT = 3   # tied days/months/periods listed in the personal message (the most
 
 
 def _recent(items, fmt, limit=RECENT):
-    """The most recent items first (items are in chronological order); the others are only counted."""
+    """The most recent items, as text; the others are only counted.
+
+    Args:
+        items (list): the items in chronological order.
+        fmt (callable): turns an item into text.
+        limit (int): how many items to show.
+
+    Returns:
+        str: the shown items, newest first, followed by ' e altri N' in the chat language when there are more.
+    """
     shown = items[-limit:][::-1]
     text = ", ".join(fmt(item) for item in shown)
     extra = len(items) - len(shown)
@@ -60,29 +126,70 @@ def _recent(items, fmt, limit=RECENT):
 
 
 def _month(month):
+    """A month as MM-YYYY.
+
+    Args:
+        month (tuple): (year, month).
+
+    Returns:
+        str: the text.
+    """
     year, number = month
     return f"{number:02d}-{year}"
 
 
 def _month_label(months):
+    """The words 'in the month' or 'in the months', in the chat language.
+
+    Args:
+        months (list): the months that follow the words.
+
+    Returns:
+        str: the plural when there are several months.
+    """
     return tr("nei mesi") if len(months) > 1 else tr("nel mese")
 
 
 # ---------------------------------------------------------------- leaderboards and statistics
 
 def tie_positions(values):
-    """The place of each value of a list sorted best first: equal values share the place (1, 2, 2, 4)."""
+    """The place of each value of a list sorted best first: equal values share the place (1, 2, 2, 4).
+
+    Args:
+        values (list): the values, best first.
+
+    Returns:
+        list: the place of each value.
+    """
     return [1 + values.index(value) for value in values]
 
 
 def flame(status):
-    """' 🔥5' (' ⏳5' while today's 💩 is missing) after a name: the streak in progress, from 3 days on."""
+    """The streak in progress, to write after a name, from 3 days on.
+
+    The text is ' 🔥5', or ' ⏳5' while today's 💩 is missing.
+
+    Args:
+        status (Status): where the user stands now.
+
+    Returns:
+        str: the text, empty for a streak shorter than 3 days.
+    """
     if status.streak_days < 3:
         return ""
     return f" {'🔥' if status.streak_active_today else '⏳'}{status.streak_days}"
 
 
 def _gap(a, b):
+    """The difference between two values as text.
+
+    Args:
+        a (float): the bigger value.
+        b (float): the smaller value.
+
+    Returns:
+        str: a whole number, or two decimals when the difference is not whole.
+    """
     difference = a - b
     return str(int(difference)) if difference == int(difference) else f"{difference:.2f}"
 
@@ -90,8 +197,15 @@ def _gap(a, b):
 def standing_lines(rows, names, sender_id, unit, forecast=None):
     """Who leads and where the sender is, as sentences for the whole chat (the Mini App's "answer", in the third person).
 
-    rows: [(user_id, value)] best first; names: {user_id: name escaped for Markdown}; unit: value -> text;
-    forecast: {user_id: total at the end of the period}, to add the place at this pace for the sender.
+    Args:
+        rows (list): [(user_id, value)], best first.
+        names (dict): {user_id: name escaped for Markdown}.
+        sender_id (int): the user who asked.
+        unit (callable): turns a value into text.
+        forecast (dict): {user_id: total at the end of the period}, to add the place at this pace for the sender.
+
+    Returns:
+        list: the sentences; empty when there are fewer than two people.
     """
     if len(rows) < 2:
         return []
@@ -118,7 +232,15 @@ def standing_lines(rows, names, sender_id, unit, forecast=None):
 
 
 def _place(places, key):
-    """' (#2 of 5)' after a record line: where the person stands among the group; nothing when there is nobody to compare."""
+    """The place of a person among the group, to write after a record line.
+
+    Args:
+        places (dict): analysis.record_places of the person.
+        key (str): the metric of the line.
+
+    Returns:
+        str: ' (2° su 5)' or a record of the group; empty when there is nobody to compare.
+    """
     if key not in places:
         return ""
     place, total, shared = places[key]
@@ -130,7 +252,13 @@ def _place(places, key):
 def format_user_record(name, records: UserRecords, places=None):
     """The /records message of one user: every record followed by where the user stands right now.
 
-    name: the user's name, already escaped for Markdown; places: analysis.record_places, the place among the group.
+    Args:
+        name (str): the user's name, already escaped for Markdown.
+        records (UserRecords): the records and the status.
+        places (dict): analysis.record_places, the place among the group.
+
+    Returns:
+        str: the message in Markdown.
     """
     status = records.status
     places = places or {}
@@ -220,13 +348,30 @@ MAX_WHEN = 2        # dates/months/periods listed for each holder
 
 
 def _when_text(when, fmt):
-    """The most recent dates/months/periods first (they are in chronological order)."""
+    """The most recent dates, months or periods, as text.
+
+    Args:
+        when (list): the items in chronological order.
+        fmt (callable): turns an item into text.
+
+    Returns:
+        str: the newest MAX_WHEN items, with '…' when there are more.
+    """
     shown = "; ".join(fmt(item) for item in when[-MAX_WHEN:][::-1])
     return shown + ("…" if len(when) > MAX_WHEN else "")
 
 
 def _holders(leaders: Leaders, names, fmt=None):
-    """'*@mario* (10-03-2025), *@luigi* (22-05-2025) e altri 2'."""
+    """The holders of a record as text: '*@mario* (10-03-2025), *@luigi* (22-05-2025) e altri 2'.
+
+    Args:
+        leaders (Leaders): the record and who holds it.
+        names (dict): {user key: name already escaped for Markdown}.
+        fmt (callable): turns a date, month or period into text; None to leave them out.
+
+    Returns:
+        str: the text, with the first MAX_HOLDERS holders.
+    """
     parts = []
     for holder in leaders.holders[:MAX_HOLDERS]:
         text = _bold(names.get(holder.key, str(holder.key)))
@@ -240,12 +385,33 @@ def _holders(leaders: Leaders, names, fmt=None):
 def format_group_record(board: GroupBoard, names):
     """The /records message of the whole group: who holds each record, and who leads right now.
 
-    names: {user key: name already escaped for Markdown}.
+    Args:
+        board (GroupBoard): the records of the group.
+        names (dict): {user key: name already escaped for Markdown}.
+
+    Returns:
+        str: the message in Markdown.
     """
     def times(leaders):
+        """A value of a record as 'N time(s)'.
+
+        Args:
+            leaders (Leaders): the record.
+
+        Returns:
+            str: the text.
+        """
         return f"{leaders.value} {_times(leaders.value)}"
 
     def days(leaders):
+        """A value of a record as 'N day(s)'.
+
+        Args:
+            leaders (Leaders): the record.
+
+        Returns:
+            str: the text.
+        """
         return f"{leaders.value} {_days(leaders.value)}"
 
     lines = [tr("🏆 *Record del gruppo* 🏆") + "\n"]
@@ -291,6 +457,14 @@ MAX_LISTED = 6   # months and streaks listed in the personal trophies (the most 
 
 
 def _month_name(month):
+    """A month as its name and year, in the chat language.
+
+    Args:
+        month (tuple): (year, month).
+
+    Returns:
+        str: the text.
+    """
     year, number = month
     return f"{month_name(number)} {year}"
 
@@ -298,15 +472,28 @@ def _month_name(month):
 def _names(user_ids, names):
     """Bold names of the users, joined as a sentence: "A", "A and B", "A, B and C" ("and" in the chat language).
 
-    user_ids: IDs of the users to name; names: {user ID: name already escaped for Markdown}.
     A user missing from `names` is shown by ID. Example with made-up names: "*@anna*, *@bob* and *@carl*".
+
+    Args:
+        user_ids (list): IDs of the users to name.
+        names (dict): {user ID: name already escaped for Markdown}.
+
+    Returns:
+        str: the sentence.
     """
     parts = [_bold(names.get(user_id, str(user_id))) for user_id in user_ids]
     return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + tr(" e ") + parts[-1]
 
 
 def _season_name(season):
-    """Label of a season (year, quarter) in the chat language: (2026, 4) -> "ottobre–dicembre 2026" (Italian)."""
+    """Label of a season in the chat language: (2026, 4) gives "ottobre–dicembre 2026" in Italian.
+
+    Args:
+        season (tuple): (year, quarter).
+
+    Returns:
+        str: the text.
+    """
     year, quarter = season
     return f"{month_name(3 * quarter - 2)}–{month_name(3 * quarter)} {year}"
 
@@ -314,7 +501,13 @@ def _season_name(season):
 def format_season_line(season, result, names):
     """One line of /conquests: who leads the current season so far.
 
-    season: (year, quarter); result: SeasonResult of that season; names: {user ID: name escaped for Markdown}.
+    Args:
+        season (tuple): (year, quarter).
+        result (SeasonResult): the titles of that season.
+        names (dict): {user ID: name escaped for Markdown}.
+
+    Returns:
+        str: the line.
     """
     return tr("🚩 Stagione {season}: conquistatore {conquerors} ({n}), re {king}").format(
         season=_season_name(season), conquerors=_names(result.conquerors, names), n=result.conquests,
@@ -322,14 +515,26 @@ def format_season_line(season, result, names):
 
 
 def format_streak_trophy(days):
-    """Line added to the reply to the 💩 that completes a multiple of STREAK_STEP consecutive days."""
+    """The line added to the reply to the 💩 that completes a multiple of STREAK_STEP consecutive days.
+
+    Args:
+        days (int): the length of the run.
+
+    Returns:
+        str: the line.
+    """
     return tr("🔥 *Nuovo trofeo!* {days} giorni di fila con almeno una 💩!").format(days=days)
 
 
 def format_group_trophies(trophies, names):
     """The /trophies message of the whole group: how many trophies of each kind every winner has.
 
-    trophies: {user key: UserTrophies}; names: {user key: name already escaped for Markdown}.
+    Args:
+        trophies (dict): {user key: UserTrophies}.
+        names (dict): {user key: name already escaped for Markdown}.
+
+    Returns:
+        str: the message in Markdown.
     """
     lines = [tr("🏆 *Bacheca dei trofei* 🏆") + "\n"]
     if not trophies:
@@ -354,7 +559,13 @@ def format_group_trophies(trophies, names):
 def format_user_trophies(name, trophies, current_streak):
     """The /trophies message of one user: every trophy, then how far the next streak trophy is.
 
-    name: already escaped for Markdown; trophies: UserTrophies or None; current_streak: days of the run in progress.
+    Args:
+        name (str): the user's name, already escaped for Markdown.
+        trophies (UserTrophies): the trophies, or None for a user without any.
+        current_streak (int): days of the run in progress.
+
+    Returns:
+        str: the message in Markdown.
     """
     lines = [f"🏆 {_bold(tr('Trofei di {name}').format(name=name))} 🏆\n"]
     if trophies is None:
@@ -390,16 +601,31 @@ def format_user_trophies(name, trophies, current_streak):
 
 
 def format_new_period(today, month_winners, year_winners, names, season=None):
-    """Midnight message on the first day of a month: the 💩 of the month just ended and, on January 1st, of the year.
+    """The midnight message on the first day of a month: the 💩 of the month just ended and, on January 1st, of the year.
 
-    month_winners / year_winners: Winners or None; names: {user key: name already escaped for Markdown};
-    season: ((year, quarter), SeasonResult) of the season that just ended, on the first day of a quarter, or None.
-    Returns None when there is nobody to celebrate.
+    Args:
+        today: the day the message is for.
+        month_winners (Winners): who won the month just ended, or None.
+        year_winners (Winners): who won the year just ended, or None.
+        names (dict): {user key: name already escaped for Markdown}.
+        season (tuple): ((year, quarter), SeasonResult) of the season that just ended on the first day of a quarter, or None.
+
+    Returns:
+        str: the message in Markdown; None when there is nobody to celebrate.
     """
     if month_winners is None and year_winners is None and season is None:
         return None
 
     def winner(label, winners):
+        """One line for the winners of a period.
+
+        Args:
+            label (str): what they won.
+            winners (Winners): who won it.
+
+        Returns:
+            str: the line.
+        """
         each = tr(" a testa") if len(winners.user_ids) > 1 else ""
         return tr("{label}: {names} con {total} 💩").format(
             label=label, names=_names(winners.user_ids, names), total=winners.total) + each
@@ -433,12 +659,25 @@ _SLOTS = ((0, "night"), (5, "early"), (9, "morning"), (12, "lunch"), (15, "after
 
 
 def _slot(hour):
+    """The time slot of an Italian hour.
+
+    Args:
+        hour (int): the hour, 0 to 23.
+
+    Returns:
+        str: the key of the slot, from _SLOTS.
+    """
     return [key for start, key in _SLOTS if hour >= start][-1]
 
 
 def _poop_sentences():
-    """The funny sentences, written as tr() literals (tests/test_i18n.py checks their translations) and built on
-    each call, in the language in use. Keys: a time slot, "any" (good at any time), or (count class, slot or None)."""
+    """The funny sentences, written as tr() literals (tests/test_i18n.py checks their translations).
+
+    They are built on each call, in the language in use.
+
+    Returns:
+        dict: the sentences by key: a time slot, "any" (good at any time), or (count class, slot or None).
+    """
     return {
         "night": [tr("{name} a quest'ora? La notte porta consiglio, e anche 💩."),
                   tr("Insonnia intestinale per {name}: il turno di notte non perdona."),
@@ -491,6 +730,13 @@ def _poop_pool(hour, count):
 
     The first and the 3rd or more 💩 of the day have their own sentences: those of their time slot when there are
     some, else the slot's ones with the generic ones and those of that count. The 2nd has the slot and the generic ones.
+
+    Args:
+        hour (int): the Italian hour, 0 to 23.
+        count (int): which 💩 of the day it is.
+
+    Returns:
+        list: the sentences, with a {name} to fill.
     """
     sentences, slot = _poop_sentences(), _slot(hour)
     kind = "first" if count == 1 else "third" if count >= 3 else None
@@ -500,12 +746,29 @@ def _poop_pool(hour, count):
 
 
 def poop_sentence(name, hour, count):
-    """A random sentence for the 💩 of `name` sent at Italian `hour`, the `count`-th of the day."""
+    """A random sentence for a 💩.
+
+    Args:
+        name (str): the user's name.
+        hour (int): the Italian hour the 💩 was sent.
+        count (int): which 💩 of the day it is.
+
+    Returns:
+        str: the sentence.
+    """
     return random.choice(_poop_pool(hour, count)).format(name=name)
 
 
 def last_poop_sentence(name, days):
-    """A random sentence for /last_poop: `days` since the last 💩 of `name` (0 is today, None is no data)."""
+    """A random sentence for /last_poop.
+
+    Args:
+        name (str): the user's name.
+        days (int): days since the last 💩 (0 is today); None for no data.
+
+    Returns:
+        str: the sentence, starting with an emoji.
+    """
     if days is None:
         emoji, pool = "🤷", [tr("Nessun dato sull'ultima 💩 di {name}: si comincia oggi.")]
     elif days == 0:
@@ -524,7 +787,16 @@ def last_poop_sentence(name, days):
 
 
 def day_count_sentence(name, day, count):
-    """A random sentence for /day_count: `count` 💩 of `name`, `day` being "oggi" or "il giorno <date>"."""
+    """A random sentence for /day_count.
+
+    Args:
+        name (str): the user's name.
+        day (str): "oggi" or "il giorno <date>".
+        count (int): the 💩 of that day.
+
+    Returns:
+        str: the sentence, starting with an emoji.
+    """
     if count == 0:
         emoji, pool = "🏖️", [tr("{name} {day} non ha fatto 💩: giornata di sciopero?"),
                 tr("{name} {day}: zero 💩. Il registro è vuoto.")]
@@ -539,7 +811,17 @@ def day_count_sentence(name, day, count):
 
 
 def change_count_sentence(name, date, count, delta):
-    """A random sentence for /add_poop (delta > 0) and /remove_poop (delta < 0): the new `count` of `name` on `date`."""
+    """A random sentence for /add_poop and /remove_poop.
+
+    Args:
+        name (str): the user's name.
+        date (str): the day that changed.
+        count (int): the new count of that day.
+        delta (int): positive for /add_poop, negative for /remove_poop.
+
+    Returns:
+        str: the sentence, starting with an emoji.
+    """
     if delta > 0:
         emoji, pool = "➕", [tr("Fatto: {name} il {date} sale a {count} 💩. La storia è riscritta."),
                 tr("{name} il {date} ora ha {count} 💩. Meglio tardi che mai."),
@@ -555,7 +837,16 @@ MEDALS = {1: '🥇', 2: '🥈', 3: '🥉'}
 
 
 def ranked_line(position, name, value):
-    """One line of a ranking: a medal and the name in bold for the first three."""
+    """One line of a ranking: a medal and the name in bold for the first three.
+
+    Args:
+        position (int): the place.
+        name (str): the name, already escaped for Markdown.
+        value (str): the value shown after the name.
+
+    Returns:
+        str: the line, with a newline at the end.
+    """
     if position in MEDALS:
         return f"{MEDALS[position]} {_bold(name)}: {value}\n"
     return f"{position}. {name}: {value}\n"

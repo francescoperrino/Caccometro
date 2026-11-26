@@ -15,17 +15,32 @@ _language = ContextVar('language', default=DEFAULT_LANGUAGE)
 
 
 def use(language):
-    """Answer in `language` from now on, in the current update (or in the current chat of the announcement)."""
+    """Answer in a language from now on, in the current update (or in the current chat of the announcement).
+
+    Args:
+        language (str): the language code; an unknown one gives the default language.
+    """
     _language.set(language if language in LANGUAGES else DEFAULT_LANGUAGE)
 
 
 def current():
-    """The language in use."""
+    """The language in use.
+
+    Returns:
+        str: the language code.
+    """
     return _language.get()
 
 
 def tr(text):
-    """`text` (an Italian sentence) in the language in use; the Italian text when there is no translation."""
+    """Translate an Italian sentence into the language in use.
+
+    Args:
+        text (str): the Italian sentence, which is also the key of the translations.
+
+    Returns:
+        str: the translation; the Italian text when there is none.
+    """
     return TRANSLATIONS.get(_language.get(), {}).get(text, text)
 
 
@@ -35,7 +50,14 @@ MONTHS = {'en': ['', 'January', 'February', 'March', 'April', 'May', 'June',
 
 
 def month_name(number):
-    """Name of month `number` (1-12) in the language in use."""
+    """Name of a month in the language in use.
+
+    Args:
+        number (int): the month, 1 to 12.
+
+    Returns:
+        str: the name.
+    """
     return MONTHS.get(_language.get(), MONTH_NAMES)[number]
 
 

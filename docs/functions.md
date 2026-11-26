@@ -68,11 +68,11 @@ Charts of /leaderboard_* and /stats_*: one shared style, PNG bytes in memory.
 | `png_bytes(fig, credit)` | Render a figure to PNG in memory and close it. | `maps` |
 | `chart_label(name)` | Make a user name safe for matplotlib text ('$' would start a math expression). | `maps` |
 | `short_name(name)` | The name cut to NAME_MAX characters, with an ellipsis when cut. | `maps` |
-| `add_cards(fig, axes)` | A rounded card behind every axes, its labels and its title included. | `maps` |
-| `sorted_by_name(names)` | User IDs of `names` (user ID -> name) sorted by name, case-insensitive. | `maps` |
-| `generate_rank_chart(rank, daily_counts, time_period, date, forecast)` | Ranking chart: a table of the counts per day (month) or per month (year) with the totals and the medals, and the cumulative counts of every user below it. | `cmd_leaderboards` |
-| `generate_statistics_chart(statistics, daily_counts, time_period, date)` | Statistics chart: a normal curve per user built from the mean and the variance of the daily counts, and a box plot of the daily counts below it. | `cmd_leaderboards` |
-| `generate_recap_image(recap, name)` | The picture of the recap (#195) to share: 1080x1350 (4:5, what Telegram shows whole), PNG bytes. | `miniapp` |
+| `add_cards(fig, axes)` | Put a rounded card behind every axes, its labels and its title included. | `maps` |
+| `sorted_by_name(names)` | Sort users by name, ignoring the case. | `maps` |
+| `generate_rank_chart(rank, daily_counts, time_period, date, forecast)` | Ranking chart: a table of the counts, the medals and the cumulative counts of every user below it. | `cmd_leaderboards` |
+| `generate_statistics_chart(statistics, daily_counts, time_period, date)` | Statistics chart: a normal curve per user and a box plot of the daily counts below it. | `cmd_leaderboards` |
+| `generate_recap_image(recap, name)` | The picture of the recap to share: 1080x1350 (4:5, what Telegram shows whole). | `miniapp` |
 
 ## chat.py
 
@@ -150,7 +150,7 @@ Configuration: environment variables, date formats and the Rome time zone.
 
 ## conquest.py
 
-Conquest game (#128): after a 💩 a location conquers the h3 hexagon it falls in; most tiles held = king of the hill.
+Conquest game: after a 💩 a location conquers the h3 hexagon it falls in; most tiles held = king of the hill.
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
@@ -196,19 +196,19 @@ Text of the bot messages built from the results of analysis.py.
 | Function or class | What it does | Used by |
 | --- | --- | --- |
 | `tie_positions(values)` | The place of each value of a list sorted best first: equal values share the place (1, 2, 2, 4). | `cmd_conquests`, `cmd_leaderboards` |
-| `flame(status)` | ' 🔥5' (' ⏳5' while today's 💩 is missing) after a name: the streak in progress, from 3 days on. | `cmd_leaderboards` |
+| `flame(status)` | The streak in progress, to write after a name, from 3 days on. | `cmd_leaderboards` |
 | `standing_lines(rows, names, sender_id, unit, forecast)` | Who leads and where the sender is, as sentences for the whole chat (the Mini App's "answer", in the third person). | `cmd_leaderboards` |
 | `format_user_record(name, records, places)` | The /records message of one user: every record followed by where the user stands right now. | `cmd_records` |
 | `format_group_record(board, names)` | The /records message of the whole group: who holds each record, and who leads right now. | `cmd_records` |
 | `format_season_line(season, result, names)` | One line of /conquests: who leads the current season so far. | `cmd_conquests` |
-| `format_streak_trophy(days)` | Line added to the reply to the 💩 that completes a multiple of STREAK_STEP consecutive days. | `messages` |
+| `format_streak_trophy(days)` | The line added to the reply to the 💩 that completes a multiple of STREAK_STEP consecutive days. | `messages` |
 | `format_group_trophies(trophies, names)` | The /trophies message of the whole group: how many trophies of each kind every winner has. | `cmd_records` |
 | `format_user_trophies(name, trophies, current_streak)` | The /trophies message of one user: every trophy, then how far the next streak trophy is. | `cmd_records` |
-| `format_new_period(today, month_winners, year_winners, names, season)` | Midnight message on the first day of a month: the 💩 of the month just ended and, on January 1st, of the year. | `announce` |
-| `poop_sentence(name, hour, count)` | A random sentence for the 💩 of `name` sent at Italian `hour`, the `count`-th of the day. | `messages` |
-| `last_poop_sentence(name, days)` | A random sentence for /last_poop: `days` since the last 💩 of `name` (0 is today, None is no data). | `cmd_counts` |
-| `day_count_sentence(name, day, count)` | A random sentence for /day_count: `count` 💩 of `name`, `day` being "oggi" or "il giorno &lt;date>". | `cmd_counts` |
-| `change_count_sentence(name, date, count, delta)` | A random sentence for /add_poop (delta > 0) and /remove_poop (delta &lt; 0): the new `count` of `name` on `date`. | `cmd_counts` |
+| `format_new_period(today, month_winners, year_winners, names, season)` | The midnight message on the first day of a month: the 💩 of the month just ended and, on January 1st, of the year. | `announce` |
+| `poop_sentence(name, hour, count)` | A random sentence for a 💩. | `messages` |
+| `last_poop_sentence(name, days)` | A random sentence for /last_poop. | `cmd_counts` |
+| `day_count_sentence(name, day, count)` | A random sentence for /day_count. | `cmd_counts` |
+| `change_count_sentence(name, date, count, delta)` | A random sentence for /add_poop and /remove_poop. | `cmd_counts` |
 | `ranked_line(position, name, value)` | One line of a ranking: a medal and the name in bold for the first three. | `cmd_conquests`, `cmd_leaderboards` |
 
 ## i18n.py
@@ -217,35 +217,35 @@ Translations of the bot messages: the Italian sentences are the keys, one dictio
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `use(language)` | Answer in `language` from now on, in the current update (or in the current chat of the announcement). | `announce`, `chat`, `cmd_settings`, `webhook` |
+| `use(language)` | Answer in a language from now on, in the current update (or in the current chat of the announcement). | `announce`, `chat`, `cmd_settings`, `webhook` |
 | `current()` | The language in use. | `charts`, `cmd_settings` |
-| `tr(text)` | `text` (an Italian sentence) in the language in use; the Italian text when there is no translation. | `announce`, `arguments`, `charts`, `chat`, `cmd_conquests`, `cmd_counts`, `cmd_leaderboards`, `cmd_records`, `cmd_settings`, `formatting`, `maps`, `messages` |
-| `month_name(number)` | Name of month `number` (1-12) in the language in use. | `charts`, `formatting` |
+| `tr(text)` | Translate an Italian sentence into the language in use. | `announce`, `arguments`, `charts`, `chat`, `cmd_conquests`, `cmd_counts`, `cmd_leaderboards`, `cmd_records`, `cmd_settings`, `formatting`, `maps`, `messages` |
+| `month_name(number)` | Name of a month in the language in use. | `charts`, `formatting` |
 
 ## maps.py
 
-Conquest maps (#157): the tiles of a chat drawn over OpenStreetMap raster tiles, JPEG bytes in memory.
+Conquest maps: the tiles of a chat drawn over OpenStreetMap raster tiles, JPEG bytes in memory.
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `owners(history)` | {cell: (user_id, index of its latest conquest)}: a tile belongs to its last conqueror. | `miniapp` |
-| `grouped(tiles, res)` | {cell at res: user_id}: each hexagon goes to the member holding most tiles inside, on a tie the latest. | `miniapp` |
-| `zoom_map(history, users, title)` | Reply to a conquest: the real tiles around the tile just conquered, the last of `history`. | `messages` |
+| `owners(history)` | The owner of every tile: a tile belongs to its last conqueror. | `miniapp` |
+| `grouped(tiles, res)` | Give each larger hexagon to the member who holds most tiles inside it, on a tie the latest. | `miniapp` |
+| `zoom_map(history, users, title)` | Reply to a conquest: the real tiles around the tile just conquered, the last of the history. | `messages` |
 | `group_zoom_map(history, users, user_id)` | /conquests: the real tiles of every member around the latest conquest of the group. | `cmd_conquests` |
 | `world_map(history, users, user_id)` | /conquests: the whole world. | `cmd_conquests` |
 | `region_map(history, users, user_id)` | /conquests: Lombardy. | `cmd_conquests` |
 | `country_map(history, users, user_id)` | /conquests: Italy. | `cmd_conquests` |
 | `person_zoom_map(history, users, user_id)` | /conquests of one person: the real tiles around the member's latest conquest, held ones full, lost ones dashed. | `cmd_conquests` |
-| `render(builder, *args)` | builder(*args), or None when the map cannot be drawn (tiles unreachable): the reply then goes out as text. | `cmd_conquests`, `messages` |
+| `render(builder, *args)` | Draw a map, or tell that it cannot be drawn. | `cmd_conquests`, `messages` |
 
 ## menus.py
 
-Command names and menu descriptions in Italian and English; the menu of a chat follows its language (#152).
+Command names and menu descriptions in Italian and English; the menu of a chat follows its language.
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `menu(language, admins)` | (command, description) pairs of the menu in 'en' or 'it'; the admins' menu adds the admin-only commands. | only its own module |
-| `async set_chat_menu(bot, chat_id, language, group)` | Show the menu of one chat in `language`, whatever the app language of who opens it. | `cmd_settings`, `messages` |
+| `menu(language, admins)` | The menu of the commands in a language. | only its own module |
+| `async set_chat_menu(bot, chat_id, language, group)` | Show the menu of one chat in a language, whatever the app language of who opens it. | `cmd_settings`, `messages` |
 
 ## messages.py
 
