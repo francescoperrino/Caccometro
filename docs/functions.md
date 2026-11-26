@@ -15,10 +15,11 @@ Records and current status of the users' 💩 counts.
 | `class Run` | A run of consecutive days with 💩: first and last day, length and total 💩. | only its own module |
 | `parse_counts(rows)` | [(date string, count)] -> {date: count}, ignoring days without 💩. | `trophies` |
 | `consecutive_runs(days_sorted, counts)` | Runs of consecutive days with 💩. | `trophies` |
-| `analyze_user(rows, today)` | Records and current status of one user. | `cmd_leaderboards`, `cmd_records`, `miniapp` |
+| `analyze_user(rows, today)` | Records and current status of one user. | `cmd_records` |
 | `class Holder` | Someone who holds (or shares) a group record. | only its own module |
 | `class Leaders` | The best value of a metric in the group and everyone who reached it. | `formatting` |
 | `class GroupBoard` | Records of the whole group: who holds each record of all times and who leads right now. | `formatting` |
+| `analyze_users(users_rows, today)` | {user key: UserRecords} of every user with at least one 💩. users_rows: {user key: [(date 'YYYY-MM-DD', count)]}. | `cmd_leaderboards`, `cmd_records`, `miniapp` |
 | `analyze_group(users_rows, today)` | Who holds each record of the group, and who leads right now. | `cmd_records`, `miniapp` |
 | `forecast_totals(totals, recent_counts, today, end_period)` | Expected 💩 of every user at the end of the period: the total so far plus, for each day left, the user's mean daily 💩 over the last FORECAST_WINDOW_DAYS days (today included). | `cmd_leaderboards`, `miniapp` |
 | `period_statistics(daily_counts, users, start_period, end_period, today)` | Mean, median and variance of the daily 💩 of every user in a period, best mean first (ties: lower variance). | `cmd_leaderboards`, `miniapp` |
@@ -48,13 +49,16 @@ Arguments of the commands: periods, dates, the person a command refers to.
 | Function or class | What it does | Used by |
 | --- | --- | --- |
 | `parse_username_arg(arg)` | '@mario' -> 'mario'; None if it does not start with @ or is empty. | only its own module |
-| `parse_month_arg(arg)` | '3-2024', '03/24', '03.2024', 'marzo 2024' or 'march 2024' -> '03-2024'; None if it is not a valid month (years 1970-2100). | `cmd_leaderboards` |
-| `parse_year_arg(arg)` | '2024' or '24' -> '2024'; None if it is not a valid year (2 or 4 digits, 1970-2100). | `cmd_leaderboards` |
-| `parse_date_arg(arg)` | '5/3/26', '05.03.2026', '5.3', 'oggi', 'yesterday'... -> ('05-03-2026', '2026-03-05'). | `cmd_counts` |
-| `resolve_target(update, args, sender, usage)` | Work out whose data a command refers to. | `cmd_counts` |
-| `invalid_format(usage)` | The reply to arguments that do not fit the command. | `cmd_counts`, `cmd_settings` |
+| `parse_month_arg(arg)` | '3-2024', '03/24', '03.2024', 'marzo 2024' or 'march 2024' -> '03-2024'; None if it is not a valid month (years 1970-2100). | only its own module |
+| `parse_year_arg(arg)` | '2024' or '24' -> '2024'; None if it is not a valid year (2 or 4 digits, 1970-2100). | only its own module |
+| `parse_date_arg(arg)` | '5/3/26', '05.03.2026', '5.3', 'oggi', 'yesterday'... -> ('05-03-2026', '2026-03-05'). | only its own module |
+| `resolve_target(update, args, sender, usage)` | Work out whose data a command refers to. | only its own module |
+| `invalid_format(usage)` | The reply to arguments that do not fit the command. | `cmd_settings` |
 | `replied_person(update)` | The Telegram user of the message being replied to, or None when the reply is not to a person. | `cmd_settings` |
 | `resolve_optional_target(update, context, sender, usage)` | Target of /records and /trophies: io, @username or a reply. Returns (target, error); no target and no error means the group. | `cmd_conquests`, `cmd_records` |
+| `async target_from_args(update, args, sender, usage, counts)` | The person of a command (see resolve_target) and the arguments after it, whose number must be in `counts`. | `cmd_counts` |
+| `async date_from_arg(update, arg)` | parse_date_arg, or None after telling the user why the date is not valid. | `cmd_counts` |
+| `async period_from_args(update, args, time_period)` | The period asked for ('MM-YYYY' or 'YYYY'), the current one without arguments. | `cmd_leaderboards` |
 
 ## bot.py
 
@@ -146,7 +150,6 @@ Helpers shared by the commands and the message handler: users, replies, permissi
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `async period_from_args(update, args, time_period)` | The period asked for ('MM-YYYY' or 'YYYY'), the current one without arguments. | only its own module |
 | `async leaderboard_command(update, context, time_period)` | /leaderboard_month and /leaderboard_year: total 💩 per person in the period, with a chart. | only its own module |
 | `async stats_command(update, context, time_period)` | /stats_month and /stats_year: mean, median and variance per person, with a chart. | only its own module |
 | `async leaderboard_month_command(update, context)` | Handler for the /leaderboard_month command. | `bot` |

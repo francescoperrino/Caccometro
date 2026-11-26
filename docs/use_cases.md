@@ -169,25 +169,29 @@ flowchart LR
     cmd_leaderboards("<b>cmd_leaderboards.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
-    analysis("<b>analysis.py</b>")
+    arguments("<b>arguments.py</b>")
     formatting("<b>formatting.py</b>")
+    analysis("<b>analysis.py</b>")
     charts("<b>charts.py</b>")
     telegram -->|"1.#nbsp;leaderboard_month_command"| cmd_leaderboards
-    cmd_leaderboards -->|"2.#nbsp;register_sender<br/>9.#nbsp;legacy_hint<br/>20.#nbsp;escape_md<br/>28.#nbsp;reply_chart"| chat
-    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>10.#nbsp;list_legacy_users"| database
+    cmd_leaderboards -->|"2.#nbsp;register_sender<br/>11.#nbsp;legacy_hint<br/>22.#nbsp;escape_md<br/>30.#nbsp;reply_chart"| chat
+    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>12.#nbsp;list_legacy_users"| database
     chat -.->|"5.#nbsp;sender"| cmd_leaderboards
-    cmd_leaderboards -->|"6, 11.#nbsp;reply_text"| telegram
-    cmd_leaderboards -->|"7.#nbsp;get_rank<br/>12.#nbsp;get_all_user_rows<br/>16.#nbsp;get_daily_counts_between<br/>25.#nbsp;get_daily_counts"| database
-    database -.->|"8.#nbsp;rank<br/>13.#nbsp;(rows_by_user, _)<br/>17.#nbsp;recent<br/>26.#nbsp;daily_counts"| cmd_leaderboards
-    cmd_leaderboards -->|"14.#nbsp;analyze_user<br/>18.#nbsp;forecast_totals"| analysis
-    cmd_leaderboards -->|"15.#nbsp;flame<br/>21.#nbsp;ranked_line<br/>22.#nbsp;tie_positions<br/>23.#nbsp;standing_lines"| formatting
-    analysis -.->|"19.#nbsp;forecast"| cmd_leaderboards
-    formatting -.->|"24.#nbsp;standing"| cmd_leaderboards
-    cmd_leaderboards -->|"27.#nbsp;generate_rank_chart"| charts
-    chat -->|"29, 30.#nbsp;reply_photo<br/>31.#nbsp;reply_text"| telegram
+    cmd_leaderboards -->|"6.#nbsp;period_from_args"| arguments
+    arguments -->|"7.#nbsp;reply_text"| telegram
+    arguments -.->|"8.#nbsp;date"| cmd_leaderboards
+    cmd_leaderboards -->|"9.#nbsp;get_rank<br/>14.#nbsp;get_all_user_rows<br/>18.#nbsp;get_daily_counts_between<br/>27.#nbsp;get_daily_counts"| database
+    database -.->|"10.#nbsp;rank<br/>15.#nbsp;(rows_by_user, _)<br/>19.#nbsp;recent<br/>28.#nbsp;daily_counts"| cmd_leaderboards
+    cmd_leaderboards -->|"13.#nbsp;reply_text"| telegram
+    cmd_leaderboards -->|"16.#nbsp;flame<br/>23.#nbsp;ranked_line<br/>24.#nbsp;tie_positions<br/>25.#nbsp;standing_lines"| formatting
+    cmd_leaderboards -->|"17.#nbsp;analyze_users<br/>20.#nbsp;forecast_totals"| analysis
+    analysis -.->|"21.#nbsp;forecast"| cmd_leaderboards
+    formatting -.->|"26.#nbsp;standing"| cmd_leaderboards
+    cmd_leaderboards -->|"29.#nbsp;generate_rank_chart"| charts
+    chat -->|"31, 32.#nbsp;reply_photo<br/>33.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class cmd_leaderboards,chat,database,analysis,formatting,charts step
+    class cmd_leaderboards,chat,database,arguments,formatting,analysis,charts step
     class telegram person
 ```
 
@@ -229,8 +233,9 @@ sequenceDiagram
     participant cmd_leaderboards as cmd_leaderboards.py
     participant chat as chat.py
     participant database as database.py
-    participant analysis as analysis.py
+    participant arguments as arguments.py
     participant formatting as formatting.py
+    participant analysis as analysis.py
     participant charts as charts.py
     rect rgb(255, 250, 243)
         telegram->>cmd_leaderboards: leaderboard_month_command(update, context)
@@ -238,9 +243,11 @@ sequenceDiagram
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
         chat-->>cmd_leaderboards: sender
+        cmd_leaderboards->>arguments: period_from_args(update, context.args, time_period)
         opt date is None
-            cmd_leaderboards->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+            arguments->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
         end
+        arguments-->>cmd_leaderboards: date
         cmd_leaderboards->>database: get_rank(update.message.chat_id, time_period, ...)
         database-->>cmd_leaderboards: rank
         opt not rank
@@ -252,8 +259,8 @@ sequenceDiagram
         opt start_period <= today.isoformat() <= ...
             cmd_leaderboards->>database: get_all_user_rows(update.message.chat_id)
             database-->>cmd_leaderboards: (rows_by_user, _)
-            cmd_leaderboards->>analysis: analyze_user(rows, today)
-            cmd_leaderboards->>formatting: flame(analyze_user(rows, today).status)
+            cmd_leaderboards->>formatting: flame(records.status)
+            cmd_leaderboards->>analysis: analyze_users(rows_by_user, today)
             cmd_leaderboards->>database: get_daily_counts_between(update.message.chat_id, (today - time...)
             database-->>cmd_leaderboards: recent
             cmd_leaderboards->>analysis: forecast_totals({user.user_id: total for user, total ...)
@@ -286,15 +293,16 @@ sequenceDiagram
     - `chat.register_user`
       - `chat.display_name_of`
       - `database.upsert_user`
-  - `cmd_leaderboards.period_from_args`
+  - `arguments.period_from_args`
   - `database.get_rank`
   - `chat.legacy_hint`
     - `database.list_legacy_users`
   - `database.get_all_user_rows`
   - `formatting.flame`
-  - `analysis.analyze_user`
-    - `analysis.parse_counts`
-    - `analysis.consecutive_runs`
+  - `analysis.analyze_users`
+    - `analysis.analyze_user`
+      - `analysis.parse_counts`
+      - `analysis.consecutive_runs`
   - `database.get_daily_counts_between`
   - `analysis.forecast_totals`
   - `chat.escape_md`
@@ -367,25 +375,29 @@ flowchart LR
     cmd_leaderboards("<b>cmd_leaderboards.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
-    analysis("<b>analysis.py</b>")
+    arguments("<b>arguments.py</b>")
     formatting("<b>formatting.py</b>")
+    analysis("<b>analysis.py</b>")
     charts("<b>charts.py</b>")
     telegram -->|"1.#nbsp;leaderboard_year_command"| cmd_leaderboards
-    cmd_leaderboards -->|"2.#nbsp;register_sender<br/>9.#nbsp;legacy_hint<br/>20.#nbsp;escape_md<br/>28.#nbsp;reply_chart"| chat
-    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>10.#nbsp;list_legacy_users"| database
+    cmd_leaderboards -->|"2.#nbsp;register_sender<br/>11.#nbsp;legacy_hint<br/>22.#nbsp;escape_md<br/>30.#nbsp;reply_chart"| chat
+    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>12.#nbsp;list_legacy_users"| database
     chat -.->|"5.#nbsp;sender"| cmd_leaderboards
-    cmd_leaderboards -->|"6, 11.#nbsp;reply_text"| telegram
-    cmd_leaderboards -->|"7.#nbsp;get_rank<br/>12.#nbsp;get_all_user_rows<br/>16.#nbsp;get_daily_counts_between<br/>25.#nbsp;get_daily_counts"| database
-    database -.->|"8.#nbsp;rank<br/>13.#nbsp;(rows_by_user, _)<br/>17.#nbsp;recent<br/>26.#nbsp;daily_counts"| cmd_leaderboards
-    cmd_leaderboards -->|"14.#nbsp;analyze_user<br/>18.#nbsp;forecast_totals"| analysis
-    cmd_leaderboards -->|"15.#nbsp;flame<br/>21.#nbsp;ranked_line<br/>22.#nbsp;tie_positions<br/>23.#nbsp;standing_lines"| formatting
-    analysis -.->|"19.#nbsp;forecast"| cmd_leaderboards
-    formatting -.->|"24.#nbsp;standing"| cmd_leaderboards
-    cmd_leaderboards -->|"27.#nbsp;generate_rank_chart"| charts
-    chat -->|"29, 30.#nbsp;reply_photo<br/>31.#nbsp;reply_text"| telegram
+    cmd_leaderboards -->|"6.#nbsp;period_from_args"| arguments
+    arguments -->|"7.#nbsp;reply_text"| telegram
+    arguments -.->|"8.#nbsp;date"| cmd_leaderboards
+    cmd_leaderboards -->|"9.#nbsp;get_rank<br/>14.#nbsp;get_all_user_rows<br/>18.#nbsp;get_daily_counts_between<br/>27.#nbsp;get_daily_counts"| database
+    database -.->|"10.#nbsp;rank<br/>15.#nbsp;(rows_by_user, _)<br/>19.#nbsp;recent<br/>28.#nbsp;daily_counts"| cmd_leaderboards
+    cmd_leaderboards -->|"13.#nbsp;reply_text"| telegram
+    cmd_leaderboards -->|"16.#nbsp;flame<br/>23.#nbsp;ranked_line<br/>24.#nbsp;tie_positions<br/>25.#nbsp;standing_lines"| formatting
+    cmd_leaderboards -->|"17.#nbsp;analyze_users<br/>20.#nbsp;forecast_totals"| analysis
+    analysis -.->|"21.#nbsp;forecast"| cmd_leaderboards
+    formatting -.->|"26.#nbsp;standing"| cmd_leaderboards
+    cmd_leaderboards -->|"29.#nbsp;generate_rank_chart"| charts
+    chat -->|"31, 32.#nbsp;reply_photo<br/>33.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class cmd_leaderboards,chat,database,analysis,formatting,charts step
+    class cmd_leaderboards,chat,database,arguments,formatting,analysis,charts step
     class telegram person
 ```
 
@@ -427,8 +439,9 @@ sequenceDiagram
     participant cmd_leaderboards as cmd_leaderboards.py
     participant chat as chat.py
     participant database as database.py
-    participant analysis as analysis.py
+    participant arguments as arguments.py
     participant formatting as formatting.py
+    participant analysis as analysis.py
     participant charts as charts.py
     rect rgb(255, 250, 243)
         telegram->>cmd_leaderboards: leaderboard_year_command(update, context)
@@ -436,9 +449,11 @@ sequenceDiagram
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
         chat-->>cmd_leaderboards: sender
+        cmd_leaderboards->>arguments: period_from_args(update, context.args, time_period)
         opt date is None
-            cmd_leaderboards->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+            arguments->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
         end
+        arguments-->>cmd_leaderboards: date
         cmd_leaderboards->>database: get_rank(update.message.chat_id, time_period, ...)
         database-->>cmd_leaderboards: rank
         opt not rank
@@ -450,8 +465,8 @@ sequenceDiagram
         opt start_period <= today.isoformat() <= ...
             cmd_leaderboards->>database: get_all_user_rows(update.message.chat_id)
             database-->>cmd_leaderboards: (rows_by_user, _)
-            cmd_leaderboards->>analysis: analyze_user(rows, today)
-            cmd_leaderboards->>formatting: flame(analyze_user(rows, today).status)
+            cmd_leaderboards->>formatting: flame(records.status)
+            cmd_leaderboards->>analysis: analyze_users(rows_by_user, today)
             cmd_leaderboards->>database: get_daily_counts_between(update.message.chat_id, (today - time...)
             database-->>cmd_leaderboards: recent
             cmd_leaderboards->>analysis: forecast_totals({user.user_id: total for user, total ...)
@@ -484,15 +499,16 @@ sequenceDiagram
     - `chat.register_user`
       - `chat.display_name_of`
       - `database.upsert_user`
-  - `cmd_leaderboards.period_from_args`
+  - `arguments.period_from_args`
   - `database.get_rank`
   - `chat.legacy_hint`
     - `database.list_legacy_users`
   - `database.get_all_user_rows`
   - `formatting.flame`
-  - `analysis.analyze_user`
-    - `analysis.parse_counts`
-    - `analysis.consecutive_runs`
+  - `analysis.analyze_users`
+    - `analysis.analyze_user`
+      - `analysis.parse_counts`
+      - `analysis.consecutive_runs`
   - `database.get_daily_counts_between`
   - `analysis.forecast_totals`
   - `chat.escape_md`
@@ -565,25 +581,29 @@ flowchart LR
     cmd_leaderboards("<b>cmd_leaderboards.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
+    arguments("<b>arguments.py</b>")
     analysis("<b>analysis.py</b>")
     formatting("<b>formatting.py</b>")
     charts("<b>charts.py</b>")
     telegram -->|"1.#nbsp;stats_month_command"| cmd_leaderboards
-    cmd_leaderboards -->|"2.#nbsp;register_sender<br/>12.#nbsp;legacy_hint<br/>15.#nbsp;escape_md<br/>24.#nbsp;reply_chart"| chat
-    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>13.#nbsp;list_legacy_users"| database
+    cmd_leaderboards -->|"2.#nbsp;register_sender<br/>14.#nbsp;legacy_hint<br/>17.#nbsp;escape_md<br/>26.#nbsp;reply_chart"| chat
+    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>15.#nbsp;list_legacy_users"| database
     chat -.->|"5.#nbsp;sender"| cmd_leaderboards
-    cmd_leaderboards -->|"6, 14.#nbsp;reply_text"| telegram
-    cmd_leaderboards -->|"7.#nbsp;get_daily_counts<br/>9.#nbsp;get_users<br/>20.#nbsp;get_first_days"| database
-    database -.->|"8.#nbsp;daily_counts"| cmd_leaderboards
-    cmd_leaderboards -->|"10.#nbsp;period_statistics<br/>21.#nbsp;period_regularity"| analysis
-    analysis -.->|"11.#nbsp;statistics<br/>22.#nbsp;label"| cmd_leaderboards
-    cmd_leaderboards -->|"16.#nbsp;ranked_line<br/>17.#nbsp;tie_positions<br/>18.#nbsp;standing_lines"| formatting
-    formatting -.->|"19.#nbsp;standing"| cmd_leaderboards
-    cmd_leaderboards -->|"23.#nbsp;generate_statistics_chart"| charts
-    chat -->|"25, 26.#nbsp;reply_photo<br/>27.#nbsp;reply_text"| telegram
+    cmd_leaderboards -->|"6.#nbsp;period_from_args"| arguments
+    arguments -->|"7.#nbsp;reply_text"| telegram
+    arguments -.->|"8.#nbsp;date"| cmd_leaderboards
+    cmd_leaderboards -->|"9.#nbsp;get_daily_counts<br/>11.#nbsp;get_users<br/>22.#nbsp;get_first_days"| database
+    database -.->|"10.#nbsp;daily_counts"| cmd_leaderboards
+    cmd_leaderboards -->|"12.#nbsp;period_statistics<br/>23.#nbsp;period_regularity"| analysis
+    analysis -.->|"13.#nbsp;statistics<br/>24.#nbsp;label"| cmd_leaderboards
+    cmd_leaderboards -->|"16.#nbsp;reply_text"| telegram
+    cmd_leaderboards -->|"18.#nbsp;ranked_line<br/>19.#nbsp;tie_positions<br/>20.#nbsp;standing_lines"| formatting
+    formatting -.->|"21.#nbsp;standing"| cmd_leaderboards
+    cmd_leaderboards -->|"25.#nbsp;generate_statistics_chart"| charts
+    chat -->|"27, 28.#nbsp;reply_photo<br/>29.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class cmd_leaderboards,chat,database,analysis,formatting,charts step
+    class cmd_leaderboards,chat,database,arguments,analysis,formatting,charts step
     class telegram person
 ```
 
@@ -625,6 +645,7 @@ sequenceDiagram
     participant cmd_leaderboards as cmd_leaderboards.py
     participant chat as chat.py
     participant database as database.py
+    participant arguments as arguments.py
     participant analysis as analysis.py
     participant formatting as formatting.py
     participant charts as charts.py
@@ -634,9 +655,11 @@ sequenceDiagram
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
         chat-->>cmd_leaderboards: sender
+        cmd_leaderboards->>arguments: period_from_args(update, context.args, time_period)
         opt date is None
-            cmd_leaderboards->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+            arguments->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
         end
+        arguments-->>cmd_leaderboards: date
         cmd_leaderboards->>database: get_daily_counts(chat_id, time_period, date)
         database-->>cmd_leaderboards: daily_counts
         cmd_leaderboards->>database: get_users(chat_id)
@@ -678,7 +701,7 @@ sequenceDiagram
     - `chat.register_user`
       - `chat.display_name_of`
       - `database.upsert_user`
-  - `cmd_leaderboards.period_from_args`
+  - `arguments.period_from_args`
   - `database.get_daily_counts`
     - `database.get_daily_counts_between`
   - `analysis.period_statistics`
@@ -756,25 +779,29 @@ flowchart LR
     cmd_leaderboards("<b>cmd_leaderboards.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
+    arguments("<b>arguments.py</b>")
     analysis("<b>analysis.py</b>")
     formatting("<b>formatting.py</b>")
     charts("<b>charts.py</b>")
     telegram -->|"1.#nbsp;stats_year_command"| cmd_leaderboards
-    cmd_leaderboards -->|"2.#nbsp;register_sender<br/>12.#nbsp;legacy_hint<br/>15.#nbsp;escape_md<br/>24.#nbsp;reply_chart"| chat
-    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>13.#nbsp;list_legacy_users"| database
+    cmd_leaderboards -->|"2.#nbsp;register_sender<br/>14.#nbsp;legacy_hint<br/>17.#nbsp;escape_md<br/>26.#nbsp;reply_chart"| chat
+    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>15.#nbsp;list_legacy_users"| database
     chat -.->|"5.#nbsp;sender"| cmd_leaderboards
-    cmd_leaderboards -->|"6, 14.#nbsp;reply_text"| telegram
-    cmd_leaderboards -->|"7.#nbsp;get_daily_counts<br/>9.#nbsp;get_users<br/>20.#nbsp;get_first_days"| database
-    database -.->|"8.#nbsp;daily_counts"| cmd_leaderboards
-    cmd_leaderboards -->|"10.#nbsp;period_statistics<br/>21.#nbsp;period_regularity"| analysis
-    analysis -.->|"11.#nbsp;statistics<br/>22.#nbsp;label"| cmd_leaderboards
-    cmd_leaderboards -->|"16.#nbsp;ranked_line<br/>17.#nbsp;tie_positions<br/>18.#nbsp;standing_lines"| formatting
-    formatting -.->|"19.#nbsp;standing"| cmd_leaderboards
-    cmd_leaderboards -->|"23.#nbsp;generate_statistics_chart"| charts
-    chat -->|"25, 26.#nbsp;reply_photo<br/>27.#nbsp;reply_text"| telegram
+    cmd_leaderboards -->|"6.#nbsp;period_from_args"| arguments
+    arguments -->|"7.#nbsp;reply_text"| telegram
+    arguments -.->|"8.#nbsp;date"| cmd_leaderboards
+    cmd_leaderboards -->|"9.#nbsp;get_daily_counts<br/>11.#nbsp;get_users<br/>22.#nbsp;get_first_days"| database
+    database -.->|"10.#nbsp;daily_counts"| cmd_leaderboards
+    cmd_leaderboards -->|"12.#nbsp;period_statistics<br/>23.#nbsp;period_regularity"| analysis
+    analysis -.->|"13.#nbsp;statistics<br/>24.#nbsp;label"| cmd_leaderboards
+    cmd_leaderboards -->|"16.#nbsp;reply_text"| telegram
+    cmd_leaderboards -->|"18.#nbsp;ranked_line<br/>19.#nbsp;tie_positions<br/>20.#nbsp;standing_lines"| formatting
+    formatting -.->|"21.#nbsp;standing"| cmd_leaderboards
+    cmd_leaderboards -->|"25.#nbsp;generate_statistics_chart"| charts
+    chat -->|"27, 28.#nbsp;reply_photo<br/>29.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class cmd_leaderboards,chat,database,analysis,formatting,charts step
+    class cmd_leaderboards,chat,database,arguments,analysis,formatting,charts step
     class telegram person
 ```
 
@@ -816,6 +843,7 @@ sequenceDiagram
     participant cmd_leaderboards as cmd_leaderboards.py
     participant chat as chat.py
     participant database as database.py
+    participant arguments as arguments.py
     participant analysis as analysis.py
     participant formatting as formatting.py
     participant charts as charts.py
@@ -825,9 +853,11 @@ sequenceDiagram
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
         chat-->>cmd_leaderboards: sender
+        cmd_leaderboards->>arguments: period_from_args(update, context.args, time_period)
         opt date is None
-            cmd_leaderboards->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+            arguments->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
         end
+        arguments-->>cmd_leaderboards: date
         cmd_leaderboards->>database: get_daily_counts(chat_id, time_period, date)
         database-->>cmd_leaderboards: daily_counts
         cmd_leaderboards->>database: get_users(chat_id)
@@ -869,7 +899,7 @@ sequenceDiagram
     - `chat.register_user`
       - `chat.display_name_of`
       - `database.upsert_user`
-  - `cmd_leaderboards.period_from_args`
+  - `arguments.period_from_args`
   - `database.get_daily_counts`
     - `database.get_daily_counts_between`
   - `analysis.period_statistics`
@@ -951,7 +981,7 @@ flowchart LR
     analysis("<b>analysis.py</b>")
     formatting("<b>formatting.py</b>")
     telegram -->|"1.#nbsp;records_command"| cmd_records
-    cmd_records -->|"2.#nbsp;register_sender<br/>14, 24.#nbsp;legacy_hint<br/>19, 28.#nbsp;escape_md"| chat
+    cmd_records -->|"2.#nbsp;register_sender<br/>14, 24.#nbsp;legacy_hint<br/>19, 29.#nbsp;escape_md"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>15.#nbsp;list_legacy_users"| database
     chat -.->|"5.#nbsp;sender"| cmd_records
     cmd_records -->|"6.#nbsp;resolve_optional_target"| arguments
@@ -959,13 +989,13 @@ flowchart LR
     database -.->|"8.#nbsp;target"| arguments
     arguments -->|"9.#nbsp;register_user"| chat
     arguments -.->|"10.#nbsp;(target, error)"| cmd_records
-    cmd_records -->|"11, 16, 21, 25, 33.#nbsp;reply_text"| telegram
-    cmd_records -->|"12, 27.#nbsp;get_all_user_rows<br/>22.#nbsp;get_record"| database
+    cmd_records -->|"11, 16, 21, 25, 34.#nbsp;reply_text"| telegram
+    cmd_records -->|"12, 26.#nbsp;get_all_user_rows<br/>22.#nbsp;get_record"| database
     database -.->|"13.#nbsp;(rows_by_user, users)<br/>23.#nbsp;rows"| cmd_records
-    cmd_records -->|"17.#nbsp;analyze_group<br/>26, 29.#nbsp;analyze_user<br/>30.#nbsp;record_places"| analysis
-    analysis -.->|"18.#nbsp;board"| cmd_records
-    cmd_records -->|"20.#nbsp;format_group_record<br/>31.#nbsp;format_user_record"| formatting
-    formatting -.->|"32.#nbsp;message"| cmd_records
+    cmd_records -->|"17.#nbsp;analyze_group<br/>27.#nbsp;analyze_users<br/>30.#nbsp;analyze_user<br/>31.#nbsp;record_places"| analysis
+    analysis -.->|"18.#nbsp;board<br/>28.#nbsp;people"| cmd_records
+    cmd_records -->|"20.#nbsp;format_group_record<br/>32.#nbsp;format_user_record"| formatting
+    formatting -.->|"33.#nbsp;message"| cmd_records
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     class cmd_records,chat,database,arguments,analysis,formatting step
@@ -1057,8 +1087,9 @@ sequenceDiagram
             cmd_records->>telegram: reply_text(tr('🤷 Nessun dato disponibile per {na...)
             Note over cmd_records: returns
         end
-        cmd_records->>analysis: analyze_user(user_rows, today)
         cmd_records->>database: get_all_user_rows(chat_id)
+        cmd_records->>analysis: analyze_users(get_all_user_rows(chat_id)[0], today)
+        analysis-->>cmd_records: people
         cmd_records->>chat: escape_md(target.mention)
         cmd_records->>analysis: analyze_user(rows, today)
         cmd_records->>analysis: record_places(target.user_id, people)
@@ -1089,16 +1120,18 @@ sequenceDiagram
 - `chat.legacy_hint`
   - `database.list_legacy_users`
 - `analysis.analyze_group`
-  - `analysis.analyze_user`
-    - `analysis.parse_counts`
-    - `analysis.consecutive_runs`
+  - `analysis.analyze_users`
+    - `analysis.analyze_user`
+      - `analysis.parse_counts`
+      - `analysis.consecutive_runs`
 - `chat.escape_md`
 - `formatting.format_group_record`
   - `formatting.bold`
 - `database.get_record`
-- `analysis.analyze_user` (see above)
+- `analysis.analyze_users` (see above)
 - `formatting.format_user_record`
   - `formatting.bold` (see above)
+- `analysis.analyze_user` (see above)
 - `analysis.record_places`
 
 </details>
@@ -1716,15 +1749,16 @@ flowchart LR
     cmd_counts -->|"2.#nbsp;register_sender"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
     chat -.->|"5.#nbsp;sender"| cmd_counts
-    cmd_counts -->|"6.#nbsp;resolve_target<br/>11.#nbsp;invalid_format<br/>14.#nbsp;parse_date_arg"| arguments
+    cmd_counts -->|"6.#nbsp;target_from_args<br/>12.#nbsp;date_from_arg"| arguments
     arguments -->|"7.#nbsp;find_user_by_username"| database
     database -.->|"8.#nbsp;target"| arguments
     arguments -->|"9.#nbsp;register_user"| chat
-    arguments -.->|"10.#nbsp;(target, args, error)<br/>12.#nbsp;error<br/>15.#nbsp;(date, selected_date)"| cmd_counts
-    cmd_counts -->|"13, 16, 20.#nbsp;reply_text"| telegram
-    cmd_counts -->|"17.#nbsp;get_count"| database
-    database -.->|"18.#nbsp;count"| cmd_counts
-    cmd_counts -->|"19.#nbsp;day_count_sentence"| formatting
+    arguments -->|"10, 13.#nbsp;reply_text"| telegram
+    arguments -.->|"11.#nbsp;found<br/>14.#nbsp;parsed"| cmd_counts
+    cmd_counts -->|"15.#nbsp;get_count"| database
+    database -.->|"16.#nbsp;count"| cmd_counts
+    cmd_counts -->|"17.#nbsp;day_count_sentence"| formatting
+    cmd_counts -->|"18.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     class cmd_counts,chat,database,arguments,formatting step
@@ -1777,7 +1811,7 @@ sequenceDiagram
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
         chat-->>cmd_counts: sender
-        cmd_counts->>arguments: resolve_target(update, context.args, sender, usage)
+        cmd_counts->>arguments: target_from_args(update, context.args, sender, usage, ...)
         opt args and args[0].startswith('@')
             arguments->>database: find_user_by_username(chat_id, username)
             database-->>arguments: target
@@ -1787,21 +1821,17 @@ sequenceDiagram
             arguments->>chat: register_user(chat_id, replied)
             Note over arguments: returns
         end
-        arguments-->>cmd_counts: (target, args, error)
-        opt error is None and len(args) > 1
-            cmd_counts->>arguments: invalid_format(usage)
-            arguments-->>cmd_counts: error
-        end
         opt error
-            cmd_counts->>telegram: reply_text(error)
-            Note over cmd_counts: returns
+            arguments->>telegram: reply_text(error)
+            Note over arguments: returns
         end
+        arguments-->>cmd_counts: found
         opt args
-            cmd_counts->>arguments: parse_date_arg(args[0])
-            arguments-->>cmd_counts: (date, selected_date)
+            cmd_counts->>arguments: date_from_arg(update, args[0])
             opt on ValueError
-                cmd_counts->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
+                arguments->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
             end
+            arguments-->>cmd_counts: parsed
         end
         cmd_counts->>database: get_count(target.user_id, selected_date, update...)
         database-->>cmd_counts: count
@@ -1818,14 +1848,16 @@ sequenceDiagram
   - `chat.register_user`
     - `chat.display_name_of`
     - `database.upsert_user`
-- `arguments.resolve_target`
-  - `arguments.parse_username_arg`
-  - `arguments.invalid_format`
-  - `database.find_user_by_username`
-  - `arguments.replied_person`
-  - `chat.register_user` (see above)
-- `arguments.invalid_format` (see above)
-- `arguments.parse_date_arg`
+- `arguments.target_from_args`
+  - `arguments.resolve_target`
+    - `arguments.parse_username_arg`
+    - `arguments.invalid_format`
+    - `database.find_user_by_username`
+    - `arguments.replied_person`
+    - `chat.register_user` (see above)
+  - `arguments.invalid_format` (see above)
+- `arguments.date_from_arg`
+  - `arguments.parse_date_arg`
 - `database.get_count`
 - `formatting.day_count_sentence`
 
@@ -1881,15 +1913,16 @@ flowchart LR
     cmd_counts -->|"2.#nbsp;register_sender"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
     chat -.->|"5.#nbsp;sender"| cmd_counts
-    cmd_counts -->|"6.#nbsp;resolve_target<br/>11.#nbsp;invalid_format"| arguments
+    cmd_counts -->|"6.#nbsp;target_from_args"| arguments
     arguments -->|"7.#nbsp;find_user_by_username"| database
     database -.->|"8.#nbsp;target"| arguments
     arguments -->|"9.#nbsp;register_user"| chat
-    arguments -.->|"10.#nbsp;(target, args, error)<br/>12.#nbsp;error"| cmd_counts
-    cmd_counts -->|"13, 17.#nbsp;reply_text"| telegram
-    cmd_counts -->|"14.#nbsp;get_days_since_last_poop"| database
-    database -.->|"15.#nbsp;days"| cmd_counts
-    cmd_counts -->|"16.#nbsp;last_poop_sentence"| formatting
+    arguments -->|"10.#nbsp;reply_text"| telegram
+    arguments -.->|"11.#nbsp;found"| cmd_counts
+    cmd_counts -->|"12.#nbsp;get_days_since_last_poop"| database
+    database -.->|"13.#nbsp;days"| cmd_counts
+    cmd_counts -->|"14.#nbsp;last_poop_sentence"| formatting
+    cmd_counts -->|"15.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     class cmd_counts,chat,database,arguments,formatting step
@@ -1942,7 +1975,7 @@ sequenceDiagram
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
         chat-->>cmd_counts: sender
-        cmd_counts->>arguments: resolve_target(update, context.args, sender, usage)
+        cmd_counts->>arguments: target_from_args(update, context.args, sender, usage, ...)
         opt args and args[0].startswith('@')
             arguments->>database: find_user_by_username(chat_id, username)
             database-->>arguments: target
@@ -1952,15 +1985,11 @@ sequenceDiagram
             arguments->>chat: register_user(chat_id, replied)
             Note over arguments: returns
         end
-        arguments-->>cmd_counts: (target, args, error)
-        opt error is None and args
-            cmd_counts->>arguments: invalid_format(usage)
-            arguments-->>cmd_counts: error
-        end
         opt error
-            cmd_counts->>telegram: reply_text(error)
-            Note over cmd_counts: returns
+            arguments->>telegram: reply_text(error)
+            Note over arguments: returns
         end
+        arguments-->>cmd_counts: found
         cmd_counts->>database: get_days_since_last_poop(target.user_id, update.message.chat_id)
         database-->>cmd_counts: days
         cmd_counts->>formatting: last_poop_sentence(target.mention, days)
@@ -1976,13 +2005,14 @@ sequenceDiagram
   - `chat.register_user`
     - `chat.display_name_of`
     - `database.upsert_user`
-- `arguments.resolve_target`
-  - `arguments.parse_username_arg`
-  - `arguments.invalid_format`
-  - `database.find_user_by_username`
-  - `arguments.replied_person`
-  - `chat.register_user` (see above)
-- `arguments.invalid_format` (see above)
+- `arguments.target_from_args`
+  - `arguments.resolve_target`
+    - `arguments.parse_username_arg`
+    - `arguments.invalid_format`
+    - `database.find_user_by_username`
+    - `arguments.replied_person`
+    - `chat.register_user` (see above)
+  - `arguments.invalid_format` (see above)
 - `database.get_days_since_last_poop`
 - `formatting.last_poop_sentence`
 
@@ -2035,19 +2065,20 @@ flowchart LR
     arguments("<b>arguments.py</b>")
     formatting("<b>formatting.py</b>")
     telegram -->|"1.#nbsp;add_poop_command"| cmd_counts
-    cmd_counts -->|"2.#nbsp;register_sender<br/>14.#nbsp;is_chat_admin<br/>22.#nbsp;where"| chat
+    cmd_counts -->|"2.#nbsp;register_sender<br/>12.#nbsp;is_chat_admin<br/>20.#nbsp;where"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
     chat -.->|"5.#nbsp;sender"| cmd_counts
-    cmd_counts -->|"6.#nbsp;resolve_target<br/>11.#nbsp;invalid_format<br/>17.#nbsp;parse_date_arg"| arguments
+    cmd_counts -->|"6.#nbsp;target_from_args<br/>15.#nbsp;date_from_arg"| arguments
     arguments -->|"7.#nbsp;find_user_by_username"| database
     database -.->|"8.#nbsp;target"| arguments
     arguments -->|"9.#nbsp;register_user"| chat
-    arguments -.->|"10.#nbsp;(target, args, error)<br/>12.#nbsp;error<br/>18.#nbsp;(date, selected_date)"| cmd_counts
-    cmd_counts -->|"13, 16, 19, 23, 25.#nbsp;reply_text"| telegram
-    chat -->|"15.#nbsp;get_chat_member"| telegram
-    cmd_counts -->|"20.#nbsp;add_count"| database
-    database -.->|"21.#nbsp;(old_count, new_count)"| cmd_counts
-    cmd_counts -->|"24.#nbsp;change_count_sentence"| formatting
+    arguments -->|"10, 16.#nbsp;reply_text"| telegram
+    arguments -.->|"11.#nbsp;found<br/>17.#nbsp;parsed"| cmd_counts
+    chat -->|"13.#nbsp;get_chat_member"| telegram
+    cmd_counts -->|"14, 21, 23.#nbsp;reply_text"| telegram
+    cmd_counts -->|"18.#nbsp;add_count"| database
+    database -.->|"19.#nbsp;(old_count, new_count)"| cmd_counts
+    cmd_counts -->|"22.#nbsp;change_count_sentence"| formatting
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     class cmd_counts,chat,database,arguments,formatting step
@@ -2100,7 +2131,7 @@ sequenceDiagram
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
         chat-->>cmd_counts: sender
-        cmd_counts->>arguments: resolve_target(update, context.args, sender, usage)
+        cmd_counts->>arguments: target_from_args(update, context.args, sender, usage, ...)
         opt args and args[0].startswith('@')
             arguments->>database: find_user_by_username(chat_id, username)
             database-->>arguments: target
@@ -2110,23 +2141,19 @@ sequenceDiagram
             arguments->>chat: register_user(chat_id, replied)
             Note over arguments: returns
         end
-        arguments-->>cmd_counts: (target, args, error)
-        opt error is None and len(args) != 1
-            cmd_counts->>arguments: invalid_format(usage)
-            arguments-->>cmd_counts: error
-        end
         opt error
-            cmd_counts->>telegram: reply_text(error)
-            Note over cmd_counts: returns
+            arguments->>telegram: reply_text(error)
+            Note over arguments: returns
         end
+        arguments-->>cmd_counts: found
         cmd_counts->>chat: is_chat_admin(update, context)
         chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
         cmd_counts->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
-        cmd_counts->>arguments: parse_date_arg(args[0])
-        arguments-->>cmd_counts: (date, selected_date)
+        cmd_counts->>arguments: date_from_arg(update, args[0])
         opt on ValueError
-            cmd_counts->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
+            arguments->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
         end
+        arguments-->>cmd_counts: parsed
         cmd_counts->>database: add_count(target.user_id, selected_date, delta,...)
         database-->>cmd_counts: (old_count, new_count)
         cmd_counts->>chat: where(update)
@@ -2148,16 +2175,18 @@ sequenceDiagram
     - `chat.register_user`
       - `chat.display_name_of`
       - `database.upsert_user`
-  - `arguments.resolve_target`
-    - `arguments.parse_username_arg`
-    - `arguments.invalid_format`
-    - `database.find_user_by_username`
-    - `arguments.replied_person`
-    - `chat.register_user` (see above)
-  - `arguments.invalid_format` (see above)
+  - `arguments.target_from_args`
+    - `arguments.resolve_target`
+      - `arguments.parse_username_arg`
+      - `arguments.invalid_format`
+      - `database.find_user_by_username`
+      - `arguments.replied_person`
+      - `chat.register_user` (see above)
+    - `arguments.invalid_format` (see above)
   - `cmd_counts.may_change_counts_of`
     - `chat.is_chat_admin`
-  - `arguments.parse_date_arg`
+  - `arguments.date_from_arg`
+    - `arguments.parse_date_arg`
   - `database.add_count`
   - `chat.where`
   - `formatting.change_count_sentence`
@@ -2211,19 +2240,20 @@ flowchart LR
     arguments("<b>arguments.py</b>")
     formatting("<b>formatting.py</b>")
     telegram -->|"1.#nbsp;remove_poop_command"| cmd_counts
-    cmd_counts -->|"2.#nbsp;register_sender<br/>14.#nbsp;is_chat_admin<br/>22.#nbsp;where"| chat
+    cmd_counts -->|"2.#nbsp;register_sender<br/>12.#nbsp;is_chat_admin<br/>20.#nbsp;where"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
     chat -.->|"5.#nbsp;sender"| cmd_counts
-    cmd_counts -->|"6.#nbsp;resolve_target<br/>11.#nbsp;invalid_format<br/>17.#nbsp;parse_date_arg"| arguments
+    cmd_counts -->|"6.#nbsp;target_from_args<br/>15.#nbsp;date_from_arg"| arguments
     arguments -->|"7.#nbsp;find_user_by_username"| database
     database -.->|"8.#nbsp;target"| arguments
     arguments -->|"9.#nbsp;register_user"| chat
-    arguments -.->|"10.#nbsp;(target, args, error)<br/>12.#nbsp;error<br/>18.#nbsp;(date, selected_date)"| cmd_counts
-    cmd_counts -->|"13, 16, 19, 23, 25.#nbsp;reply_text"| telegram
-    chat -->|"15.#nbsp;get_chat_member"| telegram
-    cmd_counts -->|"20.#nbsp;add_count"| database
-    database -.->|"21.#nbsp;(old_count, new_count)"| cmd_counts
-    cmd_counts -->|"24.#nbsp;change_count_sentence"| formatting
+    arguments -->|"10, 16.#nbsp;reply_text"| telegram
+    arguments -.->|"11.#nbsp;found<br/>17.#nbsp;parsed"| cmd_counts
+    chat -->|"13.#nbsp;get_chat_member"| telegram
+    cmd_counts -->|"14, 21, 23.#nbsp;reply_text"| telegram
+    cmd_counts -->|"18.#nbsp;add_count"| database
+    database -.->|"19.#nbsp;(old_count, new_count)"| cmd_counts
+    cmd_counts -->|"22.#nbsp;change_count_sentence"| formatting
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     class cmd_counts,chat,database,arguments,formatting step
@@ -2276,7 +2306,7 @@ sequenceDiagram
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
         chat-->>cmd_counts: sender
-        cmd_counts->>arguments: resolve_target(update, context.args, sender, usage)
+        cmd_counts->>arguments: target_from_args(update, context.args, sender, usage, ...)
         opt args and args[0].startswith('@')
             arguments->>database: find_user_by_username(chat_id, username)
             database-->>arguments: target
@@ -2286,23 +2316,19 @@ sequenceDiagram
             arguments->>chat: register_user(chat_id, replied)
             Note over arguments: returns
         end
-        arguments-->>cmd_counts: (target, args, error)
-        opt error is None and len(args) != 1
-            cmd_counts->>arguments: invalid_format(usage)
-            arguments-->>cmd_counts: error
-        end
         opt error
-            cmd_counts->>telegram: reply_text(error)
-            Note over cmd_counts: returns
+            arguments->>telegram: reply_text(error)
+            Note over arguments: returns
         end
+        arguments-->>cmd_counts: found
         cmd_counts->>chat: is_chat_admin(update, context)
         chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
         cmd_counts->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
-        cmd_counts->>arguments: parse_date_arg(args[0])
-        arguments-->>cmd_counts: (date, selected_date)
+        cmd_counts->>arguments: date_from_arg(update, args[0])
         opt on ValueError
-            cmd_counts->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
+            arguments->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
         end
+        arguments-->>cmd_counts: parsed
         cmd_counts->>database: add_count(target.user_id, selected_date, delta,...)
         database-->>cmd_counts: (old_count, new_count)
         cmd_counts->>chat: where(update)
@@ -2324,16 +2350,18 @@ sequenceDiagram
     - `chat.register_user`
       - `chat.display_name_of`
       - `database.upsert_user`
-  - `arguments.resolve_target`
-    - `arguments.parse_username_arg`
-    - `arguments.invalid_format`
-    - `database.find_user_by_username`
-    - `arguments.replied_person`
-    - `chat.register_user` (see above)
-  - `arguments.invalid_format` (see above)
+  - `arguments.target_from_args`
+    - `arguments.resolve_target`
+      - `arguments.parse_username_arg`
+      - `arguments.invalid_format`
+      - `database.find_user_by_username`
+      - `arguments.replied_person`
+      - `chat.register_user` (see above)
+    - `arguments.invalid_format` (see above)
   - `cmd_counts.may_change_counts_of`
     - `chat.is_chat_admin`
-  - `arguments.parse_date_arg`
+  - `arguments.date_from_arg`
+    - `arguments.parse_date_arg`
   - `database.add_count`
   - `chat.where`
   - `formatting.change_count_sentence`
@@ -3191,7 +3219,7 @@ flowchart LR
     trophies("<b>trophies.py</b>")
     analysis("<b>analysis.py</b>")
     miniapp_page -->|"1.#nbsp;api_chat"| webhook
-    webhook -->|"2.#nbsp;user_of<br/>3.#nbsp;known_chats<br/>4.#nbsp;is_member<br/>12.#nbsp;conquest_data<br/>28.#nbsp;records_data<br/>36.#nbsp;recaps"| miniapp
+    webhook -->|"2.#nbsp;user_of<br/>3.#nbsp;known_chats<br/>4.#nbsp;is_member<br/>12.#nbsp;conquest_data<br/>28.#nbsp;records_data<br/>37.#nbsp;recaps"| miniapp
     miniapp -->|"5.#nbsp;get_chat_member"| telegram
     miniapp -.->|"6.#nbsp;member"| webhook
     webhook -->|"7.#nbsp;get_all_user_rows<br/>9.#nbsp;get_timed_conquests<br/>11.#nbsp;get_language"| database
@@ -3200,15 +3228,16 @@ flowchart LR
     conquest -.->|"14.#nbsp;(counts, king)<br/>27.#nbsp;(held, king)"| miniapp
     miniapp -->|"15.#nbsp;owners<br/>17.#nbsp;grouped"| maps
     maps -.->|"16.#nbsp;tiles<br/>18.#nbsp;owner_of"| miniapp
-    miniapp -->|"20, 24.#nbsp;season_of<br/>22.#nbsp;season_results<br/>31.#nbsp;trophies_by_user"| trophies
+    miniapp -->|"20, 24.#nbsp;season_of<br/>22.#nbsp;season_results<br/>32.#nbsp;trophies_by_user"| trophies
     trophies -.->|"21, 25.#nbsp;season"| miniapp
     trophies -->|"23.#nbsp;holdings"| conquest
-    miniapp -->|"29.#nbsp;analyze_user<br/>30.#nbsp;analyze_group<br/>40.#nbsp;recap"| analysis
-    trophies -->|"32, 33.#nbsp;parse_counts<br/>35.#nbsp;consecutive_runs"| analysis
-    analysis -.->|"34.#nbsp;counts"| trophies
-    miniapp -->|"37.#nbsp;get_daily_counts_between<br/>39.#nbsp;get_first_days"| database
-    database -.->|"38.#nbsp;daily"| miniapp
-    webhook -.->|"41.#nbsp;HTTP response"| miniapp_page
+    miniapp -->|"29.#nbsp;analyze_users<br/>31.#nbsp;analyze_group<br/>41.#nbsp;recap"| analysis
+    analysis -.->|"30.#nbsp;people"| miniapp
+    trophies -->|"33, 34.#nbsp;parse_counts<br/>36.#nbsp;consecutive_runs"| analysis
+    analysis -.->|"35.#nbsp;counts"| trophies
+    miniapp -->|"38.#nbsp;get_daily_counts_between<br/>40.#nbsp;get_first_days"| database
+    database -.->|"39.#nbsp;daily"| miniapp
+    webhook -.->|"42.#nbsp;HTTP response"| miniapp_page
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     class webhook,miniapp,database,conquest,maps,trophies,analysis step
@@ -3295,7 +3324,8 @@ sequenceDiagram
             conquest-->>miniapp: (held, king)
         end
         webhook->>miniapp: records_data(rows_by_user, today, timed)
-        miniapp->>analysis: analyze_user(rows, today)
+        miniapp->>analysis: analyze_users(rows_by_user, today)
+        analysis-->>miniapp: people
         miniapp->>analysis: analyze_group(rows_by_user, today)
         miniapp->>trophies: trophies_by_user(rows_by_user, today, timed)
         loop for (user_id, rows) in users_rows.ite...
@@ -3341,12 +3371,13 @@ sequenceDiagram
     - `trophies.season_of` (see above)
     - `conquest.holdings` (see above)
 - `miniapp.records_data`
-  - `analysis.analyze_user`
-    - `analysis.parse_counts`
-    - `analysis.consecutive_runs`
+  - `analysis.analyze_users`
+    - `analysis.analyze_user`
+      - `analysis.parse_counts`
+      - `analysis.consecutive_runs`
   - `miniapp.plain`
   - `analysis.analyze_group`
-    - `analysis.analyze_user` (see above)
+    - `analysis.analyze_users` (see above)
   - `trophies.trophies_by_user`
     - `trophies.monthly_winners`
       - `analysis.parse_counts` (see above)

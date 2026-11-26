@@ -4,37 +4,14 @@ from datetime import timedelta
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from caccometro.analysis import FORECAST_WINDOW_DAYS, analyze_user, forecast_totals, period_regularity, period_statistics
-from caccometro.arguments import parse_month_arg, parse_year_arg
+from caccometro.analysis import FORECAST_WINDOW_DAYS, analyze_users, forecast_totals, period_regularity, period_statistics
+from caccometro.arguments import period_from_args
 from caccometro.charts import generate_rank_chart, generate_statistics_chart
 from caccometro.chat import escape_md, legacy_hint, register_sender, reply_chart
 from caccometro.config import now_rome, period_bounds
 from caccometro.database import get_all_user_rows, get_daily_counts, get_daily_counts_between, get_first_days, get_rank, get_users
 from caccometro.formatting import flame, ranked_line, standing_lines, tie_positions
 from caccometro.i18n import tr
-
-
-# The two kinds of period of the commands; their sentences are chosen with `month and ... or ...`
-PERIODS = {
-    'month': {'parse': parse_month_arg, 'current': '%m-%Y'},
-    'year': {'parse': parse_year_arg, 'current': '%Y'},
-}
-
-
-async def period_from_args(update: Update, args, time_period):
-    """The period asked for ('MM-YYYY' or 'YYYY'), the current one without arguments.
-
-    Returns None, after telling the user, when the argument is not a valid period.
-    """
-    period = PERIODS[time_period]
-    if not args:
-        return now_rome().strftime(period['current'])
-    date = period['parse'](' '.join(args))  # joined: 'marzo 2026' arrives as two arguments
-    if date is None:
-        await update.message.reply_text(
-            tr("⚠️ Formato data non valido. Usa MM-YYYY (anche 3/2026, 03.26 o marzo 2026).") if time_period == 'month'
-            else tr("⚠️ Formato anno non valido. Usa YYYY (anche 26)."))
-    return date
 
 
 async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
@@ -59,8 +36,7 @@ async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     forecast, flames = {}, {}
     if start_period <= today.isoformat() <= end_period:
         rows_by_user, _ = get_all_user_rows(update.message.chat_id)
-        flames = {user_id: flame(analyze_user(rows, today).status)
-                  for user_id, rows in rows_by_user.items() if any(c > 0 for _, c in rows)}
+        flames = {user_id: flame(records.status) for user_id, records in analyze_users(rows_by_user, today).items()}
         recent = get_daily_counts_between(update.message.chat_id,
                                           (today - timedelta(days=FORECAST_WINDOW_DAYS - 1)).isoformat(),
                                           today.isoformat())

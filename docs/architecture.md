@@ -298,17 +298,17 @@ flowchart TD
     cmd_conquests -->|"3"| formatting
     cmd_conquests -->|"6"| maps
     cmd_conquests -->|"2"| trophies
-    cmd_counts -->|"3"| arguments
+    cmd_counts -->|"2"| arguments
     cmd_counts -->|"3"| chat
     cmd_counts -->|"3"| database
     cmd_counts -->|"3"| formatting
     cmd_leaderboards -->|"5"| analysis
-    cmd_leaderboards -->|"2"| arguments
+    cmd_leaderboards -->|"1"| arguments
     cmd_leaderboards -->|"2"| charts
     cmd_leaderboards -->|"4"| chat
     cmd_leaderboards -->|"6"| database
     cmd_leaderboards -->|"4"| formatting
-    cmd_records -->|"3"| analysis
+    cmd_records -->|"4"| analysis
     cmd_records -->|"1"| arguments
     cmd_records -->|"3"| chat
     cmd_records -->|"3"| database

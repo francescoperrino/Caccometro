@@ -11,7 +11,7 @@ import h3
 from telegram.constants import ChatMemberStatus
 
 from caccometro import charts, database, maps
-from caccometro.analysis import (FORECAST_WINDOW_DAYS, RECAP_DAYS, YEAR_RECAP_DAYS, analyze_group, analyze_user, forecast_totals, recap,
+from caccometro.analysis import (FORECAST_WINDOW_DAYS, RECAP_DAYS, YEAR_RECAP_DAYS, analyze_group, analyze_users, forecast_totals, recap,
                                  period_regularity, period_statistics)
 from caccometro.config import ROME_TZ, now_rome, period_bounds
 from caccometro.conquest import holdings, mention_of
@@ -120,7 +120,7 @@ def plain(value):
 
 def records_data(rows_by_user, today, timed):
     """Records of the group and of each person, and everyone's trophies (#190): what /records and /trophies show."""
-    people = {user_id: analyze_user(rows, today) for user_id, rows in rows_by_user.items() if any(c > 0 for _, c in rows)}
+    people = analyze_users(rows_by_user, today)
     return {'group': plain(analyze_group(rows_by_user, today)),
             'people': {user_id: plain(records) for user_id, records in people.items()},
             'trophies': {user_id: {**plain(trophies), 'streak_trophies': trophies.streak_trophies}

@@ -4,7 +4,7 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from caccometro.arguments import invalid_format, parse_date_arg, resolve_target
+from caccometro.arguments import date_from_arg, target_from_args
 from caccometro.chat import is_chat_admin, register_sender, where
 from caccometro.config import STORING_FORMAT, now_rome
 from caccometro.database import add_count, get_count, get_days_since_last_poop
@@ -28,19 +28,16 @@ async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYP
     if sender is None:
         return
     usage = tr("/aggiungi_cacca @username DD-MM-YYYY") if delta > 0 else tr("/togli_cacca @username DD-MM-YYYY")
-    target, args, error = resolve_target(update, context.args, sender, usage)
-    if error is None and len(args) != 1:
-        error = invalid_format(usage)
-    if error:
-        await update.message.reply_text(error)
+    found = await target_from_args(update, context.args, sender, usage, counts=(1,))
+    if found is None:
         return
+    target, args = found
     if not await may_change_counts_of(update, context, sender, target):
         return
-    try:
-        date, selected_date = parse_date_arg(args[0])
-    except ValueError as e:
-        await update.message.reply_text(tr("⚠️ Errore: {error}").format(error=e))
+    parsed = await date_from_arg(update, args[0])
+    if parsed is None:
         return
+    date, selected_date = parsed
 
     old_count, new_count = add_count(target.user_id, selected_date, delta, update.message.chat_id)
     logger.info(f"Count changed by {sender.mention} in {where(update)}: /{command} {target.mention} "
@@ -69,18 +66,15 @@ async def day_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if sender is None:
         return
     usage = tr("/conto_giorno @username DD-MM-YYYY")
-    target, args, error = resolve_target(update, context.args, sender, usage)
-    if error is None and len(args) > 1:
-        error = invalid_format(usage)
-    if error:
-        await update.message.reply_text(error)
+    found = await target_from_args(update, context.args, sender, usage, counts=(0, 1))
+    if found is None:
         return
+    target, args = found
     if args:
-        try:
-            date, selected_date = parse_date_arg(args[0])
-        except ValueError as e:
-            await update.message.reply_text(tr("⚠️ Errore: {error}").format(error=e))
+        parsed = await date_from_arg(update, args[0])
+        if parsed is None:
             return
+        date, selected_date = parsed
         day = tr("il giorno {date}").format(date=date)
     else:
         selected_date = now_rome().strftime(STORING_FORMAT)
@@ -96,11 +90,9 @@ async def last_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if sender is None:
         return
     usage = tr("/ultima_cacca @username")
-    target, args, error = resolve_target(update, context.args, sender, usage)
-    if error is None and args:
-        error = invalid_format(usage)
-    if error:
-        await update.message.reply_text(error)
+    found = await target_from_args(update, context.args, sender, usage, counts=(0,))
+    if found is None:
         return
+    target, _ = found
     days = get_days_since_last_poop(target.user_id, update.message.chat_id)
     await update.message.reply_text(last_poop_sentence(target.mention, days))

@@ -2,7 +2,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from caccometro.analysis import analyze_group, analyze_user, record_places
+from caccometro.analysis import analyze_group, analyze_user, analyze_users, record_places
 from caccometro.arguments import resolve_optional_target
 from caccometro.chat import escape_md, legacy_hint, register_sender
 from caccometro.config import now_rome
@@ -41,8 +41,7 @@ async def records_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                         + legacy_hint(update.message.chat_id))
         return
     today = now_rome().date()
-    people = {user_id: analyze_user(user_rows, today) for user_id, user_rows in get_all_user_rows(chat_id)[0].items()
-              if any(c > 0 for _, c in user_rows)}
+    people = analyze_users(get_all_user_rows(chat_id)[0], today)
     message = format_user_record(escape_md(target.mention), analyze_user(rows, today), record_places(target.user_id, people))
 
     await update.message.reply_text(message, parse_mode='Markdown')

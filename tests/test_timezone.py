@@ -2,7 +2,7 @@
 import asyncio
 from datetime import datetime, timezone
 
-from caccometro import cmd_leaderboards, cmd_records, database, messages
+from caccometro import arguments, cmd_leaderboards, cmd_records, database, messages
 from caccometro.model import User
 from conftest import make_context, make_update, uid
 
@@ -19,7 +19,8 @@ def test_constipation_days_uses_rome_today(seed, chat_id, monkeypatch):
 
 
 def statistics_caption(command, monkeypatch, now):
-    monkeypatch.setattr(cmd_leaderboards, "now_rome", lambda: now)
+    for module in (arguments, cmd_leaderboards):   # the current period, then the days gone by
+        monkeypatch.setattr(module, "now_rome", lambda: now)
     upd = make_update()
     asyncio.run(command(upd, make_context()))
     return upd.message.reply_photo.call_args.kwargs["caption"]

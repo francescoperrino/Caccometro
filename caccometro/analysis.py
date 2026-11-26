@@ -198,13 +198,17 @@ def _leaders(candidates, lowest=False):
     return Leaders(top, [Holder(key, when) for key, value, when in candidates if value == top])
 
 
+def analyze_users(users_rows, today: date):
+    """{user key: UserRecords} of every user with at least one 💩. users_rows: {user key: [(date 'YYYY-MM-DD', count)]}."""
+    return {key: analyze_user(rows, today) for key, rows in users_rows.items() if any(count > 0 for _, count in rows)}
+
+
 def analyze_group(users_rows, today: date) -> GroupBoard:
     """Who holds each record of the group, and who leads right now.
 
     users_rows: {user key: [(date 'YYYY-MM-DD', count)]}; users without any 💩 are ignored.
     """
-    records = {key: analyze_user(rows, today) for key, rows in users_rows.items()
-               if any(count > 0 for _, count in rows)}
+    records = analyze_users(users_rows, today)
 
     def from_records(pick, lowest=False):
         """Leaders of the record that `pick` takes from each user's records."""

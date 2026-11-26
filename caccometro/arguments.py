@@ -131,3 +131,49 @@ def resolve_optional_target(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     if error is None and args:
         error = invalid_format(usage)
     return target, error
+
+
+async def target_from_args(update: Update, args, sender, usage, counts):
+    """The person of a command (see resolve_target) and the arguments after it, whose number must be in `counts`.
+
+    Returns (target, remaining_args), or None after telling the user what is wrong.
+    """
+    target, args, error = resolve_target(update, args, sender, usage)
+    if error is None and len(args) not in counts:
+        error = invalid_format(usage)
+    if error:
+        await update.message.reply_text(error)
+        return None
+    return target, args
+
+
+async def date_from_arg(update: Update, arg):
+    """parse_date_arg, or None after telling the user why the date is not valid."""
+    try:
+        return parse_date_arg(arg)
+    except ValueError as e:
+        await update.message.reply_text(tr("⚠️ Errore: {error}").format(error=e))
+        return None
+
+
+# The two kinds of period of the commands; their sentences are chosen with `month and ... or ...`
+PERIODS = {
+    'month': {'parse': parse_month_arg, 'current': '%m-%Y'},
+    'year': {'parse': parse_year_arg, 'current': '%Y'},
+}
+
+
+async def period_from_args(update: Update, args, time_period):
+    """The period asked for ('MM-YYYY' or 'YYYY'), the current one without arguments.
+
+    Returns None, after telling the user, when the argument is not a valid period.
+    """
+    period = PERIODS[time_period]
+    if not args:
+        return now_rome().strftime(period['current'])
+    date = period['parse'](' '.join(args))  # joined: 'marzo 2026' arrives as two arguments
+    if date is None:
+        await update.message.reply_text(
+            tr("⚠️ Formato data non valido. Usa MM-YYYY (anche 3/2026, 03.26 o marzo 2026).") if time_period == 'month'
+            else tr("⚠️ Formato anno non valido. Usa YYYY (anche 26)."))
+    return date
