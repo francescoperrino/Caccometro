@@ -3,7 +3,13 @@ from typing import NamedTuple, Optional
 
 
 class User(NamedTuple):
-    """A Telegram user known to a chat."""
+    """A Telegram user known to a chat.
+
+    Attributes:
+        user_id (int): Telegram ID, the key of every count.
+        username (str): the @username without the @, or None when the user has none.
+        display_name (str): the name shown in Telegram, always present.
+    """
     user_id: int
     username: Optional[str]
     display_name: str

@@ -12,21 +12,21 @@ Records and current status of the users' 💩 counts.
 | `class Record` | The best value of a metric and everything that reached it (ties are all kept). | only its own module |
 | `class Status` | Where the user stands right now, metric by metric. | only its own module |
 | `class UserRecords` | Personal records of one user, plus the current status they are compared with. | `formatting` |
-| `class Run` | A run of consecutive days with 💩: first and last day, length and total 💩. | only its own module |
-| `parse_counts(rows)` | [(date string, count)] -> {date: count}, ignoring days without 💩. | `trophies` |
-| `consecutive_runs(days_sorted, counts)` | Runs of consecutive days with 💩. | `trophies` |
+| `class Run` | A run of consecutive days with 💩. | only its own module |
+| `parse_counts(rows)` | Turn the stored rows into a dictionary by date, ignoring the days without 💩. | `trophies` |
+| `consecutive_runs(days_sorted, counts)` | Group the days with 💩 into runs of consecutive days. | `trophies` |
 | `analyze_user(rows, today)` | Records and current status of one user. | `cmd_records` |
 | `class Holder` | Someone who holds (or shares) a group record. | only its own module |
 | `class Leaders` | The best value of a metric in the group and everyone who reached it. | `formatting` |
 | `class GroupBoard` | Records of the whole group: who holds each record of all times and who leads right now. | `formatting` |
-| `analyze_users(users_rows, today)` | {user key: UserRecords} of every user with at least one 💩. users_rows: {user key: [(date 'YYYY-MM-DD', count)]}. | `cmd_leaderboards`, `cmd_records`, `miniapp` |
+| `analyze_users(users_rows, today)` | The records of every user with at least one 💩. | `cmd_leaderboards`, `cmd_records`, `miniapp` |
 | `analyze_group(users_rows, today)` | Who holds each record of the group, and who leads right now. | `cmd_records`, `miniapp` |
-| `forecast_totals(totals, recent_counts, today, end_period)` | Expected 💩 of every user at the end of the period: the total so far plus, for each day left, the user's mean daily 💩 over the last FORECAST_WINDOW_DAYS days (today included). | `cmd_leaderboards`, `miniapp` |
-| `period_statistics(daily_counts, users, start_period, end_period, today)` | Mean, median and variance of the daily 💩 of every user in a period, best mean first (ties: lower variance). | `cmd_leaderboards`, `miniapp` |
-| `period_regularity(daily, first_days, user_id, start, end, today)` | regularity() of one person in a period ('YYYY-MM-DD' bounds), on whole days only: from their first 💩 (not before they joined) to yesterday. | `cmd_leaderboards`, `miniapp` |
-| `record_places(user_id, people)` | {metric: (place, how many have it, shared)} of one person's records among those of everybody (people: {user_id: UserRecords}). | `cmd_records` |
-| `class Recap` | One person's month or year in a few facts, for the recap of the Mini App (#195). | only its own module |
-| `recap(daily, user_id, year, month, first_days)` | The recap of `user_id` for a month, or for the whole `year` when `month` is None; None without 💩 in it. | `miniapp` |
+| `forecast_totals(totals, recent_counts, today, end_period)` | Expected 💩 of every user at the end of the period. | `cmd_leaderboards`, `miniapp` |
+| `period_statistics(daily_counts, users, start_period, end_period, today)` | Mean, median and variance of the daily 💩 of every user in a period. | `cmd_leaderboards`, `miniapp` |
+| `period_regularity(daily, first_days, user_id, start, end, today)` | The regularity of one person in a period, on whole days only: from their first 💩 (not before they joined) to yesterday. | `cmd_leaderboards`, `miniapp` |
+| `record_places(user_id, people)` | The place of each record of one person among the records of everybody. | `cmd_records` |
+| `class Recap` | One person's month or year in a few facts, for the recap of the Mini App. | only its own module |
+| `recap(daily, user_id, year, month, first_days)` | The recap of a person for a month, or for a whole year. | `miniapp` |
 
 ## announce.py
 
@@ -145,8 +145,8 @@ Configuration: environment variables, date formats and the Rome time zone.
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `now_rome()` | Current date/time in Rome, without tzinfo (comparable with the naive datetimes used in the code). | `announce`, `arguments`, `charts`, `cmd_conquests`, `cmd_counts`, `cmd_leaderboards`, `cmd_records`, `database`, `messages`, `miniapp`, `webhook` |
-| `period_bounds(time_period, date)` | Start and end date (storing format) of a month ('MM-YYYY') or year ('YYYY'). | `cmd_leaderboards`, `database`, `miniapp` |
+| `now_rome()` | Current date and time in Rome, without tzinfo (comparable with the naive datetimes used in the code). | `announce`, `arguments`, `charts`, `cmd_conquests`, `cmd_counts`, `cmd_leaderboards`, `cmd_records`, `database`, `messages`, `miniapp`, `webhook` |
+| `period_bounds(time_period, date)` | Start and end date of a month or a year. | `cmd_leaderboards`, `database`, `miniapp` |
 
 ## conquest.py
 
@@ -154,40 +154,40 @@ Conquest game (#128): after a 💩 a location conquers the h3 hexagon it falls i
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `cell_of(lat, lon)` | The tile (h3 cell at RESOLUTION) of a point. | `messages` |
-| `holdings(history)` | Replay the conquests [(user_id, cell)] in order: ({user_id: tiles held}, king). | `cmd_conquests`, `maps`, `messages`, `miniapp`, `trophies` |
-| `visited(history, user_id)` | Number of different tiles the user has ever conquered. | `cmd_conquests` |
-| `mention_of(users, user_id)` | Name for messages of a user of the chat; the user ID when the bot does not know it. | `cmd_conquests`, `maps`, `messages`, `miniapp` |
+| `cell_of(lat, lon)` | The tile of a point. | `messages` |
+| `holdings(history)` | Replay the conquests in order and tell who holds what. | `cmd_conquests`, `maps`, `messages`, `miniapp`, `trophies` |
+| `visited(history, user_id)` | Count the different tiles a user has ever conquered. | `cmd_conquests` |
+| `mention_of(users, user_id)` | Name for messages of a user of the chat. | `cmd_conquests`, `maps`, `messages`, `miniapp` |
 
 ## database.py
 
-SQLite storage, one database file per chat: schema, migration from the legacy schema, counts and users.
+SQLite storage, one database file per chat: schema, migration from the legacy schema, counts, users and conquests.
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
 | `migrate_chat(old_chat_id, new_chat_id)` | Move the database of a group that became a supergroup to its new chat ID. | `messages` |
 | `init_database(chat_id)` | Initialize (or migrate) the SQLite database of a chat if needed. | `cmd_settings` |
-| `get_language(chat_id)` | Language chosen for the chat with /language; None when it was never chosen. | `announce`, `chat`, `messages`, `webhook` |
+| `get_language(chat_id)` | Language chosen for the chat with /language. | `announce`, `chat`, `messages`, `webhook` |
 | `set_language(chat_id, language)` | Store the language of the chat (the settings table is created by the first choice). | `cmd_settings` |
-| `get_users(chat_id)` | Every user known to the chat, as {user_id: User}. | `cmd_conquests`, `cmd_leaderboards`, `messages`, `miniapp` |
+| `get_users(chat_id)` | Every user known to the chat. | `cmd_conquests`, `cmd_leaderboards`, `messages`, `miniapp` |
 | `upsert_user(chat_id, user_id, username, display_name)` | Record the current username and display name of a user (writes only when something changed). | `chat` |
-| `find_user_by_username(chat_id, username)` | Find a known user by (case-insensitive) username; None if the bot has never seen it. | `arguments`, `cmd_settings` |
-| `get_count(user_id, date, chat_id)` | Count of 💩 of a user on a day ('YYYY-MM-DD'); 0 if none. | `cmd_counts` |
-| `add_count(user_id, date, delta, chat_id)` | Add delta (e.g. +1 or -1) to the count of a user on a day, in a single transaction. | `cmd_counts`, `messages` |
-| `get_daily_counts(chat_id, time_period, date)` | Counts of every user for every day of a period ('month' + 'MM-YYYY', or 'year' + 'YYYY'). | `cmd_leaderboards` |
-| `get_daily_counts_between(chat_id, start_period, end_period)` | Like get_daily_counts, for any range of days ('YYYY-MM-DD', both ends included). | `cmd_leaderboards`, `miniapp` |
-| `get_rank(chat_id, time_period, date)` | Get the rank of users for the specified period, as a list of (User, count) sorted by count. | `cmd_leaderboards`, `miniapp` |
-| `get_record(user_id, chat_id)` | Get the (date, count) records of a user, sorted by date. | `cmd_records`, `messages` |
-| `get_all_user_rows(chat_id)` | All the (date, count) rows of every user of the chat, read with a single query. | `announce`, `cmd_leaderboards`, `cmd_records`, `webhook` |
-| `get_days_since_last_poop(user_id, chat_id)` | Days since the last 💩 of the user (0 = today), None without any 💩. | `cmd_counts` |
-| `open_conquest_window(user_id, ts, chat_id)` | Remember the time (Unix seconds) of a 💩 of the user: it opens the conquest window. | `messages` |
-| `conquer(chat_id, user_id, ts, lat, lon, cell, window)` | Conquer `cell` if the user sent a 💩 at most `window` seconds before `ts`; the window is then used up. | `messages` |
-| `get_timed_conquests(chat_id)` | Every conquest of the chat [(user_id, ts, cell)] in order, for the seasons. | `announce`, `cmd_conquests`, `cmd_records`, `webhook` |
-| `list_legacy_users(chat_id)` | Legacy usernames not yet linked to a user, as [(username, total_count)] sorted by name. | `chat`, `cmd_settings` |
-| `count_legacy_orphans(chat_id)` | Number of legacy rows without a username: they cannot be linked to anybody by name. | `cmd_settings` |
-| `link_legacy_username(chat_id, legacy_username, user_id)` | Move the legacy history of a username (case-insensitive) to a user ID. | `cmd_settings` |
+| `find_user_by_username(chat_id, username)` | Find a known user by username, ignoring the case. | `arguments`, `cmd_settings` |
+| `get_count(user_id, date, chat_id)` | Count of 💩 of a user on a day. | `cmd_counts` |
+| `add_count(user_id, date, delta, chat_id)` | Add a change to the count of a user on a day, in a single transaction. | `cmd_counts`, `messages` |
+| `get_daily_counts(chat_id, time_period, date)` | Counts of every user for every day of a month or a year. | `cmd_leaderboards` |
+| `get_daily_counts_between(chat_id, start_period, end_period)` | Like get_daily_counts, for any range of days. | `cmd_leaderboards`, `miniapp` |
+| `get_rank(chat_id, time_period, date)` | Total 💩 of every user in a month or a year, best first. | `cmd_leaderboards`, `miniapp` |
+| `get_record(user_id, chat_id)` | The counts of one user. | `cmd_records`, `messages` |
+| `get_all_user_rows(chat_id)` | The counts of every user of the chat, read with a single query. | `announce`, `cmd_leaderboards`, `cmd_records`, `webhook` |
+| `get_days_since_last_poop(user_id, chat_id)` | Days since the last 💩 of a user. | `cmd_counts` |
+| `open_conquest_window(user_id, ts, chat_id)` | Remember the time of a 💩 of the user: it opens the conquest window. | `messages` |
+| `conquer(chat_id, user_id, ts, lat, lon, cell, window)` | Conquer a tile if the user sent a 💩 shortly before; the window is then used up. | `messages` |
+| `get_timed_conquests(chat_id)` | Every conquest of the chat, with its time, for the seasons. | `announce`, `cmd_conquests`, `cmd_records`, `webhook` |
+| `list_legacy_users(chat_id)` | The legacy usernames not yet linked to a user. | `chat`, `cmd_settings` |
+| `count_legacy_orphans(chat_id)` | Count the legacy rows without a username: they cannot be linked to anybody by name. | `cmd_settings` |
+| `link_legacy_username(chat_id, legacy_username, user_id)` | Move the legacy history of a username to a user ID, ignoring the case. | `cmd_settings` |
 | `link_legacy_by_username(chat_id)` | Link every legacy username that matches the username of a known user. | `cmd_settings` |
-| `get_first_days(chat_id)` | {user_id: 'YYYY-MM-DD'} of the first day with 💩 of every user of the chat. | `cmd_leaderboards`, `miniapp` |
+| `get_first_days(chat_id)` | The first day with 💩 of every user of the chat. | `cmd_leaderboards`, `miniapp` |
 
 ## formatting.py
 
@@ -294,13 +294,13 @@ Trophies: one every STREAK_STEP consecutive days with 💩, the 💩 of the mont
 | `class Winners` | Who made the most 💩 in a month or a year (ties: all of them) and how many. | only its own module |
 | `class UserTrophies` | The trophies of one user, in chronological order. | only its own module |
 | `UserTrophies.streak_trophies` | One trophy for every STREAK_STEP days of each run: a run of 47 days is worth 3. |  |
-| `new_streak_trophy(rows, today)` | Days of the run ending today if today makes them a multiple of STREAK_STEP; None otherwise. | `messages` |
-| `monthly_winners(users_rows, today)` | {(year, month): Winners} of the completed months. users_rows: {user_id: [(date, count)]}. | `announce` |
-| `yearly_winners(users_rows, today)` | {year: Winners} of the completed years. | `announce` |
+| `new_streak_trophy(rows, today)` | The length of the run that earns a trophy today, if any. | `messages` |
+| `monthly_winners(users_rows, today)` | Who won every completed month. | `announce` |
+| `yearly_winners(users_rows, today)` | Who won every completed year. | `announce` |
 | `class SeasonResult` | Titles of a season (a calendar quarter in Italian time) of the conquest game. | only its own module |
-| `season_of(day)` | (year, quarter 1-4) of a day. | `announce`, `cmd_conquests`, `miniapp` |
-| `season_results(history)` | {season: SeasonResult} of every season with a conquest. history: [(user_id, ts, cell)] in the order handled. | `announce`, `cmd_conquests`, `miniapp` |
-| `trophies_by_user(users_rows, today, history)` | {user_id: UserTrophies} of the users with at least one trophy. history: conquests [(user_id, ts, cell)]. | `cmd_records`, `miniapp` |
+| `season_of(day)` | The season of a day. | `announce`, `cmd_conquests`, `miniapp` |
+| `season_results(history)` | The titles of every season with a conquest. | `announce`, `cmd_conquests`, `miniapp` |
+| `trophies_by_user(users_rows, today, history)` | The trophies of every user who has at least one. | `cmd_records`, `miniapp` |
 
 ## webhook.py
 
