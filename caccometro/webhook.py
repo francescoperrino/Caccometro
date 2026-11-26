@@ -84,14 +84,14 @@ def story_background(name):
     return send_file(path, max_age=86400)
 
 
-def mini_app_user():
+def _mini_app_user():
     """The user who opened the Mini App, from the 'Authorization: tma <initData>' header; None if not signed."""
     return miniapp.user_of(request.headers.get('Authorization', '').removeprefix('tma '), BOT_TOKEN)
 
 
-async def member_chat():
+async def _member_chat():
     """The chat of ?chat= when the signed user is one of its members: (chat_id, user_id, None), or (None, None, the error Response)."""
-    user = mini_app_user()
+    user = _mini_app_user()
     if user is None:
         return None, None, Response('unauthorized', status=401)
     try:
@@ -114,7 +114,7 @@ async def member_chat():
 @app.route('/api/chat')
 async def api_chat():
     """Data of one chat, only for its members (left or kicked users get 403)."""
-    chat_id, user_id, error = await member_chat()
+    chat_id, user_id, error = await _member_chat()
     if error:
         return error
     logger.info("Mini App: chat opened")
@@ -130,7 +130,7 @@ async def api_chat():
 @app.route('/api/period')
 async def api_period():
     """Leaderboard and statistics of ?year= (and ?month=) in one chat, only for its members."""
-    chat_id, _, error = await member_chat()
+    chat_id, _, error = await _member_chat()
     if error:
         return error
     try:
@@ -153,7 +153,7 @@ async def api_recap():
     """The picture of the recap (#195) of the signed user: GET gives it to the Mini App, which shows it on its last screen;
     POST sends the same picture in the chat (the group, or the private chat with the bot), and POST with to=link gives
     a short-lived link to it for the download of Telegram (#217)."""
-    chat_id, user_id, error = await member_chat()
+    chat_id, user_id, error = await _member_chat()
     if error:
         return error
     recap = miniapp.recap_data(chat_id, user_id, now_rome().date(), yearly=request.args.get('year') == '1')

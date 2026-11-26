@@ -176,7 +176,7 @@ def test_season_boards_follow_the_rules_of_the_season_titles():
     a, b = conquest.cell_of(45.46, 9.19), conquest.cell_of(45.60, 9.40)
     q1, q2 = 1_767_225_600 + 86_400, 1_775_000_000 + 86_400   # made-up times: January and April 2026
     timed = [(1, q1, a), (1, q1 + 1, a), (2, q1 + 2, b), (2, q2, a), (1, q2 + 1, b)]
-    boards = miniapp.season_boards(timed)
+    boards = miniapp._season_boards(timed)
     assert [(x["year"], x["quarter"]) for x in boards] == [(2026, 1), (2026, 2)]
     assert boards[0]["conquests"] == {1: 1, 2: 1} and boards[0]["held"] == {1: 1, 2: 1}  # retaking your own tile counts nothing
     assert boards[1]["conquests"] == {2: 1, 1: 1} and boards[1]["held"] == {2: 1, 1: 1}

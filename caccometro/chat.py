@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 PHOTO_READ_TIMEOUT = 20
 
 
-def display_name_of(tg_user):
+def _display_name_of(tg_user):
     """Name shown for users without a username: their full name, falling back to the numeric ID."""
     return tg_user.full_name or str(tg_user.id)
 
 
 def register_user(chat_id, tg_user):
     """Store the current username/name of a Telegram user and return it as a model.User."""
-    user = User(tg_user.id, tg_user.username, display_name_of(tg_user))
+    user = User(tg_user.id, tg_user.username, _display_name_of(tg_user))
     upsert_user(chat_id, user.user_id, user.username, user.display_name)
     return user
 
@@ -54,14 +54,14 @@ def escape_md(name):
     return name
 
 
-def fits_caption(message):
+def _fits_caption(message):
     """True if the message fits a photo caption (Telegram counts UTF-16 units)."""
     return len(message.encode('utf-16-le')) // 2 <= MessageLimit.CAPTION_LENGTH
 
 
 async def reply_chart(update: Update, chart: bytes, message: str):
     """Send a chart with the message as its caption: one request instead of two, when it fits."""
-    if fits_caption(message):
+    if _fits_caption(message):
         await update.message.reply_photo(chart, caption=message, parse_mode='Markdown', read_timeout=PHOTO_READ_TIMEOUT)
         return
     await update.message.reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
@@ -77,7 +77,7 @@ async def reply_charts(update: Update, charts, message: str):
     elif len(charts) == 1:
         await reply_chart(update, charts[0], message)
     else:
-        caption = fits_caption(message)
+        caption = _fits_caption(message)
         if not caption:
             await update.message.reply_text(message, parse_mode='Markdown')
         await update.message.reply_media_group([

@@ -14,7 +14,7 @@ from caccometro.trophies import STREAK_STEP
 ESCAPED = re.compile(r"(\\[_*`\[])")
 
 
-def bold(text):
+def _bold(text):
     """`text` in bold. Legacy Markdown shows the backslash of an escaped character written inside an entity, and an
     unescaped `*` breaks the message, so the bold is closed and reopened around each escaped character
     (which is then not bold): '@mario\\_rossi' becomes '*@mario*\\_*rossi*'."""
@@ -134,7 +134,7 @@ def format_user_record(name, records: UserRecords, places=None):
     """
     status = records.status
     places = places or {}
-    lines = [f"📊 {bold(tr('Record per {name}').format(name=name))} 📊\n"]
+    lines = [f"📊 {_bold(tr('Record per {name}').format(name=name))} 📊\n"]
     record_flag = tr(" 🔥 è il record!")
     no_streak = tr("   ↳ In corso: nessuna serie")
 
@@ -229,7 +229,7 @@ def _holders(leaders: Leaders, names, fmt=None):
     """'*@mario* (10-03-2025), *@luigi* (22-05-2025) e altri 2'."""
     parts = []
     for holder in leaders.holders[:MAX_HOLDERS]:
-        text = bold(names.get(holder.key, str(holder.key)))
+        text = _bold(names.get(holder.key, str(holder.key)))
         if fmt is not None and holder.when:
             text += f" ({_when_text(holder.when, fmt)})"
         parts.append(text)
@@ -301,7 +301,7 @@ def _names(user_ids, names):
     user_ids: IDs of the users to name; names: {user ID: name already escaped for Markdown}.
     A user missing from `names` is shown by ID. Example with made-up names: "*@anna*, *@bob* and *@carl*".
     """
-    parts = [bold(names.get(user_id, str(user_id))) for user_id in user_ids]
+    parts = [_bold(names.get(user_id, str(user_id))) for user_id in user_ids]
     return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + tr(" e ") + parts[-1]
 
 
@@ -342,7 +342,7 @@ def format_group_trophies(trophies, names):
         for key, user in ranked:
             counts = (("👑", len(user.years)), ("🏅", len(user.months)), ("🔥", user.streak_trophies),
                       ("🚩", len(user.conqueror)), ("⛰️", len(user.king)))
-            lines.append(f"{bold(names.get(key, str(key)))}: " + " · ".join(f"{emoji} {n}" for emoji, n in counts if n))
+            lines.append(f"{_bold(names.get(key, str(key)))}: " + " · ".join(f"{emoji} {n}" for emoji, n in counts if n))
         lines.append("\n" + tr("👑 💩 dell'anno · 🏅 💩 del mese · 🔥 {days} giorni di fila").format(days=STREAK_STEP))
         if any(user.conqueror or user.king for user in trophies.values()):
             lines.append(tr("🚩 conquistatore della stagione · ⛰️ re della stagione"))
@@ -356,7 +356,7 @@ def format_user_trophies(name, trophies, current_streak):
 
     name: already escaped for Markdown; trophies: UserTrophies or None; current_streak: days of the run in progress.
     """
-    lines = [f"🏆 {bold(tr('Trofei di {name}').format(name=name))} 🏆\n"]
+    lines = [f"🏆 {_bold(tr('Trofei di {name}').format(name=name))} 🏆\n"]
     if trophies is None:
         lines.append(tr("🤷 Ancora nessun trofeo."))
     else:
@@ -486,7 +486,7 @@ def _poop_sentences():
     }
 
 
-def poop_pool(hour, count):
+def _poop_pool(hour, count):
     """The sentences a 💩 can be answered with, by Italian hour and by count of the day.
 
     The first and the 3rd or more 💩 of the day have their own sentences: those of their time slot when there are
@@ -501,7 +501,7 @@ def poop_pool(hour, count):
 
 def poop_sentence(name, hour, count):
     """A random sentence for the 💩 of `name` sent at Italian `hour`, the `count`-th of the day."""
-    return random.choice(poop_pool(hour, count)).format(name=name)
+    return random.choice(_poop_pool(hour, count)).format(name=name)
 
 
 def last_poop_sentence(name, days):
@@ -557,5 +557,5 @@ MEDALS = {1: '🥇', 2: '🥈', 3: '🥉'}
 def ranked_line(position, name, value):
     """One line of a ranking: a medal and the name in bold for the first three."""
     if position in MEDALS:
-        return f"{MEDALS[position]} {bold(name)}: {value}\n"
+        return f"{MEDALS[position]} {_bold(name)}: {value}\n"
     return f"{position}. {name}: {value}\n"

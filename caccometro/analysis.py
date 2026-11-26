@@ -285,7 +285,7 @@ REGULARITY_MIN_DAYS, REGULARITY_MIN_POOPS = 14, 5   # below this the label would
 REGULARITY_STEPS = ((0.3, 'molto regolare'), (0.6, 'abbastanza regolare'))
 
 
-def regularity(counts):
+def _regularity(counts):
     """'molto regolare', 'abbastanza regolare' or 'a sbalzi' from the daily counts (0 on days without), None with too little data."""
     if len(counts) < REGULARITY_MIN_DAYS or sum(counts) < REGULARITY_MIN_POOPS:
         return None
@@ -299,7 +299,7 @@ def period_regularity(daily, first_days, user_id, start, end, today):
     from their first 💩 (not before they joined) to yesterday."""
     first = max(date.fromisoformat(start), date.fromisoformat(first_days.get(user_id, start)))
     last = min(date.fromisoformat(end), today - timedelta(days=1))
-    return regularity([daily.get(user_id, {}).get((first + timedelta(days=i)).isoformat(), 0)
+    return _regularity([daily.get(user_id, {}).get((first + timedelta(days=i)).isoformat(), 0)
                        for i in range((last - first).days + 1)])
 
 

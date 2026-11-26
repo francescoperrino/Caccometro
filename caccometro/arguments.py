@@ -11,7 +11,7 @@ from caccometro.database import find_user_by_username
 from caccometro.i18n import MONTHS, tr
 
 
-def parse_username_arg(arg):
+def _parse_username_arg(arg):
     """'@mario' -> 'mario'; None if it does not start with @ or is empty."""
     if not arg.startswith('@') or len(arg) < 2:
         return None
@@ -36,7 +36,7 @@ def _year_of(text):
     return 2000 + int(text) if len(text) == 2 else int(text)
 
 
-def parse_month_arg(arg):
+def _parse_month_arg(arg):
     """'3-2024', '03/24', '03.2024', 'marzo 2024' or 'march 2024' -> '03-2024'; None if it is not a valid month (years 1970-2100)."""
     arg = arg.strip().lower()
     match = MONTH_ARG.fullmatch(arg)
@@ -51,14 +51,14 @@ def parse_month_arg(arg):
     return f'{month:02d}-{year}' if 1 <= month <= 12 and MIN_YEAR <= year <= MAX_YEAR else None
 
 
-def parse_year_arg(arg):
+def _parse_year_arg(arg):
     """'2024' or '24' -> '2024'; None if it is not a valid year (2 or 4 digits, 1970-2100)."""
     if re.fullmatch(r'([0-9]{2}|[0-9]{4})', arg) and MIN_YEAR <= _year_of(arg) <= MAX_YEAR:
         return str(_year_of(arg))
     return None
 
 
-def parse_date_arg(arg):
+def _parse_date_arg(arg):
     """'5/3/26', '05.03.2026', '5.3', 'oggi', 'yesterday'... -> ('05-03-2026', '2026-03-05').
 
     Raises ValueError, with the message for the user, if invalid, before 1970 or in the future.
@@ -81,7 +81,7 @@ def parse_date_arg(arg):
     return selected_date.strftime(DISPLAY_FORMAT), selected_date.isoformat()
 
 
-def resolve_target(update: Update, args, sender, usage):
+def _resolve_target(update: Update, args, sender, usage):
     """Work out whose data a command refers to.
 
     Order: an explicit '@username' as first argument (it must belong to a user the bot has already
@@ -90,7 +90,7 @@ def resolve_target(update: Update, args, sender, usage):
     """
     chat_id = update.message.chat_id
     if args and args[0].startswith('@'):
-        username = parse_username_arg(args[0])
+        username = _parse_username_arg(args[0])
         if username is None:
             return None, args, invalid_format(usage)
         target = find_user_by_username(chat_id, username)
@@ -127,18 +127,18 @@ def resolve_optional_target(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         return sender, None
     if not context.args and replied_person(update) is None:
         return None, None
-    target, args, error = resolve_target(update, context.args, sender, usage)
+    target, args, error = _resolve_target(update, context.args, sender, usage)
     if error is None and args:
         error = invalid_format(usage)
     return target, error
 
 
 async def target_from_args(update: Update, args, sender, usage, counts):
-    """The person of a command (see resolve_target) and the arguments after it, whose number must be in `counts`.
+    """The person of a command (see _resolve_target) and the arguments after it, whose number must be in `counts`.
 
     Returns (target, remaining_args), or None after telling the user what is wrong.
     """
-    target, args, error = resolve_target(update, args, sender, usage)
+    target, args, error = _resolve_target(update, args, sender, usage)
     if error is None and len(args) not in counts:
         error = invalid_format(usage)
     if error:
@@ -148,9 +148,9 @@ async def target_from_args(update: Update, args, sender, usage, counts):
 
 
 async def date_from_arg(update: Update, arg):
-    """parse_date_arg, or None after telling the user why the date is not valid."""
+    """_parse_date_arg, or None after telling the user why the date is not valid."""
     try:
-        return parse_date_arg(arg)
+        return _parse_date_arg(arg)
     except ValueError as e:
         await update.message.reply_text(tr("⚠️ Errore: {error}").format(error=e))
         return None
@@ -158,8 +158,8 @@ async def date_from_arg(update: Update, arg):
 
 # The two kinds of period of the commands; their sentences are chosen with `month and ... or ...`
 PERIODS = {
-    'month': {'parse': parse_month_arg, 'current': '%m-%Y'},
-    'year': {'parse': parse_year_arg, 'current': '%Y'},
+    'month': {'parse': _parse_month_arg, 'current': '%m-%Y'},
+    'year': {'parse': _parse_year_arg, 'current': '%Y'},
 }
 
 

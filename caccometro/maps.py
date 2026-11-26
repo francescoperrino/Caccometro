@@ -47,7 +47,7 @@ COUNTRY = (4, 6, (36.4, 47.2, 6.5, 18.6))      # Italy with the islands, about 1
 WORLD = (1, 2, (-58, 80, -180, 180))           # the poles and Antarctica cut away
 
 
-def tile_xy(lat, lon, z):
+def _tile_xy(lat, lon, z):
     """Position of a point in map tile units at zoom z (Web Mercator): x grows east, y grows south."""
     lat = max(-MAX_LAT, min(MAX_LAT, lat))
     n = 2 ** z
@@ -55,14 +55,14 @@ def tile_xy(lat, lon, z):
     return (lon + 180) / 360 * n, (0.5 - math.log((1 + s) / (1 - s)) / (4 * math.pi)) * n
 
 
-def outline(cell, z):
+def _outline(cell, z):
     """Corners of an h3 cell in tile units, the longitudes unwrapped so a cell across 180° stays in one piece."""
     points, previous = [], None
     for lat, lon in h3.cell_to_boundary(cell):
         if previous is not None:
             lon += 360 * round((previous - lon) / 360)
         previous = lon
-        points.append(tile_xy(lat, lon, z))
+        points.append(_tile_xy(lat, lon, z))
     return points
 
 
@@ -81,7 +81,7 @@ def grouped(tiles, res):
     return {parent: max(members, key=members.get) for parent, members in tally.items()}
 
 
-def cached_tile(z, x, y, client, deadline):
+def _cached_tile(z, x, y, client, deadline):
     """One map tile as a PIL image, from the cache when fresh; a stale copy is better than nothing."""
     path = CACHE_DIR / f'{z}_{x}_{y}.png'
     fresh = path.exists() and time.time() - path.stat().st_mtime < CACHE_SECONDS
@@ -109,14 +109,14 @@ def cached_tile(z, x, y, client, deadline):
     return Image.open(path).convert('RGB')
 
 
-def trim_cache():
+def _trim_cache():
     """Drop the oldest tiles when the cache holds more than CACHE_MAX_FILES."""
     files = sorted(CACHE_DIR.glob('*.png'), key=lambda f: f.stat().st_mtime)
     for old in files[:max(0, len(files) - CACHE_MAX_FILES)]:
         old.unlink(missing_ok=True)
 
 
-def basemap(z, x0, y0, x1, y1):
+def _basemap(z, x0, y0, x1, y1):
     """The map tiles covering the box joined in one image, and the box of tile units the image spans."""
     n = 2 ** z
     xs = range(math.floor(x0), math.ceil(x1))
@@ -126,17 +126,17 @@ def basemap(z, x0, y0, x1, y1):
     with httpx.Client(headers={'User-Agent': USER_AGENT}, timeout=REQUEST_TIMEOUT) as client:
         for i, x in enumerate(xs):
             for j, y in enumerate(ys):
-                image.paste(cached_tile(z, x % n, y, client, deadline), (TILE_SIZE * i, TILE_SIZE * j))
-    trim_cache()
+                image.paste(_cached_tile(z, x % n, y, client, deadline), (TILE_SIZE * i, TILE_SIZE * j))
+    _trim_cache()
     return image, (xs[0], ys[0], xs[-1] + 1, ys[-1] + 1)
 
 
-def draw(title, z, box, hexagons, colors, legend, latest, grid=(), shares=None):
+def _draw(title, z, box, hexagons, colors, legend, latest, grid=(), shares=None):
     """The map image: hexagons {cell: user_id} in the colours of their members over the map tiles of the box,
     the hexagon `latest` outlined, the cells of `grid` as a faint grid. legend: [(user_id, label)].
     shares: (user_id, {cell: share of its tiles still held}, tiles lost): that member's hexagons, the lighter the more
     tiles were lost inside (dashed when all of them), with a legend entry for the tiles lost."""
-    image, (ix0, iy0, ix1, iy1) = basemap(z, *box)
+    image, (ix0, iy0, ix1, iy1) = _basemap(z, *box)
     x0, y0, x1, y1 = box
     n = 2 ** z
     with plt.rc_context(STYLE):
@@ -145,7 +145,7 @@ def draw(title, z, box, hexagons, colors, legend, latest, grid=(), shares=None):
         ax.imshow(image, extent=(ix0, ix1, iy1, iy0), interpolation='lanczos')
 
         def shapes(cell):  # the copies show a hexagon across 180° on both edges of the world
-            points = outline(cell, z)
+            points = _outline(cell, z)
             return [[(x + shift, y) for x, y in points] for shift in (-n, 0, n)]
 
         def hexagon(cell, **style):
@@ -184,17 +184,17 @@ def draw(title, z, box, hexagons, colors, legend, latest, grid=(), shares=None):
                                   markeredgecolor=TEXT, label=tr('ultima conquista')))
         ax.legend(handles=handles, loc='lower left', fontsize=11)
         add_cards(fig, [ax])
-        return jpeg(png_bytes(fig, CREDIT))
+        return _jpeg(png_bytes(fig, CREDIT))
 
 
-def jpeg(png):
+def _jpeg(png):
     """The image as JPEG: a street map is 1 MB as PNG, a fifth as JPEG, and Telegram recompresses photos anyway."""
     out = io.BytesIO()
     Image.open(io.BytesIO(png)).convert('RGB').save(out, 'JPEG', quality=85)
     return out.getvalue()
 
 
-def legend_and_colors(history, users):
+def _legend_and_colors(history, users):
     """Legend [(user_id, 'name: tiles held')] by tiles held, and a colour per member who ever conquered.
 
     Colours follow the names, like the charts. shortcut: a 9th member reuses the first colour; fine for a group of friends.
@@ -211,11 +211,11 @@ def zoom_map(history, users, title=None):
     """Reply to a conquest: the real tiles around the tile just conquered, the last of `history`."""
     tiles = owners(history)
     new_cell = history[-1][1]
-    x, y = tile_xy(*h3.cell_to_latlng(new_cell), ZOOM_LEVEL)
+    x, y = _tile_xy(*h3.cell_to_latlng(new_cell), ZOOM_LEVEL)
     half = ZOOM_SPAN / 2
     around = h3.grid_disk(new_cell, 10)  # wider than the image: hexagons are 2.6 km, the image about 30 km
-    legend, colors = legend_and_colors(history, users)
-    return draw(title or tr('Zona conquistata'), ZOOM_LEVEL, (x - half, y - half, x + half, y + half),
+    legend, colors = _legend_and_colors(history, users)
+    return _draw(title or tr('Zona conquistata'), ZOOM_LEVEL, (x - half, y - half, x + half, y + half),
                 {cell: tiles[cell][0] for cell in around if cell in tiles}, colors, legend, new_cell,
                 grid=[cell for cell in around if cell not in tiles])
 
@@ -227,20 +227,20 @@ def group_zoom_map(history, users, user_id=None):
 
 def world_map(history, users, user_id=None):
     """/conquests: the whole world."""
-    return overview(history, users, tr('Conquiste nel mondo'), *WORLD, user_id=user_id)
+    return _overview(history, users, tr('Conquiste nel mondo'), *WORLD, user_id=user_id)
 
 
 def region_map(history, users, user_id=None):
     """/conquests: Lombardy."""
-    return overview(history, users, tr('Conquiste in Lombardia'), *REGION, user_id=user_id)
+    return _overview(history, users, tr('Conquiste in Lombardia'), *REGION, user_id=user_id)
 
 
 def country_map(history, users, user_id=None):
     """/conquests: Italy."""
-    return overview(history, users, tr('Conquiste in Italia'), *COUNTRY, user_id=user_id)
+    return _overview(history, users, tr('Conquiste in Italia'), *COUNTRY, user_id=user_id)
 
 
-def overview(history, users, title, res, z, bounds, user_id=None):
+def _overview(history, users, title, res, z, bounds, user_id=None):
     """A map of every held tile grouped at resolution res over the bounds (south, north, west, east),
     the parent of the latest conquest outlined.
 
@@ -248,18 +248,18 @@ def overview(history, users, title, res, z, bounds, user_id=None):
     is still held, lighter the more of them were lost; no outline.
     """
     south, north, west, east = bounds
-    x0, y1 = tile_xy(south, west, z)
-    x1, y0 = tile_xy(north, east, z)
-    legend, colors = legend_and_colors(history, users)
-    box, grid = (x0, y0, x1, y1), grid_cells(res, bounds)
+    x0, y1 = _tile_xy(south, west, z)
+    x1, y0 = _tile_xy(north, east, z)
+    legend, colors = _legend_and_colors(history, users)
+    box, grid = (x0, y0, x1, y1), _grid_cells(res, bounds)
     if user_id is None:
-        return draw(title, z, box, grouped(owners(history), res), colors, legend,
+        return _draw(title, z, box, grouped(owners(history), res), colors, legend,
                     h3.cell_to_parent(history[-1][1], res), grid=grid)
-    return draw(title, z, box, {}, colors, [person_label(legend, users, user_id)], None, grid=grid,
-                shares=person_shares(history, user_id, res))
+    return _draw(title, z, box, {}, colors, [_person_label(legend, users, user_id)], None, grid=grid,
+                shares=_person_shares(history, user_id, res))
 
 
-def person_shares(history, user_id, res):
+def _person_shares(history, user_id, res):
     """(user_id, {cell at res: share of the member's tiles inside still held}, tiles lost) over every tile ever conquered."""
     tiles = owners(history)
     inside = {}  # parent -> [tiles still held, tiles conquered]
@@ -271,7 +271,7 @@ def person_shares(history, user_id, res):
     return user_id, {cell: held / total for cell, (held, total) in inside.items()}, lost
 
 
-def person_label(legend, users, user_id):
+def _person_label(legend, users, user_id):
     """The legend entry of one member: 'name: tiles held', also for a member who lost every tile."""
     return next((entry for entry in legend if entry[0] == user_id),
                 (user_id, f'{chart_label(short_name(mention_of(users, user_id)))}: 0'))
@@ -280,16 +280,16 @@ def person_label(legend, users, user_id):
 def person_zoom_map(history, users, user_id):
     """/conquests of one person: the real tiles around the member's latest conquest, held ones full, lost ones dashed."""
     center = next(cell for owner, cell in reversed(history) if owner == user_id)
-    x, y = tile_xy(*h3.cell_to_latlng(center), ZOOM_LEVEL)
+    x, y = _tile_xy(*h3.cell_to_latlng(center), ZOOM_LEVEL)
     half = ZOOM_SPAN / 2
-    shares = person_shares(history, user_id, h3.get_resolution(center))
-    legend, colors = legend_and_colors(history, users)
-    return draw(tr('Zona di {name}').format(name=mention_of(users, user_id)), ZOOM_LEVEL,
-                (x - half, y - half, x + half, y + half), {}, colors, [person_label(legend, users, user_id)], None,
+    shares = _person_shares(history, user_id, h3.get_resolution(center))
+    legend, colors = _legend_and_colors(history, users)
+    return _draw(tr('Zona di {name}').format(name=mention_of(users, user_id)), ZOOM_LEVEL,
+                (x - half, y - half, x + half, y + half), {}, colors, [_person_label(legend, users, user_id)], None,
                 grid=[cell for cell in h3.grid_disk(center, 10) if cell not in shares[1]], shares=shares)
 
 
-def grid_cells(res, bounds, margin=0.3):
+def _grid_cells(res, bounds, margin=0.3):
     """Every cell at res over the bounds, so the map shows the faint grid; the whole world when it spans 360°."""
     south, north, west, east = bounds
     if east - west >= 360:

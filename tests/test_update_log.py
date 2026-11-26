@@ -78,10 +78,10 @@ def test_a_reply_lost_after_all_the_attempts_is_marked_lost(flaky_telegram, capl
 
 def test_kinds_of_update():
     from conftest import make_update
-    assert bot.update_kind(object()) == "other"
+    assert bot._update_kind(object()) == "other"
     upd = make_update(text="/classifica_mese 3-2026")
-    assert bot.update_kind(upd) == "/leaderboard_month"
-    assert bot.update_kind(make_update(text="/nonexistent")) == "message"
+    assert bot._update_kind(upd) == "/leaderboard_month"
+    assert bot._update_kind(make_update(text="/nonexistent")) == "message"
 
 
 def test_the_startup_getme_and_its_retries_are_in_the_line(flaky_telegram, caplog):

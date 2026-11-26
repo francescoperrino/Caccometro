@@ -60,8 +60,8 @@ def test_every_command_answers_to_its_english_and_italian_names_only():
 def test_the_midnight_announcement_follows_the_language_of_each_chat(seed, chat_id):
     seed({"mario": {"2026-10-05": 3}})
     database.set_language(chat_id, "en")
-    assert "October 2026 is over!" in announce.announcement(chat_id, date(2026, 11, 1))
-    assert announce.announcement(-2002, date(2026, 11, 1)) is None   # another chat: nobody to celebrate, and Italian
+    assert "October 2026 is over!" in announce._announcement(chat_id, date(2026, 11, 1))
+    assert announce._announcement(-2002, date(2026, 11, 1)) is None   # another chat: nobody to celebrate, and Italian
     assert i18n.current() == "it"
 
 

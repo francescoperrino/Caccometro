@@ -62,5 +62,5 @@ def test_late_processed_poop_counts_on_the_day_it_was_sent(chat_id, monkeypatch)
 
 def test_poop_sent_after_midnight_in_summer_counts_on_the_new_day(chat_id):
     sent = datetime(2026, 7, 15, 22, 30, tzinfo=timezone.utc)   # 00:30 of the 16th in Rome (CEST)
-    messages.record_poop(User(uid("mario"), "mario", "Mario"), chat_id, sent)
+    messages._record_poop(User(uid("mario"), "mario", "Mario"), chat_id, sent)
     assert database.get_count(uid("mario"), "2026-07-16", chat_id) == 1

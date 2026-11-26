@@ -14,7 +14,7 @@ from caccometro.i18n import tr
 logger = logging.getLogger(__name__)
 
 
-async def may_change_counts_of(update: Update, context: ContextTypes.DEFAULT_TYPE, sender, target):
+async def _may_change_counts_of(update: Update, context: ContextTypes.DEFAULT_TYPE, sender, target):
     """Everybody can change their own counts; only the group admins can change the counts of others."""
     if target.user_id == sender.user_id or await is_chat_admin(update, context):
         return True
@@ -22,7 +22,7 @@ async def may_change_counts_of(update: Update, context: ContextTypes.DEFAULT_TYP
     return False
 
 
-async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE, command, delta):
+async def _change_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE, command, delta):
     """Shared body of /add_poop (delta +1) and /remove_poop (delta -1)."""
     sender = register_sender(update)
     if sender is None:
@@ -32,7 +32,7 @@ async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYP
     if found is None:
         return
     target, args = found
-    if not await may_change_counts_of(update, context, sender, target):
+    if not await _may_change_counts_of(update, context, sender, target):
         return
     parsed = await date_from_arg(update, args[0])
     if parsed is None:
@@ -52,12 +52,12 @@ async def change_count_command(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def add_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /add_poop command."""
-    await change_count_command(update, context, 'add_poop', 1)
+    await _change_count_command(update, context, 'add_poop', 1)
 
 
 async def remove_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /remove_poop command."""
-    await change_count_command(update, context, 'remove_poop', -1)
+    await _change_count_command(update, context, 'remove_poop', -1)
 
 
 async def day_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

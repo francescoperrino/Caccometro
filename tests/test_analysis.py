@@ -235,8 +235,8 @@ def test_forecast_on_the_last_day_is_the_total():
 
 
 def test_regularity_reads_the_spread_of_the_days():
-    from caccometro.analysis import regularity
-    assert regularity([1] * 28) == "molto regolare"                      # the same every day
-    assert regularity([1, 1, 2, 1, 0, 2, 0] * 4) == "abbastanza regolare"
-    assert regularity([0, 0, 0, 4, 0, 0, 3] * 4) == "a sbalzi"            # long pauses, then many at once
-    assert regularity([1] * 13) is None and regularity([1, 0, 0, 0] * 4) is None   # too few days, too few 💩
+    from caccometro.analysis import _regularity
+    assert _regularity([1] * 28) == "molto regolare"                      # the same every day
+    assert _regularity([1, 1, 2, 1, 0, 2, 0] * 4) == "abbastanza regolare"
+    assert _regularity([0, 0, 0, 4, 0, 0, 3] * 4) == "a sbalzi"            # long pauses, then many at once
+    assert _regularity([1] * 13) is None and _regularity([1, 0, 0, 0] * 4) is None   # too few days, too few 💩

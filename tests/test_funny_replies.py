@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 
 from caccometro import database, formatting, messages
-from caccometro.formatting import poop_pool, poop_sentence
+from caccometro.formatting import _poop_pool, poop_sentence
 from conftest import make_context, make_update
 
 SENTENCES = formatting._poop_sentences()
@@ -19,24 +19,24 @@ def test_the_time_slots_start_at_the_right_hour():
 
 
 def test_the_second_poop_is_answered_by_the_slot_and_the_generic_sentences():
-    assert poop_pool(13, 2) == SENTENCES["lunch"] + SENTENCES["any"]
+    assert _poop_pool(13, 2) == SENTENCES["lunch"] + SENTENCES["any"]
 
 
 def test_the_first_and_the_third_poop_use_their_own_sentences_of_the_slot_when_there_are_some():
-    assert poop_pool(3, 1) == SENTENCES[("first", "night")]
-    assert poop_pool(13, 3) == SENTENCES[("third", "lunch")]
-    assert poop_pool(13, 7) == SENTENCES[("third", "lunch")]
+    assert _poop_pool(3, 1) == SENTENCES[("first", "night")]
+    assert _poop_pool(13, 3) == SENTENCES[("third", "lunch")]
+    assert _poop_pool(13, 7) == SENTENCES[("third", "lunch")]
 
 
 def test_otherwise_they_add_their_count_sentences_to_those_of_the_slot():
-    assert poop_pool(10, 1) == SENTENCES["morning"] + SENTENCES["any"] + SENTENCES[("first", None)]
-    assert poop_pool(20, 3) == SENTENCES["evening"] + SENTENCES["any"] + SENTENCES[("third", None)]
+    assert _poop_pool(10, 1) == SENTENCES["morning"] + SENTENCES["any"] + SENTENCES[("first", None)]
+    assert _poop_pool(20, 3) == SENTENCES["evening"] + SENTENCES["any"] + SENTENCES[("third", None)]
 
 
 def test_every_sentence_has_the_name_and_every_pool_is_used_in_full():
     assert all("{name}" in s for pool in SENTENCES.values() for s in pool)
     seen = {poop_sentence("X", 10, 2) for _ in range(300)}
-    assert seen == {s.format(name="X") for s in poop_pool(10, 2)}
+    assert seen == {s.format(name="X") for s in _poop_pool(10, 2)}
 
 
 def reply_at(hour, text="💩"):

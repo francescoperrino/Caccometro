@@ -32,14 +32,14 @@ MAX_WAIT = timedelta(hours=2)   # wait for midnight only when it is this close
 DB_NAME = re.compile(r'^(-?\d+)_bot_data\.db$')
 
 
-def chat_ids():
+def _chat_ids():
     """IDs of the chats that have a database."""
     if not os.path.isdir(database.DB_FOLDER):
         return []
     return sorted(int(match.group(1)) for name in os.listdir(database.DB_FOLDER) if (match := DB_NAME.match(name)))
 
 
-def announcement(chat_id, today: date):
+def _announcement(chat_id, today: date):
     """Message for the chat on `today` (the first day of a month), in its language; None when there is nobody to celebrate."""
     i18n.use(database.get_language(chat_id))
     rows_by_user, users = database.get_all_user_rows(chat_id)
@@ -56,7 +56,7 @@ def announcement(chat_id, today: date):
 
 
 
-def recap_button(chat_id, today):
+def _recap_button(chat_id, today):
     """Buttons under the announcement of a new month that open the Mini App on the recap of the month just ended, and on
     the 1st of January on the recap of the year too (#195)."""
     buttons = [InlineKeyboardButton(tr("✨ Il tuo mese"), url=miniapp.direct_link(BOT_USERNAME, chat_id, 'recap'))]
@@ -65,17 +65,17 @@ def recap_button(chat_id, today):
     return InlineKeyboardMarkup([buttons])
 
 
-async def announce(today: date, dry_run=False):
+async def _announce(today: date, dry_run=False):
     """Send the announcement to every chat; a chat that fails (e.g. the bot was removed) does not stop the others."""
     messages = []
-    for chat_id in chat_ids():
+    for chat_id in _chat_ids():
         try:
-            text = announcement(chat_id, today)
+            text = _announcement(chat_id, today)
         except Exception:
             logger.exception(f"Announcement for chat {chat_id} failed")
             continue
         if text is not None:
-            messages.append((chat_id, text, recap_button(chat_id, today)))
+            messages.append((chat_id, text, _recap_button(chat_id, today)))
     if dry_run:
         for chat_id, text, _ in messages:
             print(f"--- {chat_id}\n{text}\n")
@@ -91,7 +91,7 @@ async def announce(today: date, dry_run=False):
     logger.info(f"Announcement of {today}: sent to {sent} of {len(messages)} chat(s)")
 
 
-def wait_for_midnight(now: datetime):
+def _wait_for_midnight(now: datetime):
     """Sleep until the next midnight in Italy when it is less than MAX_WAIT away; return that midnight, or None.
 
     The caller announces for the returned day: waking up a moment before midnight must not change it.
@@ -112,12 +112,12 @@ def main(argv=None):
 
     today = args.date
     if today is None:
-        midnight = wait_for_midnight(now_rome())
+        midnight = _wait_for_midnight(now_rome())
         today = midnight.date() if midnight else now_rome().date()
     if today.day != 1:
         logger.info(f"Announcement: {today} is not the first day of a month, nothing to do")
         return
-    asyncio.run(announce(today, args.dry_run))
+    asyncio.run(_announce(today, args.dry_run))
 
 
 if __name__ == '__main__':

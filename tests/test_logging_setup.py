@@ -44,7 +44,7 @@ def test_the_tests_never_write_to_the_real_log():
 
 def test_webhook_mode_writes_the_log_only_to_the_file():
     """The console is the web server error log there: one copy is enough."""
-    handlers = bot.log_handlers("WEBHOOK")
+    handlers = bot._log_handlers("WEBHOOK")
     assert handlers == [bot.file_handler]
 
 
@@ -53,7 +53,7 @@ def test_webhook_mode_stops_the_bot_records_before_the_root_logger(tmp_path, mon
     app_logger = logging.getLogger("caccometro")
     monkeypatch.setattr(app_logger, "handlers", [])
     monkeypatch.setattr(app_logger, "propagate", True)
-    bot.keep_app_log_out_of_the_root_logger("WEBHOOK")
+    bot._keep_app_log_out_of_the_root_logger("WEBHOOK")
     seen = []
     hosting = logging.Handler()
     hosting.emit = seen.append
@@ -72,12 +72,12 @@ def test_polling_mode_keeps_the_logger_as_it_is(monkeypatch):
     app_logger = logging.getLogger("caccometro")
     monkeypatch.setattr(app_logger, "handlers", [])
     monkeypatch.setattr(app_logger, "propagate", True)
-    bot.keep_app_log_out_of_the_root_logger("POLLING")
+    bot._keep_app_log_out_of_the_root_logger("POLLING")
     assert app_logger.handlers == [] and app_logger.propagate
 
 
 def test_polling_mode_also_prints_to_the_console():
-    handlers = bot.log_handlers("POLLING")
+    handlers = bot._log_handlers("POLLING")
     assert handlers[0] is bot.file_handler
     assert type(handlers[1]) is logging.StreamHandler
 

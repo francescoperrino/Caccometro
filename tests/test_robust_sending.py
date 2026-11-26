@@ -49,7 +49,7 @@ def send(request):
 
 def test_a_proxy_error_burst_longer_than_15_seconds_is_retried_and_the_request_succeeds(attempts):
     attempts.errors = [network_error(httpx.ProxyError("503 Service Unavailable"))] * 5
-    assert send(bot.RetryingRequest())[0] == 200
+    assert send(bot._RetryingRequest())[0] == 200
     assert len(attempts) == 6
     assert attempts.sleeps == [1, 2, 4, 8, 16]
 
@@ -57,7 +57,7 @@ def test_a_proxy_error_burst_longer_than_15_seconds_is_retried_and_the_request_s
 def test_after_six_failures_the_error_is_raised(attempts):
     attempts.errors = [network_error(httpx.ConnectError("refused"))] * 6
     with pytest.raises(NetworkError):
-        send(bot.RetryingRequest())
+        send(bot._RetryingRequest())
     assert len(attempts) == 6
 
 
@@ -65,12 +65,12 @@ def test_after_six_failures_the_error_is_raised(attempts):
 def test_errors_after_sending_are_not_retried_because_the_message_may_be_delivered(attempts, cause):
     attempts.errors = [network_error(cause)]
     with pytest.raises(NetworkError):
-        send(bot.RetryingRequest())
+        send(bot._RetryingRequest())
     assert len(attempts) == 1
 
 
 def test_the_bot_uses_the_retrying_request():
-    assert isinstance(bot.application.bot.request, bot.RetryingRequest)
+    assert isinstance(bot.application.bot.request, bot._RetryingRequest)
 
 
 def test_an_update_sent_twice_is_counted_once(telegram_calls):  # noqa: F811

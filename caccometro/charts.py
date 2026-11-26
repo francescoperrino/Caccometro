@@ -57,7 +57,7 @@ STYLE = {
 }
 
 
-def add_watermark(fig, credit=''):
+def _add_watermark(fig, credit=''):
     """'Caccometro vX.Y.Z' (and the credit of the map data, if any) in small light text centred in the strip between the last card and the bottom of the image.
 
     png_bytes crops 0.35 inch under the cards (pad_inches); the text is left out of the crop calculation
@@ -74,13 +74,13 @@ def add_watermark(fig, credit=''):
 
 def png_bytes(fig, credit=''):
     """Render a figure to PNG in memory and close it."""
-    add_watermark(fig, credit)
+    _add_watermark(fig, credit)
     buffer = io.BytesIO()
     fig.savefig(buffer, format='png', dpi=110, bbox_inches='tight', pad_inches=0.35)
     plt.close(fig)
     return buffer.getvalue()
 
-def normal_pdf(x, mean, std):
+def _normal_pdf(x, mean, std):
     """Probability density of a normal distribution (same values as scipy.stats.norm.pdf, without scipy)."""
     z = (np.asarray(x, dtype=float) - mean) / std
     return np.exp(-0.5 * z * z) / (std * np.sqrt(2 * np.pi))
@@ -96,16 +96,16 @@ def short_name(name):
     """The name cut to NAME_MAX characters, with an ellipsis when cut."""
     return name if len(name) <= NAME_MAX else name[:NAME_MAX - 1] + '…'
 
-def user_style(i):
+def _user_style(i):
     """Colour and line style of the i-th user (users sorted by name, so a user keeps the colour across charts)."""
     return PALETTE[i % len(PALETTE)], '-' if i < len(PALETTE) else '--'
 
-def decimal(value):
+def _decimal(value):
     """Two decimals, with the decimal comma in Italian: 1.25 -> '1,25' ('1.25' in English)."""
     text = f'{value:.2f}'
     return text.replace('.', ',') if i18n.current() == 'it' else text
 
-def period_info(time_period, date):
+def _period_info(time_period, date):
     """Year, month (None for a year), number of days and title of the period."""
     if time_period == 'month':
         month, year = (int(part) for part in date.split('-'))
@@ -113,7 +113,7 @@ def period_info(time_period, date):
     year = int(date)
     return year, None, 366 if calendar.isleap(year) else 365, str(year)
 
-def last_day_shown(year, month, days):
+def _last_day_shown(year, month, days):
     """Days of the period to draw: all of a past period, up to today for the current one."""
     today = now_rome()
     if year == today.year and (month is None or month == today.month):
@@ -123,12 +123,12 @@ def last_day_shown(year, month, days):
 FINE_GRID = '#f1e8dc'   # thin lines at every unit, behind the main grid
 
 
-def fine_vlines(ax, xs):
+def _fine_vlines(ax, xs):
     """Thin vertical grid lines at the x positions `xs`."""
     for x in xs:
         ax.axvline(x, color=FINE_GRID, linewidth=0.6, zorder=0)
 
-def layered_grid(ax, top, round_to, fine_step=None):
+def _layered_grid(ax, top, round_to, fine_step=None):
     """Y axis from 0 to `top` rounded up to `round_to`: a solid line at every power of ten step
     (10, 20, ... or 100, 200, ...), a dashed one halfway (5, 15, ...) and, with `fine_step`, thin lines in between."""
     max_y = max(round_to, ceil(top / round_to) * round_to)
@@ -161,12 +161,12 @@ def sorted_by_name(names):
     """User IDs of `names` (user ID -> name) sorted by name, case-insensitive."""
     return sorted(names, key=lambda user_id: (names[user_id].lower(), user_id))
 
-def emoji(ax, image, xy, zoom, coords='axes fraction'):
+def _emoji(ax, image, xy, zoom, coords='axes fraction'):
     """Draw an emoji image centred on xy."""
     ax.add_artist(AnnotationBbox(OffsetImage(image, zoom=zoom), xy, xycoords=coords, frameon=False,
                                  zorder=6, annotation_clip=False))
 
-def positions(rank):
+def _positions(rank):
     """Ranking positions with ties (20, 20, 18 -> 1, 1, 3)."""
     result = []
     for i, (_, total) in enumerate(rank):
@@ -190,8 +190,8 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
         bytes: the PNG image.
     """
     forecast = forecast or {}
-    year, month, days, title = period_info(time_period, date)
-    shown = last_day_shown(year, month, days)
+    year, month, days, title = _period_info(time_period, date)
+    shown = _last_day_shown(year, month, days)
     names = {user.user_id: chart_label(user.name) for user, _ in rank}
     colour_order = sorted_by_name(names)  # colours follow the user, not the position in the ranking
     totals = {user.user_id: total for user, total in rank}
@@ -242,7 +242,7 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
                 cell.set_edgecolor(HEADER)  # one solid header band, no dividers
                 cell.set_text_props(color=SURFACE, weight='bold', fontsize=9)  # 31 day numbers must not touch
                 continue
-            colour, _ = user_style(colour_order.index(rows[row - 1]))
+            colour, _ = _user_style(colour_order.index(rows[row - 1]))
             if col == 0:
                 cell.set_facecolor(mcolors.to_rgba(colour, 0.4))
                 cell.set_text_props(ha='left', weight='bold')
@@ -257,10 +257,10 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
                 cell.set_facecolor(mcolors.to_rgba(colour, 0.12))
         # Medals (or the plain position) at the left of every total
         badge_x = 1 - total_width * 0.7
-        for row, position in enumerate(positions(rank), start=1):
+        for row, position in enumerate(_positions(rank), start=1):
             y = 1 - (row + 0.5) / (len(rows) + 1)
             if position <= 3:
-                emoji(ax_table, MEDALS[position - 1], (badge_x, y), 0.2)
+                _emoji(ax_table, MEDALS[position - 1], (badge_x, y), 0.2)
             else:
                 ax_table.text(badge_x, y, f'{position}°', ha='center', va='center', fontsize=11,
                               color=TEXT_MUTED, transform=ax_table.transAxes, zorder=6)
@@ -278,7 +278,7 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
                 else:
                     count_date = datetime.strptime(f'{year}-{day}', '%Y-%j').strftime(STORING_FORMAT)
                 per_day.append(user_days.get(count_date, 0))
-            colour, line = user_style(colour_order.index(user_id))
+            colour, line = _user_style(colour_order.index(user_id))
             cumulative = np.cumsum(per_day)
             expected = f' → {forecast[user_id]}' if user_id in forecast else ''
             ax_lines.plot(x, cumulative, color=colour, linestyle=line,
@@ -293,7 +293,7 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
 
         if time_period == 'month':
             ax_lines.set_xticks(range(1, days + 1))
-            fine_vlines(ax_lines, range(1, days + 1))
+            _fine_vlines(ax_lines, range(1, days + 1))
             ax_lines.set_xlabel(tr('Giorno'))
         else:
             # Lines at the month starts, names in the middle of each month
@@ -302,11 +302,11 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
             ax_lines.set_xticks([(a + b) / 2 for a, b in zip(month_starts, month_starts[1:])], labels=header,
                                 minor=True)
             ax_lines.tick_params(axis='x', which='minor', length=0)
-            fine_vlines(ax_lines, month_starts[1:-1])
+            _fine_vlines(ax_lines, month_starts[1:-1])
         ax_lines.set_xlim(1, days)
         # headroom: the leader's line is not cut at the top; a year rounds to hundreds
         step = 10 if time_period == 'month' else 100
-        layered_grid(ax_lines, max_total * 1.05, step, fine_step=step // 10)  # thin lines every 💩 (every 10 a year)
+        _layered_grid(ax_lines, max_total * 1.05, step, fine_step=step // 10)  # thin lines every 💩 (every 10 a year)
         ax_lines.set_ylabel(tr('Totale progressivo'))
         ax_lines.set_title(tr('Come è andata giorno per giorno'), fontsize=15, weight='normal', color=TEXT_MUTED)
         ax_lines.legend(loc='upper left', ncol=2 if len(rows) > 4 else 1)
@@ -328,14 +328,14 @@ def generate_statistics_chart(statistics, daily_counts, time_period, date):
     Returns:
         bytes: the PNG image.
     """
-    year, month, days, title = period_info(time_period, date)
+    year, month, days, title = _period_info(time_period, date)
     names = {stat['user'].user_id: chart_label(stat['user'].name) for stat in statistics}
     stats = {stat['user'].user_id: stat for stat in statistics}
     users = sorted_by_name(names)
 
     # Daily counts of every user, from the first day of the period to today (or its last day)
     start = datetime(year, month or 1, 1)
-    end = start + timedelta(days=last_day_shown(year, month, days) - 1)
+    end = start + timedelta(days=_last_day_shown(year, month, days) - 1)
     period_days = [(start + timedelta(days=i)).strftime(STORING_FORMAT) for i in range((end - start).days + 1)]
     user_daily_counts = {user: [daily_counts.get(user, {}).get(day, 0) for day in period_days] for user in users}
     max_count = max(max(counts) for counts in user_daily_counts.values())
@@ -347,12 +347,12 @@ def generate_statistics_chart(statistics, daily_counts, time_period, date):
         x = np.linspace(0, max(max_count, 1), 200)
         peaks = []
         for i, user in enumerate(users):
-            colour, line = user_style(i)
+            colour, line = _user_style(i)
             mean, variance = stats[user]['mean'], stats[user]['variance']
             if variance <= 0:
                 continue
-            y = normal_pdf(x, mean, np.sqrt(variance)) * len(period_days)
-            peak = normal_pdf(mean, mean, np.sqrt(variance)) * len(period_days)
+            y = _normal_pdf(x, mean, np.sqrt(variance)) * len(period_days)
+            peak = _normal_pdf(mean, mean, np.sqrt(variance)) * len(period_days)
             ax_curves.plot(x, y, color=colour, linestyle=line, label=short_name(names[user]))
             ax_curves.fill_between(x, y, color=colour, alpha=0.05, linewidth=0)
             ax_curves.vlines(mean, 0, peak, colors=colour, linestyles=':', linewidth=1.5)
@@ -367,13 +367,13 @@ def generate_statistics_chart(statistics, daily_counts, time_period, date):
                 if abs(mean - other_x) < width and abs(label_y - other_y) < height:
                     label_y = other_y + height
             placed.append((mean, label_y))
-            ax_curves.annotate(decimal(mean), (mean, peak), xytext=(mean, label_y), ha='center', va='center',
+            ax_curves.annotate(_decimal(mean), (mean, peak), xytext=(mean, label_y), ha='center', va='center',
                                fontsize=11, weight='bold', color=TEXT,
                                arrowprops={'arrowstyle': '-', 'color': colour, 'lw': 1, 'shrinkA': 0, 'shrinkB': 0},
                                bbox={'boxstyle': 'round,pad=0.3', 'fc': SURFACE, 'ec': colour, 'lw': 1.5})
         ax_curves.set_xlim(0, max(max_count, 1))
-        fine_vlines(ax_curves, range(0, max(max_count, 1) + 1))
-        layered_grid(ax_curves, max([top] + [y for _, y in placed]) + height, 5)  # headroom for the labels
+        _fine_vlines(ax_curves, range(0, max(max_count, 1) + 1))
+        _layered_grid(ax_curves, max([top] + [y for _, y in placed]) + height, 5)  # headroom for the labels
         ax_curves.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax_curves.set_xlabel(tr('Volte al giorno'))
         ax_curves.set_ylabel(tr('Giorni'))
@@ -390,7 +390,7 @@ def generate_statistics_chart(statistics, daily_counts, time_period, date):
                                   medianprops={'color': TEXT, 'linewidth': 2.5},
                                   flierprops={'marker': 'o', 'markersize': 7, 'alpha': 0.7})
         for i, patch in enumerate(box_plot['boxes']):
-            colour, _ = user_style(i)
+            colour, _ = _user_style(i)
             patch.set_facecolor(mcolors.to_rgba(colour, 0.35))
             patch.set_edgecolor(colour)
             patch.set_linewidth(2)
@@ -489,7 +489,7 @@ def generate_recap_image(recap, name):
         line = tr("{place}° posto su {total}!").format(place=recap.place, total=recap.people)
     else:
         line = tr("che anno!") if year_recap else tr("che mese!")
-    detail = ' · '.join([tr("{value} al giorno").format(value=decimal(recap.total / recap.days)[:-1].removesuffix(',0').removesuffix('.0'))]
+    detail = ' · '.join([tr("{value} al giorno").format(value=_decimal(recap.total / recap.days)[:-1].removesuffix(',0').removesuffix('.0'))]
                         + ([tr(recap.regularity)] if recap.regularity else []))
     facts = [(ICONS['trophy'], str(recap.best_count),
               tr("il {day} {month}").format(day=recap.best_day.day, month=month_name(recap.best_day.month))),
@@ -516,7 +516,7 @@ def generate_recap_image(recap, name):
             _fade(ax, 0, height - m - 2.3, width, m + 2.3, [(0, 0, 0, 0), (0, 0, 0, .42)], panel, zorder=3)
         # the header: the bot on the left, the period on the right
         y = m + 0.55
-        emoji(ax, ICONS['poop'], (ix + 0.17, y), 56 / (128 * PX / 72), coords='data')
+        _emoji(ax, ICONS['poop'], (ix + 0.17, y), 56 / (128 * PX / 72), coords='data')
         text(ix + 0.5, y, 'Caccometro', r['brand_size'], weight=800, stroke=True)
         text(ix + inner, y, tr("RIEPILOGO {period}").format(period=period.upper()), r['month_size'], weight='bold', alpha=.9,
              ha='right', stroke=True)
@@ -531,7 +531,7 @@ def generate_recap_image(recap, name):
         pill_h, pill_y = r['total'], avatar_top + side - r['total'] * 0.25
         for dy, colour in ((0.06, (0, 0, 0, .2)), (0, r['card'])):
             _rounded(ax, cx - 1.25, pill_y + dy, 2.5, pill_h, pill_h / 2, facecolor=colour, edgecolor='none', zorder=4)
-        emoji(ax, ICONS['poop'], (cx - 0.75, pill_y + pill_h / 2), pill_h * PX * 0.62 / (128 * PX / 72), coords='data')
+        _emoji(ax, ICONS['poop'], (cx - 0.75, pill_y + pill_h / 2), pill_h * PX * 0.62 / (128 * PX / 72), coords='data')
         text(cx + 0.28, pill_y + pill_h / 2, str(recap.total), r['total_size'], colour=r['text'], weight=800, ha='center')
         # who, how it went and the change from the period before
         y = avatar_top + side + r['total'] * 0.75 + 0.38
@@ -549,7 +549,7 @@ def generate_recap_image(recap, name):
             _rounded(ax, x, tile_y, half, tile_h, min(radius * 0.45, tile_h / 2), facecolor=mcolors.to_rgba(bottom_colour, r['tile_alpha']),
                      edgecolor=(1, 1, 1, .3), linewidth=0.8, zorder=4)
             ax.add_patch(plt.Circle((x + 0.4, tile_y + tile_h / 2), tile_h * 0.38, facecolor=(1, 1, 1, .2), edgecolor='none', zorder=4))
-            emoji(ax, icon, (x + 0.4, tile_y + tile_h / 2), tile_h * PX * 0.5 / (128 * PX / 72), coords='data')
+            _emoji(ax, icon, (x + 0.4, tile_y + tile_h / 2), tile_h * PX * 0.5 / (128 * PX / 72), coords='data')
             text(x + 0.85, tile_y + tile_h * 0.35, value, r['value_size'], weight=800)
             text(x + 0.85, tile_y + tile_h * 0.73, label, r['label_size'], alpha=.8)
         text(ix + inner, m + ph - 0.2, f'Caccometro v{__version__}', r['version_size'], alpha=.75, ha='right', stroke=True)

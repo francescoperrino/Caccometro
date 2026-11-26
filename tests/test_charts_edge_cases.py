@@ -88,6 +88,6 @@ def test_rank_chart_with_a_forecast_draws_it_and_ignores_a_finished_period(chat_
 def test_every_chart_has_the_version_under_the_last_card():
     fig = charts.plt.figure()
     fig.add_subplot()
-    charts.add_watermark(fig)
+    charts._add_watermark(fig)
     assert f"Caccometro v{__version__}" in [t.get_text() for t in fig.texts]
     charts.plt.close(fig)

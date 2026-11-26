@@ -24,7 +24,7 @@ STAMP = re.compile(r"^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)")  # error and server log
 RESTART = "WSGI app 0 (mountpoint='') ready"  # the server log line of every start of the app (deploy, reload)
 UPTIME_CHECK = "UptimeRobot"
 REFUSED = "Webhook call without the right secret token"  # counted from the 403s of the access log instead
-# Normalized messages (see kind) that are expected: the hosting proxy answers 503 now and then (see RetryingRequest).
+# Normalized messages (see kind) that are expected: the hosting proxy answers 503 now and then (see bot._RetryingRequest).
 KNOWN = (
     'Update "N" caused error "httpx.ProxyError: N Service Unavailable"',
     "Error in webhook: httpx.ProxyError: N Service Unavailable",

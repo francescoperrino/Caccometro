@@ -14,7 +14,7 @@ from caccometro.formatting import flame, ranked_line, standing_lines, tie_positi
 from caccometro.i18n import tr
 
 
-async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
+async def _leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
     """/leaderboard_month and /leaderboard_year: total 💩 per person in the period, with a chart."""
     sender = register_sender(update)
     if sender is None:
@@ -58,7 +58,7 @@ async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     await reply_chart(update, generate_rank_chart(rank, daily_counts, time_period, date, forecast), message)
 
 
-async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
+async def _stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
     """/stats_month and /stats_year: mean, median and variance per person, with a chart."""
     sender = register_sender(update)
     if sender is None:
@@ -101,19 +101,19 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time
 
 async def leaderboard_month_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /leaderboard_month command."""
-    await leaderboard_command(update, context, 'month')
+    await _leaderboard_command(update, context, 'month')
 
 
 async def leaderboard_year_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /leaderboard_year command."""
-    await leaderboard_command(update, context, 'year')
+    await _leaderboard_command(update, context, 'year')
 
 
 async def stats_month_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /stats_month command."""
-    await stats_command(update, context, 'month')
+    await _stats_command(update, context, 'month')
 
 
 async def stats_year_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /stats_year command."""
-    await stats_command(update, context, 'year')
+    await _stats_command(update, context, 'year')

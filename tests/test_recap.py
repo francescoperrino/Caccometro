@@ -199,5 +199,5 @@ def test_the_screens_get_the_drawn_background_of_the_month(name, status):
 
 
 def test_on_the_first_of_january_the_announcement_opens_the_year_too():
-    urls = lambda today: [b.url.rsplit("_", 1)[1] for b in announce.recap_button(-1001, today).inline_keyboard[0]]
+    urls = lambda today: [b.url.rsplit("_", 1)[1] for b in announce._recap_button(-1001, today).inline_keyboard[0]]
     assert urls(date(2027, 1, 1)) == ["year", "recap"] and urls(date(2026, 11, 1)) == ["recap"]

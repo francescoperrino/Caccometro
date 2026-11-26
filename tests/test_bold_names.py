@@ -10,7 +10,7 @@ import pytest
 
 from caccometro import cmd_records, database, formatting
 from caccometro.chat import escape_md
-from caccometro.formatting import ESCAPED, bold
+from caccometro.formatting import ESCAPED, _bold
 from conftest import make_context, make_update
 
 NAME = "Mario_*[x"
@@ -36,14 +36,14 @@ def bold_segments(text):
 
 
 def test_the_escaped_character_stays_outside_the_bold():
-    assert bold(escape_md("@mario_rossi")) == "*@mario*\\_*rossi*"
-    assert bold(escape_md(NAME)) == "*Mario*\\_\\*\\[*x*"
-    assert bold("plain") == "*plain*"
+    assert _bold(escape_md("@mario_rossi")) == "*@mario*\\_*rossi*"
+    assert _bold(escape_md(NAME)) == "*Mario*\\_\\*\\[*x*"
+    assert _bold("plain") == "*plain*"
 
 
 @pytest.mark.parametrize("name", ["@mario_rossi", "a*b", "a`b", "a[b", "_x_", "**", "[x](y)", "a_ _b", NAME])
 def test_bold_is_well_formed(name):
-    bold_segments(f"🥇 {bold(escape_md(name))}: 5")
+    bold_segments(f"🥇 {_bold(escape_md(name))}: 5")
 
 
 def run(command, *args):

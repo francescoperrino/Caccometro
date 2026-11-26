@@ -100,30 +100,30 @@ def conquest_data(timed, users):
     names = {user_id: mention_of(users, user_id) for user_id in {user_id for user_id, _ in history} | set(users)}
     season = season_of(now_rome().date())
     result = season_results(timed).get(season)
-    return {'levels': levels, 'names': names, 'king': king, 'seasons': season_boards(timed),
+    return {'levels': levels, 'names': names, 'king': king, 'seasons': _season_boards(timed),
             'ranking': [{'user': user_id, 'held': held} for user_id, held in
                         sorted(counts.items(), key=lambda item: (-item[1], item[0] != king))],
             'season': None if result is None else {'year': season[0], 'quarter': season[1], 'conquests': result.conquests,
                                                    'conquerors': result.conquerors, 'king': result.king}}
 
 
-def plain(value):
+def _plain(value):
     """Records and trophies ready for JSON: dates as 'YYYY-MM-DD', named tuples (Record, Period...) as objects."""
     if isinstance(value, date):
         return value.isoformat()
     if hasattr(value, '_asdict'):
-        return {key: plain(item) for key, item in value._asdict().items()}
+        return {key: _plain(item) for key, item in value._asdict().items()}
     if isinstance(value, (list, tuple)):
-        return [plain(item) for item in value]
+        return [_plain(item) for item in value]
     return value
 
 
 def records_data(rows_by_user, today, timed):
     """Records of the group and of each person, and everyone's trophies (#190): what /records and /trophies show."""
     people = analyze_users(rows_by_user, today)
-    return {'group': plain(analyze_group(rows_by_user, today)),
-            'people': {user_id: plain(records) for user_id, records in people.items()},
-            'trophies': {user_id: {**plain(trophies), 'streak_trophies': trophies.streak_trophies}
+    return {'group': _plain(analyze_group(rows_by_user, today)),
+            'people': {user_id: _plain(records) for user_id, records in people.items()},
+            'trophies': {user_id: {**_plain(trophies), 'streak_trophies': trophies.streak_trophies}
                          for user_id, trophies in trophies_by_user(rows_by_user, today, timed).items()}}
 
 
@@ -151,7 +151,7 @@ def period_data(chat_id, time_period, period, today):
                            for s in statistics]}
 
 
-def season_boards(timed):
+def _season_boards(timed):
     """Every season with a conquest, oldest first (#190): the conquests each member made in it, stolen tiles included
     (the rule of the conqueror title), and the tiles each one held at its end (now, for the current season), with its king."""
     conquered, last, owners = {}, {}, {}
@@ -189,7 +189,7 @@ def recap_data(chat_id, user_id, today, yearly=False):
 
 def recaps(chat_id, user_id, today):
     """The recaps to show today, the year first: none, one, or in early January the year and December."""
-    return [plain(r) for r in (recap_data(chat_id, user_id, today, yearly=True), recap_data(chat_id, user_id, today)) if r]
+    return [_plain(r) for r in (recap_data(chat_id, user_id, today, yearly=True), recap_data(chat_id, user_id, today)) if r]
 
 
 LINK_SECONDS = 15 * 60  # how long the link of a recap picture works (#217)

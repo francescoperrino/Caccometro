@@ -42,37 +42,37 @@ def test_invalid_year_argument_replies_with_error(command, arg):
 
 @pytest.mark.parametrize("arg", ["03-2026", "3-2026", "03/2026", "3.2026", "03-26", "3/26", "03.26"])
 def test_month_written_in_the_common_formats(arg):
-    assert arguments.parse_month_arg(arg) == "03-2026"
+    assert arguments._parse_month_arg(arg) == "03-2026"
 
 
 @pytest.mark.parametrize("arg", ["05-03-2026", "5-3-2026", "05/03/2026", "5.3.2026", "05-03-26", "5/3/26", "05.03.26"])
 def test_date_written_in_the_common_formats(arg):
-    assert arguments.parse_date_arg(arg) == ("05-03-2026", "2026-03-05")
+    assert arguments._parse_date_arg(arg) == ("05-03-2026", "2026-03-05")
 
 
 @pytest.mark.parametrize("arg", ["31-02-2026", "0-3-2026", "5-13-2026", "2026-03-05", "5/3/", "5-3-202", "5_3_2026", "a/b/c"])
 def test_impossible_or_unknown_date_is_refused_with_examples(arg):
     with pytest.raises(ValueError, match="Esempi"):
-        arguments.parse_date_arg(arg)
+        arguments._parse_date_arg(arg)
 
 
 @pytest.mark.parametrize("arg", ["2026", "26"])
 def test_year_with_two_or_four_digits(arg):
-    assert arguments.parse_year_arg(arg) == "2026"
+    assert arguments._parse_year_arg(arg) == "2026"
 
 
 @pytest.mark.parametrize("arg", ["marzo 2026", "Marzo 2026", "marzo 26", "MARZO 2026", "march 2026", "March 26"])
 def test_month_written_with_its_italian_or_english_name(arg):
-    assert arguments.parse_month_arg(arg) == "03-2026"
+    assert arguments._parse_month_arg(arg) == "03-2026"
 
 
 def test_month_name_without_a_year_is_this_year():
-    assert arguments.parse_month_arg("marzo") == f"03-{arguments.now_rome().year}"
+    assert arguments._parse_month_arg("marzo") == f"03-{arguments.now_rome().year}"
 
 
 @pytest.mark.parametrize("arg", ["marzi 2026", "mar 2026", "marzo 1969", "marzo 2101", "marzo 20245", "2026 marzo"])
 def test_unknown_month_name_or_year_is_refused(arg):
-    assert arguments.parse_month_arg(arg) is None
+    assert arguments._parse_month_arg(arg) is None
 
 
 def test_month_command_joins_the_arguments(seed):
@@ -84,25 +84,25 @@ def test_month_command_joins_the_arguments(seed):
 
 def test_oggi_and_ieri_are_the_current_and_the_previous_day():
     today = arguments.now_rome().date()
-    assert arguments.parse_date_arg("oggi")[1] == today.isoformat()
-    assert arguments.parse_date_arg("Ieri")[1] == (today - arguments.timedelta(days=1)).isoformat()
+    assert arguments._parse_date_arg("oggi")[1] == today.isoformat()
+    assert arguments._parse_date_arg("Ieri")[1] == (today - arguments.timedelta(days=1)).isoformat()
 
 
 def test_today_and_yesterday_are_accepted_in_every_chat():
     today = arguments.now_rome().date()
-    assert arguments.parse_date_arg("today")[1] == today.isoformat()
-    assert arguments.parse_date_arg("Yesterday")[1] == (today - arguments.timedelta(days=1)).isoformat()
+    assert arguments._parse_date_arg("today")[1] == today.isoformat()
+    assert arguments._parse_date_arg("Yesterday")[1] == (today - arguments.timedelta(days=1)).isoformat()
 
 
 def test_a_day_without_the_year_is_this_year():
     year = arguments.now_rome().year
-    assert arguments.parse_date_arg("1.1") == (f"01-01-{year}", f"{year}-01-01")
+    assert arguments._parse_date_arg("1.1") == (f"01-01-{year}", f"{year}-01-01")
 
 
 def test_a_day_without_the_year_in_the_future_is_refused(monkeypatch):
     monkeypatch.setattr(arguments, "now_rome", lambda: datetime(2026, 11, 17, 12, 0))
     with pytest.raises(ValueError, match="futuro"):
-        arguments.parse_date_arg("31/12")
+        arguments._parse_date_arg("31/12")
 
 
 def test_add_poop_accepts_a_slash_date_and_replies_with_the_standard_format(seed):
@@ -150,8 +150,8 @@ def test_date_before_1970_is_refused_and_not_stored(command, arg, chat_id):
 
 def test_date_in_the_future_is_refused_by_comparing_dates():
     with pytest.raises(ValueError, match="futuro"):
-        arguments.parse_date_arg("01-01-2100")
+        arguments._parse_date_arg("01-01-2100")
 
 
 def test_date_is_stored_with_a_four_digit_year():
-    assert arguments.parse_date_arg("01-01-1970") == ("01-01-1970", "1970-01-01")
+    assert arguments._parse_date_arg("01-01-1970") == ("01-01-1970", "1970-01-01")

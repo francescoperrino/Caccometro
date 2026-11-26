@@ -31,7 +31,7 @@ LOG_BACKUPS = 3            # ...and 3 older files: the logs never take more than
 file_handler = RotatingFileHandler(log_filename, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUPS, encoding='utf-8')
 
 
-def log_handlers(run_mode):
+def _log_handlers(run_mode):
     """The bot log goes to the rotating file; to the console too only when running locally (polling).
 
     In webhook mode the console is the web server error log: writing there too kept every line twice.
@@ -42,12 +42,12 @@ def log_handlers(run_mode):
     return [file_handler]
 
 
-def keep_app_log_out_of_the_root_logger(run_mode):
+def _keep_app_log_out_of_the_root_logger(run_mode):
     """In webhook mode the bot's own records go straight to the file and stop at the 'caccometro' logger.
 
     The hosting puts a handler of its own on the root logger, after this module is imported (it shows every record,
     message only, in the web server error log). Records of the libraries still reach it: that is where their
-    crashes belong. Polling mode (local development) keeps the console handler of log_handlers().
+    crashes belong. Polling mode (local development) keeps the console handler of _log_handlers().
     """
     if run_mode != 'POLLING':
         app_logger = logging.getLogger('caccometro')
@@ -59,18 +59,18 @@ def keep_app_log_out_of_the_root_logger(run_mode):
 logging.Formatter.converter = staticmethod(lambda seconds: datetime.fromtimestamp(seconds, ROME_TZ).timetuple())
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                     level=logging.INFO,
-                    handlers=log_handlers(RUN_MODE))
-keep_app_log_out_of_the_root_logger(RUN_MODE)
+                    handlers=_log_handlers(RUN_MODE))
+_keep_app_log_out_of_the_root_logger(RUN_MODE)
 # Set higher logging level for httpx to avoid all GET and POST requests being logged
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
-# Requests to Telegram and outcome of the update being processed, for its "done" line (see LoggingApplication)
+# Requests to Telegram and outcome of the update being processed, for its "done" line (see _LoggingApplication)
 CURRENT_UPDATE = ContextVar('current_update', default=None)
 
 
-def update_kind(update):
+def _update_kind(update):
     """'/<English command name>', 'sticker', 'location' or 'message': what the update asked the bot, for the log."""
     message = getattr(update, 'message', None)
     if message is None:
@@ -87,12 +87,12 @@ def update_kind(update):
     return 'message'
 
 
-def update_line(update, attempts, outcome, ms):
+def _update_line(update, attempts, outcome, ms):
     """The line written when an update is done: no names, no text, only what the nightly summary needs."""
     chat = getattr(update, 'effective_chat', None)
     chat_type = '-' if chat is None else 'private' if chat.type == 'private' else 'group'
     update_id = getattr(update, 'update_id', '-')
-    return (f"Update {update_id} done: command={update_kind(update)} chat={chat_type} ms={ms} "
+    return (f"Update {update_id} done: command={_update_kind(update)} chat={chat_type} ms={ms} "
             f"attempts={attempts} outcome={outcome}")
 
 
@@ -119,11 +119,11 @@ def update_log():
         CURRENT_UPDATE.reset(token)
         if info['update'] is not None:
             ms = round((time.monotonic() - start) * 1000)
-            logger.info(update_line(info['update'], info['attempts'], info['outcome'], ms))
+            logger.info(_update_line(info['update'], info['attempts'], info['outcome'], ms))
 
 
-class LoggingApplication(Application):
-    """Application that writes one line per update when its processing ends (see update_line)."""
+class _LoggingApplication(Application):
+    """Application that writes one line per update when its processing ends (see _update_line)."""
 
     async def process_update(self, update):
         """Process the update as usual, timing it and counting its requests to Telegram (polling mode)."""
@@ -135,18 +135,18 @@ class LoggingApplication(Application):
 
 
 # Error handler
-async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def _error(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for logging errors; marks the update as lost (network gave up) or failed."""
     info = CURRENT_UPDATE.get()
     if info is not None:
         info['outcome'] = outcome_of(context.error)
     if update:
-        logger.error(f'Update "{getattr(update, "update_id", "-")}" caused error "{context.error}" in {update_kind(update)}',
+        logger.error(f'Update "{getattr(update, "update_id", "-")}" caused error "{context.error}" in {_update_kind(update)}',
                      exc_info=context.error)
     else:
         logger.error(f'Error: "{context.error}"', exc_info=context.error)
 
-class CachedMeBot(ExtBot):
+class _CachedMeBot(ExtBot):
     """ExtBot that asks Telegram 'who am I?' (getMe) only once per process.
 
     The webhook initializes and shuts down the application for every update, and Bot.initialize()
@@ -162,7 +162,7 @@ class CachedMeBot(ExtBot):
         return await super().get_me(*args, **kwargs)
 
 
-class RetryingRequest(HTTPXRequest):
+class _RetryingRequest(HTTPXRequest):
     """HTTPXRequest that tries a request again when the connection to Telegram fails.
 
     Outgoing requests sometimes fail at once with a proxy error (503) and work a moment later.
@@ -191,9 +191,9 @@ class RetryingRequest(HTTPXRequest):
 
 
 # Create the Application instance (same connection pools as Application.builder().token(...) would use)
-application = Application.builder().application_class(LoggingApplication).bot(CachedMeBot(
+application = Application.builder().application_class(_LoggingApplication).bot(_CachedMeBot(
     BOT_TOKEN,
-    request=RetryingRequest(connection_pool_size=256),
+    request=_RetryingRequest(connection_pool_size=256),
     get_updates_request=HTTPXRequest(connection_pool_size=1),
 )).build()
 
@@ -225,7 +225,7 @@ application.add_handler(MessageHandler(filters.StatusUpdate.MIGRATE, handle_migr
 application.add_handler(MessageHandler(filters.ALL, handle_message))
 
 # Errors
-application.add_error_handler(error)
+application.add_error_handler(_error)
 
 
 def main():

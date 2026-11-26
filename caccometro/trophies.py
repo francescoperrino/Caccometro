@@ -32,7 +32,7 @@ class UserTrophies(NamedTuple):
         return sum(days // STREAK_STEP for _, days in self.streaks)
 
 
-def streak_runs(rows):
+def _streak_runs(rows):
     """[(Period, days)] of the runs worth at least one trophy. rows: [(date 'YYYY-MM-DD', count)]."""
     counts = parse_counts(rows)
     return [(Period(run.start, run.end), run.days) for run in consecutive_runs(sorted(counts), counts)
@@ -125,7 +125,7 @@ def trophies_by_user(users_rows, today: date, history=()):
             king.setdefault(season_result.king, []).append(season)
     result = {}
     for user_id in set(users_rows) | set(conqueror) | set(king):
-        trophies = UserTrophies(streak_runs(users_rows.get(user_id, [])), months.get(user_id, []),
+        trophies = UserTrophies(_streak_runs(users_rows.get(user_id, [])), months.get(user_id, []),
                                 years.get(user_id, []), conqueror.get(user_id, []), king.get(user_id, []))
         if any(trophies):
             result[user_id] = trophies

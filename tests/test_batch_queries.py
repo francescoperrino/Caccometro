@@ -203,7 +203,7 @@ def test_add_poop_reports_the_new_count(chat_id, seed):
 def test_poop_messages_sent_at_the_same_time_are_all_counted(chat_id):
     today = database.now_rome().strftime("%Y-%m-%d")
     sender = User(uid("mario"), "mario", "Mario")
-    threads = [threading.Thread(target=messages.record_poop, args=(sender, chat_id)) for _ in range(12)]
+    threads = [threading.Thread(target=messages._record_poop, args=(sender, chat_id)) for _ in range(12)]
     for thread in threads:
         thread.start()
     for thread in threads:
@@ -217,4 +217,4 @@ def test_the_year_table_follows_the_language_of_the_chat(seed, chat_id, monkeypa
     table = table_of_rank_chart(monkeypatch, database.get_rank(chat_id, "year", "2024"),
                                 database.get_daily_counts(chat_id, "year", "2024"), "year", "2024", chat_id)
     assert table[0][1:4] == ["jan", "feb", "mar"] and table[0][-1] == "Total"
-    assert charts.decimal(1.25) == "1.25"
+    assert charts._decimal(1.25) == "1.25"

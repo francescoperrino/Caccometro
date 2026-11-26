@@ -35,7 +35,7 @@ def test_error_handler_logs_traceback(caplog):
         ctx = make_context()
         ctx.error = exc
         with caplog.at_level(logging.ERROR, logger="caccometro"):
-            run(bot.error(make_update(), ctx))
+            run(bot._error(make_update(), ctx))
     record = caplog.records[-1]
     assert record.exc_info is not None
     assert "boom" in record.getMessage()

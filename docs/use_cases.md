@@ -119,7 +119,6 @@ sequenceDiagram
 - `chat.register_sender`
   - `database.get_language`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
 - `database.init_database`
 
@@ -275,7 +274,7 @@ sequenceDiagram
         database-->>cmd_leaderboards: daily_counts
         cmd_leaderboards->>charts: generate_rank_chart(rank, daily_counts, time_period, date...)
         cmd_leaderboards->>chat: reply_chart(update, generate_rank_chart(rank, dai...)
-        opt fits_caption(message)
+        opt _fits_caption(message)
             chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
             Note over chat: returns
         end
@@ -287,47 +286,35 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `cmd_leaderboards.leaderboard_command`
-  - `chat.register_sender`
-    - `database.get_language`
-    - `chat.register_user`
-      - `chat.display_name_of`
-      - `database.upsert_user`
-  - `arguments.period_from_args`
-  - `database.get_rank`
-  - `chat.legacy_hint`
-    - `database.list_legacy_users`
-  - `database.get_all_user_rows`
-  - `formatting.flame`
-  - `analysis.analyze_users`
-    - `analysis.analyze_user`
-      - `analysis.parse_counts`
-      - `analysis.consecutive_runs`
-  - `database.get_daily_counts_between`
-  - `analysis.forecast_totals`
-  - `chat.escape_md`
-  - `formatting.ranked_line`
-    - `formatting.bold`
-  - `formatting.tie_positions`
-  - `formatting.standing_lines`
-  - `database.get_daily_counts`
-    - `database.get_daily_counts_between` (see above)
-  - `chat.reply_chart`
-    - `chat.fits_caption`
-  - `charts.generate_rank_chart`
-    - `charts.period_info`
-    - `charts.last_day_shown`
-    - `charts.chart_label`
-    - `charts.sorted_by_name`
-    - `charts.short_name`
-    - `charts.user_style`
-    - `charts.positions`
-    - `charts.emoji`
-    - `charts.fine_vlines`
-    - `charts.layered_grid`
-    - `charts.add_cards`
-    - `charts.png_bytes`
-      - `charts.add_watermark`
+- `chat.register_sender`
+  - `database.get_language`
+  - `chat.register_user`
+    - `database.upsert_user`
+- `arguments.period_from_args`
+- `database.get_rank`
+- `chat.legacy_hint`
+  - `database.list_legacy_users`
+- `database.get_all_user_rows`
+- `formatting.flame`
+- `analysis.analyze_users`
+  - `analysis.analyze_user`
+    - `analysis.parse_counts`
+    - `analysis.consecutive_runs`
+- `database.get_daily_counts_between`
+- `analysis.forecast_totals`
+- `chat.escape_md`
+- `formatting.ranked_line`
+- `formatting.tie_positions`
+- `formatting.standing_lines`
+- `database.get_daily_counts`
+  - `database.get_daily_counts_between` (see above)
+- `chat.reply_chart`
+- `charts.generate_rank_chart`
+  - `charts.chart_label`
+  - `charts.sorted_by_name`
+  - `charts.short_name`
+  - `charts.add_cards`
+  - `charts.png_bytes`
 
 </details>
 
@@ -481,7 +468,7 @@ sequenceDiagram
         database-->>cmd_leaderboards: daily_counts
         cmd_leaderboards->>charts: generate_rank_chart(rank, daily_counts, time_period, date...)
         cmd_leaderboards->>chat: reply_chart(update, generate_rank_chart(rank, dai...)
-        opt fits_caption(message)
+        opt _fits_caption(message)
             chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
             Note over chat: returns
         end
@@ -493,47 +480,35 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `cmd_leaderboards.leaderboard_command`
-  - `chat.register_sender`
-    - `database.get_language`
-    - `chat.register_user`
-      - `chat.display_name_of`
-      - `database.upsert_user`
-  - `arguments.period_from_args`
-  - `database.get_rank`
-  - `chat.legacy_hint`
-    - `database.list_legacy_users`
-  - `database.get_all_user_rows`
-  - `formatting.flame`
-  - `analysis.analyze_users`
-    - `analysis.analyze_user`
-      - `analysis.parse_counts`
-      - `analysis.consecutive_runs`
-  - `database.get_daily_counts_between`
-  - `analysis.forecast_totals`
-  - `chat.escape_md`
-  - `formatting.ranked_line`
-    - `formatting.bold`
-  - `formatting.tie_positions`
-  - `formatting.standing_lines`
-  - `database.get_daily_counts`
-    - `database.get_daily_counts_between` (see above)
-  - `chat.reply_chart`
-    - `chat.fits_caption`
-  - `charts.generate_rank_chart`
-    - `charts.period_info`
-    - `charts.last_day_shown`
-    - `charts.chart_label`
-    - `charts.sorted_by_name`
-    - `charts.short_name`
-    - `charts.user_style`
-    - `charts.positions`
-    - `charts.emoji`
-    - `charts.fine_vlines`
-    - `charts.layered_grid`
-    - `charts.add_cards`
-    - `charts.png_bytes`
-      - `charts.add_watermark`
+- `chat.register_sender`
+  - `database.get_language`
+  - `chat.register_user`
+    - `database.upsert_user`
+- `arguments.period_from_args`
+- `database.get_rank`
+- `chat.legacy_hint`
+  - `database.list_legacy_users`
+- `database.get_all_user_rows`
+- `formatting.flame`
+- `analysis.analyze_users`
+  - `analysis.analyze_user`
+    - `analysis.parse_counts`
+    - `analysis.consecutive_runs`
+- `database.get_daily_counts_between`
+- `analysis.forecast_totals`
+- `chat.escape_md`
+- `formatting.ranked_line`
+- `formatting.tie_positions`
+- `formatting.standing_lines`
+- `database.get_daily_counts`
+  - `database.get_daily_counts_between` (see above)
+- `chat.reply_chart`
+- `charts.generate_rank_chart`
+  - `charts.chart_label`
+  - `charts.sorted_by_name`
+  - `charts.short_name`
+  - `charts.add_cards`
+  - `charts.png_bytes`
 
 </details>
 
@@ -683,7 +658,7 @@ sequenceDiagram
         end
         cmd_leaderboards->>charts: generate_statistics_chart(statistics, daily_counts, time_period...)
         cmd_leaderboards->>chat: reply_chart(update, generate_statistics_chart(sta...)
-        opt fits_caption(message)
+        opt _fits_caption(message)
             chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
             Note over chat: returns
         end
@@ -695,43 +670,30 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `cmd_leaderboards.stats_command`
-  - `chat.register_sender`
-    - `database.get_language`
-    - `chat.register_user`
-      - `chat.display_name_of`
-      - `database.upsert_user`
-  - `arguments.period_from_args`
-  - `database.get_daily_counts`
-    - `database.get_daily_counts_between`
-  - `analysis.period_statistics`
-  - `database.get_users`
-  - `chat.legacy_hint`
-    - `database.list_legacy_users`
-  - `chat.escape_md`
-  - `formatting.ranked_line`
-    - `formatting.bold`
-  - `formatting.tie_positions`
-  - `formatting.standing_lines`
-  - `analysis.period_regularity`
-    - `analysis.regularity`
-  - `database.get_first_days`
-  - `chat.reply_chart`
-    - `chat.fits_caption`
-  - `charts.generate_statistics_chart`
-    - `charts.period_info`
-    - `charts.chart_label`
-    - `charts.sorted_by_name`
-    - `charts.last_day_shown`
-    - `charts.user_style`
-    - `charts.normal_pdf`
-    - `charts.short_name`
-    - `charts.decimal`
-    - `charts.fine_vlines`
-    - `charts.layered_grid`
-    - `charts.add_cards`
-    - `charts.png_bytes`
-      - `charts.add_watermark`
+- `chat.register_sender`
+  - `database.get_language`
+  - `chat.register_user`
+    - `database.upsert_user`
+- `arguments.period_from_args`
+- `database.get_daily_counts`
+  - `database.get_daily_counts_between`
+- `analysis.period_statistics`
+- `database.get_users`
+- `chat.legacy_hint`
+  - `database.list_legacy_users`
+- `chat.escape_md`
+- `formatting.ranked_line`
+- `formatting.tie_positions`
+- `formatting.standing_lines`
+- `analysis.period_regularity`
+- `database.get_first_days`
+- `chat.reply_chart`
+- `charts.generate_statistics_chart`
+  - `charts.chart_label`
+  - `charts.sorted_by_name`
+  - `charts.short_name`
+  - `charts.add_cards`
+  - `charts.png_bytes`
 
 </details>
 
@@ -881,7 +843,7 @@ sequenceDiagram
         end
         cmd_leaderboards->>charts: generate_statistics_chart(statistics, daily_counts, time_period...)
         cmd_leaderboards->>chat: reply_chart(update, generate_statistics_chart(sta...)
-        opt fits_caption(message)
+        opt _fits_caption(message)
             chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
             Note over chat: returns
         end
@@ -893,43 +855,30 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `cmd_leaderboards.stats_command`
-  - `chat.register_sender`
-    - `database.get_language`
-    - `chat.register_user`
-      - `chat.display_name_of`
-      - `database.upsert_user`
-  - `arguments.period_from_args`
-  - `database.get_daily_counts`
-    - `database.get_daily_counts_between`
-  - `analysis.period_statistics`
-  - `database.get_users`
-  - `chat.legacy_hint`
-    - `database.list_legacy_users`
-  - `chat.escape_md`
-  - `formatting.ranked_line`
-    - `formatting.bold`
-  - `formatting.tie_positions`
-  - `formatting.standing_lines`
-  - `analysis.period_regularity`
-    - `analysis.regularity`
-  - `database.get_first_days`
-  - `chat.reply_chart`
-    - `chat.fits_caption`
-  - `charts.generate_statistics_chart`
-    - `charts.period_info`
-    - `charts.chart_label`
-    - `charts.sorted_by_name`
-    - `charts.last_day_shown`
-    - `charts.user_style`
-    - `charts.normal_pdf`
-    - `charts.short_name`
-    - `charts.decimal`
-    - `charts.fine_vlines`
-    - `charts.layered_grid`
-    - `charts.add_cards`
-    - `charts.png_bytes`
-      - `charts.add_watermark`
+- `chat.register_sender`
+  - `database.get_language`
+  - `chat.register_user`
+    - `database.upsert_user`
+- `arguments.period_from_args`
+- `database.get_daily_counts`
+  - `database.get_daily_counts_between`
+- `analysis.period_statistics`
+- `database.get_users`
+- `chat.legacy_hint`
+  - `database.list_legacy_users`
+- `chat.escape_md`
+- `formatting.ranked_line`
+- `formatting.tie_positions`
+- `formatting.standing_lines`
+- `analysis.period_regularity`
+- `database.get_first_days`
+- `chat.reply_chart`
+- `charts.generate_statistics_chart`
+  - `charts.chart_label`
+  - `charts.sorted_by_name`
+  - `charts.short_name`
+  - `charts.add_cards`
+  - `charts.png_bytes`
 
 </details>
 
@@ -1105,17 +1054,12 @@ sequenceDiagram
 - `chat.register_sender`
   - `database.get_language`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
 - `arguments.resolve_optional_target`
   - `arguments.replied_person`
-  - `arguments.resolve_target`
-    - `arguments.parse_username_arg`
-    - `arguments.invalid_format`
-    - `database.find_user_by_username`
-    - `arguments.replied_person` (see above)
-    - `chat.register_user` (see above)
-  - `arguments.invalid_format` (see above)
+  - `arguments.invalid_format`
+  - `database.find_user_by_username`
+  - `chat.register_user` (see above)
 - `database.get_all_user_rows`
 - `chat.legacy_hint`
   - `database.list_legacy_users`
@@ -1126,11 +1070,9 @@ sequenceDiagram
       - `analysis.consecutive_runs`
 - `chat.escape_md`
 - `formatting.format_group_record`
-  - `formatting.bold`
 - `database.get_record`
 - `analysis.analyze_users` (see above)
 - `formatting.format_user_record`
-  - `formatting.bold` (see above)
 - `analysis.analyze_user` (see above)
 - `analysis.record_places`
 
@@ -1312,17 +1254,12 @@ sequenceDiagram
 - `chat.register_sender`
   - `database.get_language`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
 - `arguments.resolve_optional_target`
   - `arguments.replied_person`
-  - `arguments.resolve_target`
-    - `arguments.parse_username_arg`
-    - `arguments.invalid_format`
-    - `database.find_user_by_username`
-    - `arguments.replied_person` (see above)
-    - `chat.register_user` (see above)
-  - `arguments.invalid_format` (see above)
+  - `arguments.invalid_format`
+  - `database.find_user_by_username`
+  - `chat.register_user` (see above)
 - `database.get_all_user_rows`
 - `trophies.trophies_by_user`
   - `trophies.monthly_winners`
@@ -1333,18 +1270,15 @@ sequenceDiagram
     - `trophies.season_of`
     - `conquest.holdings`
   - `trophies.season_of` (see above)
-  - `trophies.streak_runs`
-    - `analysis.parse_counts` (see above)
-    - `analysis.consecutive_runs`
+  - `analysis.parse_counts` (see above)
+  - `analysis.consecutive_runs`
 - `database.get_timed_conquests`
 - `chat.escape_md`
 - `formatting.format_group_trophies`
-  - `formatting.bold`
 - `analysis.analyze_user`
   - `analysis.parse_counts` (see above)
   - `analysis.consecutive_runs` (see above)
 - `formatting.format_user_trophies`
-  - `formatting.bold` (see above)
 
 </details>
 
@@ -1522,7 +1456,7 @@ sequenceDiagram
             chat->>telegram: reply_text(message, parse_mode='Markdown')
         else
             alt len(charts) == 1
-                opt fits_caption(message)
+                opt _fits_caption(message)
                     chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
                     Note over chat: returns
                 end
@@ -1544,24 +1478,18 @@ sequenceDiagram
 - `chat.register_sender`
   - `database.get_language`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
 - `arguments.resolve_optional_target`
   - `arguments.replied_person`
-  - `arguments.resolve_target`
-    - `arguments.parse_username_arg`
-    - `arguments.invalid_format`
-    - `database.find_user_by_username`
-    - `arguments.replied_person` (see above)
-    - `chat.register_user` (see above)
-  - `arguments.invalid_format` (see above)
+  - `arguments.invalid_format`
+  - `database.find_user_by_username`
+  - `chat.register_user` (see above)
 - `database.get_timed_conquests`
 - `conquest.holdings`
 - `database.get_users`
 - `chat.escape_md`
 - `conquest.visited`
 - `formatting.ranked_line`
-  - `formatting.bold`
 - `conquest.mention_of`
 - `formatting.tie_positions`
 - `trophies.season_of`
@@ -1569,12 +1497,9 @@ sequenceDiagram
   - `trophies.season_of` (see above)
   - `conquest.holdings` (see above)
 - `formatting.format_season_line`
-  - `formatting.bold` (see above)
 - `maps.render`
 - `chat.reply_charts`
   - `chat.reply_chart`
-    - `chat.fits_caption`
-  - `chat.fits_caption` (see above)
 
 </details>
 
@@ -1693,7 +1618,6 @@ sequenceDiagram
 - `chat.register_sender`
   - `database.get_language`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
 - `miniapp.direct_link`
 
@@ -1846,18 +1770,13 @@ sequenceDiagram
 - `chat.register_sender`
   - `database.get_language`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
 - `arguments.target_from_args`
-  - `arguments.resolve_target`
-    - `arguments.parse_username_arg`
-    - `arguments.invalid_format`
-    - `database.find_user_by_username`
-    - `arguments.replied_person`
-    - `chat.register_user` (see above)
-  - `arguments.invalid_format` (see above)
+  - `arguments.invalid_format`
+  - `database.find_user_by_username`
+  - `arguments.replied_person`
+  - `chat.register_user` (see above)
 - `arguments.date_from_arg`
-  - `arguments.parse_date_arg`
 - `database.get_count`
 - `formatting.day_count_sentence`
 
@@ -2003,16 +1922,12 @@ sequenceDiagram
 - `chat.register_sender`
   - `database.get_language`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
 - `arguments.target_from_args`
-  - `arguments.resolve_target`
-    - `arguments.parse_username_arg`
-    - `arguments.invalid_format`
-    - `database.find_user_by_username`
-    - `arguments.replied_person`
-    - `chat.register_user` (see above)
-  - `arguments.invalid_format` (see above)
+  - `arguments.invalid_format`
+  - `database.find_user_by_username`
+  - `arguments.replied_person`
+  - `chat.register_user` (see above)
 - `database.get_days_since_last_poop`
 - `formatting.last_poop_sentence`
 
@@ -2169,27 +2084,20 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `cmd_counts.change_count_command`
-  - `chat.register_sender`
-    - `database.get_language`
-    - `chat.register_user`
-      - `chat.display_name_of`
-      - `database.upsert_user`
-  - `arguments.target_from_args`
-    - `arguments.resolve_target`
-      - `arguments.parse_username_arg`
-      - `arguments.invalid_format`
-      - `database.find_user_by_username`
-      - `arguments.replied_person`
-      - `chat.register_user` (see above)
-    - `arguments.invalid_format` (see above)
-  - `cmd_counts.may_change_counts_of`
-    - `chat.is_chat_admin`
-  - `arguments.date_from_arg`
-    - `arguments.parse_date_arg`
-  - `database.add_count`
-  - `chat.where`
-  - `formatting.change_count_sentence`
+- `chat.register_sender`
+  - `database.get_language`
+  - `chat.register_user`
+    - `database.upsert_user`
+- `arguments.target_from_args`
+  - `arguments.invalid_format`
+  - `database.find_user_by_username`
+  - `arguments.replied_person`
+  - `chat.register_user` (see above)
+- `chat.is_chat_admin`
+- `arguments.date_from_arg`
+- `database.add_count`
+- `chat.where`
+- `formatting.change_count_sentence`
 
 </details>
 
@@ -2344,27 +2252,20 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `cmd_counts.change_count_command`
-  - `chat.register_sender`
-    - `database.get_language`
-    - `chat.register_user`
-      - `chat.display_name_of`
-      - `database.upsert_user`
-  - `arguments.target_from_args`
-    - `arguments.resolve_target`
-      - `arguments.parse_username_arg`
-      - `arguments.invalid_format`
-      - `database.find_user_by_username`
-      - `arguments.replied_person`
-      - `chat.register_user` (see above)
-    - `arguments.invalid_format` (see above)
-  - `cmd_counts.may_change_counts_of`
-    - `chat.is_chat_admin`
-  - `arguments.date_from_arg`
-    - `arguments.parse_date_arg`
-  - `database.add_count`
-  - `chat.where`
-  - `formatting.change_count_sentence`
+- `chat.register_sender`
+  - `database.get_language`
+  - `chat.register_user`
+    - `database.upsert_user`
+- `arguments.target_from_args`
+  - `arguments.invalid_format`
+  - `database.find_user_by_username`
+  - `arguments.replied_person`
+  - `chat.register_user` (see above)
+- `chat.is_chat_admin`
+- `arguments.date_from_arg`
+- `database.add_count`
+- `chat.where`
+- `formatting.change_count_sentence`
 
 </details>
 
@@ -2500,7 +2401,6 @@ sequenceDiagram
 - `chat.register_sender`
   - `database.get_language`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
 - `chat.is_chat_admin`
 - `database.set_language`
@@ -2679,7 +2579,6 @@ sequenceDiagram
 - `chat.register_sender`
   - `database.get_language`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
 - `database.list_legacy_users`
 - `database.find_user_by_username`
@@ -2848,7 +2747,7 @@ sequenceDiagram
         else
             alt update.message.sticker
                 opt emoji == '💩' or emoji == '🚽'
-                    Note over messages: record_poop() as above
+                    Note over messages: _record_poop() as above
                     messages->>telegram: reply_text(response, parse_mode='Markdown')
                 end
             else
@@ -2878,7 +2777,7 @@ sequenceDiagram
                         chat->>telegram: reply_text(message, parse_mode='Markdown')
                     else
                         alt len(charts) == 1
-                            opt fits_caption(message)
+                            opt _fits_caption(message)
                                 chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
                                 Note over chat: returns
                             end
@@ -2903,51 +2802,33 @@ sequenceDiagram
 - `chat.register_sender`
   - `database.get_language`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
-- `messages.record_poop`
-  - `database.add_count`
-  - `database.open_conquest_window`
-  - `formatting.poop_sentence`
-    - `formatting.poop_pool`
-  - `chat.escape_md`
-  - `trophies.new_streak_trophy`
-    - `analysis.parse_counts`
-    - `analysis.consecutive_runs`
-  - `database.get_record`
-  - `formatting.format_streak_trophy`
-- `chat.escape_md` (see above)
-- `messages.record_conquest`
-  - `database.conquer`
-  - `conquest.cell_of`
-  - `conquest.holdings`
-  - `database.get_users`
-  - `chat.escape_md` (see above)
-  - `conquest.mention_of`
+- `database.add_count`
+- `database.open_conquest_window`
+- `formatting.poop_sentence`
+- `chat.escape_md`
+- `trophies.new_streak_trophy`
+  - `analysis.parse_counts`
+  - `analysis.consecutive_runs`
+- `database.get_record`
+- `formatting.format_streak_trophy`
+- `database.conquer`
+- `conquest.cell_of`
+- `conquest.holdings`
+- `database.get_users`
+- `conquest.mention_of`
 - `chat.reply_charts`
   - `chat.reply_chart`
-    - `chat.fits_caption`
-  - `chat.fits_caption` (see above)
 - `maps.render`
 - `maps.zoom_map`
   - `maps.owners`
-  - `maps.tile_xy`
-  - `maps.legend_and_colors`
-    - `conquest.holdings` (see above)
-    - `charts.chart_label`
-    - `charts.short_name`
-    - `conquest.mention_of` (see above)
-    - `charts.sorted_by_name`
-  - `maps.draw`
-    - `maps.basemap`
-      - `maps.cached_tile`
-      - `maps.trim_cache`
-    - `maps.outline`
-      - `maps.tile_xy` (see above)
-    - `charts.add_cards`
-    - `maps.jpeg`
-    - `charts.png_bytes`
-      - `charts.add_watermark`
+  - `conquest.holdings` (see above)
+  - `charts.chart_label`
+  - `charts.short_name`
+  - `conquest.mention_of` (see above)
+  - `charts.sorted_by_name`
+  - `charts.add_cards`
+  - `charts.png_bytes`
 
 </details>
 
@@ -3350,11 +3231,9 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `webhook.member_chat`
-  - `webhook.mini_app_user`
-    - `miniapp.user_of`
-  - `miniapp.known_chats`
-  - `miniapp.is_member`
+- `miniapp.user_of`
+- `miniapp.known_chats`
+- `miniapp.is_member`
 - `database.get_all_user_rows`
 - `database.get_timed_conquests`
 - `database.get_language`
@@ -3367,15 +3246,11 @@ sequenceDiagram
   - `trophies.season_results`
     - `trophies.season_of` (see above)
     - `conquest.holdings` (see above)
-  - `miniapp.season_boards`
-    - `trophies.season_of` (see above)
-    - `conquest.holdings` (see above)
 - `miniapp.records_data`
   - `analysis.analyze_users`
     - `analysis.analyze_user`
       - `analysis.parse_counts`
       - `analysis.consecutive_runs`
-  - `miniapp.plain`
   - `analysis.analyze_group`
     - `analysis.analyze_users` (see above)
   - `trophies.trophies_by_user`
@@ -3385,17 +3260,14 @@ sequenceDiagram
       - `analysis.parse_counts` (see above)
     - `trophies.season_results` (see above)
     - `trophies.season_of` (see above)
-    - `trophies.streak_runs`
-      - `analysis.parse_counts` (see above)
-      - `analysis.consecutive_runs` (see above)
+    - `analysis.parse_counts` (see above)
+    - `analysis.consecutive_runs` (see above)
 - `miniapp.recaps`
-  - `miniapp.plain` (see above)
   - `miniapp.recap_data`
     - `database.get_daily_counts_between`
     - `analysis.recap`
       - `analysis.consecutive_runs` (see above)
       - `analysis.period_regularity`
-        - `analysis.regularity`
     - `database.get_first_days`
 
 </details>
@@ -3532,11 +3404,9 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `webhook.member_chat`
-  - `webhook.mini_app_user`
-    - `miniapp.user_of`
-  - `miniapp.known_chats`
-  - `miniapp.is_member`
+- `miniapp.user_of`
+- `miniapp.known_chats`
+- `miniapp.is_member`
 - `miniapp.period_data`
   - `database.get_rank`
   - `database.get_daily_counts_between`
@@ -3545,7 +3415,6 @@ sequenceDiagram
   - `database.get_users`
   - `database.get_first_days`
   - `analysis.period_regularity`
-    - `analysis.regularity`
 
 </details>
 
@@ -3662,7 +3531,7 @@ sequenceDiagram
     participant miniapp as miniapp.py
     rect rgb(255, 250, 243)
         task->>announce: main(argv)
-        loop for chat_id in chat_ids()
+        loop for chat_id in _chat_ids()
             announce->>database: get_language(chat_id)
             announce->>database: get_all_user_rows(chat_id)
             database-->>announce: (rows_by_user, users)
@@ -3699,25 +3568,19 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `announce.wait_for_midnight`
-- `announce.announce`
-  - `announce.chat_ids`
-  - `announce.announcement`
-    - `database.get_language`
-    - `database.get_all_user_rows`
-    - `trophies.monthly_winners`
-      - `analysis.parse_counts`
-    - `trophies.yearly_winners`
-      - `analysis.parse_counts` (see above)
-    - `chat.escape_md`
-    - `trophies.season_of`
-    - `trophies.season_results`
-      - `trophies.season_of` (see above)
-      - `conquest.holdings`
-    - `database.get_timed_conquests`
-    - `formatting.format_new_period`
-      - `formatting.bold`
-  - `announce.recap_button`
-    - `miniapp.direct_link`
+- `database.get_language`
+- `database.get_all_user_rows`
+- `trophies.monthly_winners`
+  - `analysis.parse_counts`
+- `trophies.yearly_winners`
+  - `analysis.parse_counts` (see above)
+- `chat.escape_md`
+- `trophies.season_of`
+- `trophies.season_results`
+  - `trophies.season_of` (see above)
+  - `conquest.holdings`
+- `database.get_timed_conquests`
+- `formatting.format_new_period`
+- `miniapp.direct_link`
 
 </details>

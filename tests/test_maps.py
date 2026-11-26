@@ -21,14 +21,14 @@ PARIS, NEW_YORK, FIJI = (48.8566, 2.3522), (40.7128, -74.006), (-17.7, 179.9)
 @pytest.fixture
 def tiles(monkeypatch):
     """Map tiles are blank images: the maps get drawn without network."""
-    monkeypatch.setattr(maps, "cached_tile", lambda *args: Image.new("RGB", (maps.TILE_SIZE, maps.TILE_SIZE), "white"))
+    monkeypatch.setattr(maps, "_cached_tile", lambda *args: Image.new("RGB", (maps.TILE_SIZE, maps.TILE_SIZE), "white"))
 
 
 @pytest.fixture
 def drawn(monkeypatch):
     """Record what draw() is asked to draw instead of drawing it."""
     calls = []
-    monkeypatch.setattr(maps, "draw", lambda *args, **kwargs: calls.append((args, kwargs)) or b"png")
+    monkeypatch.setattr(maps, "_draw", lambda *args, **kwargs: calls.append((args, kwargs)) or b"png")
     return calls
 
 
@@ -36,16 +36,16 @@ USERS = {1: User(1, "giulia", "Giulia"), 2: User(2, None, "Marco")}
 
 
 def test_tile_coordinates_follow_web_mercator():
-    assert maps.tile_xy(0, 0, 1) == pytest.approx((1, 1))
-    assert maps.tile_xy(0, -180, 3)[0] == 0
-    assert maps.tile_xy(maps.MAX_LAT, 0, 2)[1] == pytest.approx(0, abs=1e-3)
-    assert maps.tile_xy(90, 0, 2) == maps.tile_xy(maps.MAX_LAT, 0, 2)  # the poles do not break the formula
-    x, y = maps.tile_xy(*MILAN, 11)
+    assert maps._tile_xy(0, 0, 1) == pytest.approx((1, 1))
+    assert maps._tile_xy(0, -180, 3)[0] == 0
+    assert maps._tile_xy(maps.MAX_LAT, 0, 2)[1] == pytest.approx(0, abs=1e-3)
+    assert maps._tile_xy(90, 0, 2) == maps._tile_xy(maps.MAX_LAT, 0, 2)  # the poles do not break the formula
+    x, y = maps._tile_xy(*MILAN, 11)
     assert (int(x), int(y)) == (1076, 732)  # the OpenStreetMap tile of Milan centre
 
 
 def test_a_hexagon_across_180_degrees_stays_in_one_piece():
-    xs = [x for x, _ in maps.outline(h3.latlng_to_cell(*FIJI, 1), 2)]
+    xs = [x for x, _ in maps._outline(h3.latlng_to_cell(*FIJI, 1), 2)]
     assert max(xs) - min(xs) < 1  # a hexagon 840 km wide, not stretched across the whole map
 
 
@@ -79,7 +79,7 @@ def test_the_overviews_show_lombardy_italy_and_the_world(drawn):
     (lombardy, z_l), (italy, z_i), (world, z_w) = [(args[2], args[1]) for args, _ in drawn]
 
     def inside(box, z, point):
-        x, y = maps.tile_xy(*point, z)
+        x, y = maps._tile_xy(*point, z)
         return box[0] < x < box[2] and box[1] < y < box[3]
 
     assert inside(lombardy, z_l, MILAN) and not inside(lombardy, z_l, (45.07, 7.69))  # Milan, not Turin
@@ -148,7 +148,7 @@ def test_the_cache_keeps_the_newest_tiles(monkeypatch):
     for i in range(4):
         (maps.CACHE_DIR / f"1_{i}_0.png").write_bytes(b"x")
         os.utime(maps.CACHE_DIR / f"1_{i}_0.png", (i, i))
-    maps.trim_cache()
+    maps._trim_cache()
     assert sorted(f.name for f in maps.CACHE_DIR.iterdir()) == ["1_2_0.png", "1_3_0.png"]
 
 
@@ -170,7 +170,7 @@ def test_with_tiles_the_conquest_reply_is_a_photo_with_the_text_as_caption(chat_
 
 def test_conquests_sends_the_group_tiles_region_country_and_world_maps_as_an_album(chat_id, monkeypatch):
     poop_and_conquer("mario", MILAN)
-    monkeypatch.setattr(maps, "cached_tile", lambda *args: Image.new("RGB", (maps.TILE_SIZE, maps.TILE_SIZE)))
+    monkeypatch.setattr(maps, "_cached_tile", lambda *args: Image.new("RGB", (maps.TILE_SIZE, maps.TILE_SIZE)))
     upd = make_update(text="/conquests", username="mario")
     asyncio.run(cmd_conquests.conquests_command(upd, make_context()))
     album = upd.message.reply_media_group.call_args.args[0]
@@ -180,7 +180,7 @@ def test_conquests_sends_the_group_tiles_region_country_and_world_maps_as_an_alb
 def test_the_group_maps_go_from_the_closest_to_the_widest(chat_id, monkeypatch):
     poop_and_conquer("giulia", MILAN)
     drawn = []
-    monkeypatch.setattr(maps, "draw", lambda *args, **kwargs: drawn.append(args[0]) or b"png")
+    monkeypatch.setattr(maps, "_draw", lambda *args, **kwargs: drawn.append(args[0]) or b"png")
     asyncio.run(cmd_conquests.conquests_command(make_update(text="/conquiste", username="giulia"), make_context()))
     assert drawn == ["Zone del gruppo", "Conquiste in Lombardia", "Conquiste in Italia", "Conquiste nel mondo"]
 
@@ -212,7 +212,7 @@ def test_conquests_of_a_person_draw_only_that_person_and_none_for_someone_withou
     poop_and_conquer("giulia", MILAN)
     poop_and_conquer("marco", ROME, at=T0 + timedelta(minutes=1))
     drawn = []
-    monkeypatch.setattr(maps, "draw", lambda *args, **kwargs: drawn.append((args, kwargs)) or b"png")
+    monkeypatch.setattr(maps, "_draw", lambda *args, **kwargs: drawn.append((args, kwargs)) or b"png")
     upd = make_update(text="/conquiste io", username="giulia", user_id=uid("giulia"))
     asyncio.run(cmd_conquests.conquests_command(upd, make_context("io")))
     assert len(drawn) == 4 and all(kwargs["shares"][0] == uid("giulia") for _, kwargs in drawn)  # + her tiles map
@@ -236,6 +236,6 @@ def test_the_tiles_map_of_a_person_shows_held_tiles_full_and_lost_ones_empty_aro
     (title, z, box, hexagons, colors, legend, latest), kwargs = drawn[0]
     assert title == "Zona di @giulia" and legend == [(1, "@giulia: 2")]
     assert kwargs["shares"] == (1, {cell_of(*MILAN): 1.0, cell_of(*near): 0.0, cell_of(*PARIS): 1.0}, 1)
-    x, y = maps.tile_xy(*PARIS, z)
+    x, y = maps._tile_xy(*PARIS, z)
     assert box[0] < x < box[2] and box[1] < y < box[3]  # around the latest conquest of the person
     assert cell_of(*PARIS) not in kwargs["grid"]
