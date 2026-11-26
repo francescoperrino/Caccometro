@@ -1,10 +1,11 @@
 """Write docs/use_cases.md: for every use case, its communication diagram, sequence diagram and call tree (#204).
 
 Usage: python tools/write_use_cases.py  (the pre-commit hook runs it; tests/test_docs.py fails when the page is stale)
-The tree is read from the code, not from a run: it lists every function a function may call, in the order the
-calls are written, so both sides of an `if` appear. Calls to config.py and i18n.py, to classes and to other
-libraries are left out. Private functions (leading underscore) are not listed: the public functions they
-call are listed in their place. A function already expanded in the same tree is not expanded again.
+Everything is read from the code with ast, not from a run, so both sides of an `if` appear. The sequence diagram
+follows the statements of the entry point and of the functions it calls in other modules (if, for, try become
+alt, opt, loop); the communication diagram regroups its arrows by pair of modules; the call tree lists every
+public function the entry point may reach. Calls to config.py and i18n.py, to classes and to other libraries are
+left out, except the Telegram methods that send something.
 """
 import ast
 import sys
@@ -21,7 +22,6 @@ PACKAGE = REPO / "caccometro"
 OUT = REPO / "docs" / "use_cases.md"
 SKIPPED = {"config", "i18n"}   # used by almost everything: they would hide the rest
 
-# Use cases that are not commands: (title, module, function)
 # Use cases that are not commands: (title, who starts it, module, function)
 OTHERS = [
     ("A message in the chat: 💩 or 🚽 (text or sticker), a location, a mention of the bot, \"run\"", "telegram", "messages", "handle_message"),
