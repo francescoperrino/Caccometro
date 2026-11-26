@@ -76,50 +76,50 @@ flowchart TD
     subgraph storage["🗄️ Storage"]
         database("<b>database.py</b>")
     end
-    __main__ --> bot
-    analysis --> database
-    announce --> bot
-    announce --> chat
-    announce --> database
-    announce --> formatting
-    announce --> trophies
-    bot --> commands
-    bot --> menus
-    bot --> messages
-    chat --> database
-    commands --> analysis
-    commands --> charts
-    commands --> chat
-    commands --> conquest
-    commands --> database
-    commands --> formatting
-    commands --> maps
-    commands --> menus
-    commands --> miniapp
-    commands --> trophies
-    database --> conquest
-    formatting --> analysis
-    formatting --> trophies
-    maps --> charts
-    maps --> conquest
-    messages --> chat
-    messages --> conquest
-    messages --> database
-    messages --> formatting
-    messages --> maps
-    messages --> menus
-    messages --> trophies
-    miniapp --> analysis
-    miniapp --> conquest
-    miniapp --> database
-    miniapp --> maps
-    miniapp --> trophies
-    trophies --> analysis
-    trophies --> conquest
-    webhook --> bot
-    webhook --> commands
-    webhook --> database
-    webhook --> miniapp
+    __main__ -->|"1"| bot
+    analysis -->|"1"| database
+    announce -->|"1"| bot
+    announce -->|"1"| chat
+    announce -->|"4"| database
+    announce -->|"1"| formatting
+    announce -->|"4"| trophies
+    bot -->|"15"| commands
+    bot -->|"1"| menus
+    bot -->|"2"| messages
+    chat -->|"3"| database
+    commands -->|"7"| analysis
+    commands -->|"2"| charts
+    commands -->|"7"| chat
+    commands -->|"3"| conquest
+    commands -->|"18"| database
+    commands -->|"12"| formatting
+    commands -->|"6"| maps
+    commands -->|"1"| menus
+    commands -->|"1"| miniapp
+    commands -->|"3"| trophies
+    database -->|"1"| conquest
+    formatting -->|"4"| analysis
+    formatting -->|"1"| trophies
+    maps -->|"8"| charts
+    maps -->|"2"| conquest
+    messages -->|"3"| chat
+    messages -->|"4"| conquest
+    messages -->|"7"| database
+    messages -->|"2"| formatting
+    messages -->|"2"| maps
+    messages -->|"1"| menus
+    messages -->|"1"| trophies
+    miniapp -->|"6"| analysis
+    miniapp -->|"2"| conquest
+    miniapp -->|"5"| database
+    miniapp -->|"2"| maps
+    miniapp -->|"3"| trophies
+    trophies -->|"3"| analysis
+    trophies -->|"1"| conquest
+    webhook -->|"3"| bot
+    webhook -->|"2"| commands
+    webhook -->|"3"| database
+    webhook -->|"6"| miniapp
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
@@ -128,7 +128,7 @@ flowchart TD
     class analysis,trophies,conquest main
 ```
 
-An arrow goes from a module to the modules it imports. Not drawn: `config.py`, `i18n.py`, imported by almost every module, and `__init__.py`, which holds only the version.
+An arrow goes from a module to the modules it imports; its number is how many names of the imported module it uses: functions, classes and constants (the functions and classes: [functions.md](functions.md), column Used by). Not drawn: `config.py`, `i18n.py`, imported by almost every module, and `__init__.py`, which holds only the version.
 
 Import cycles: none.
 <!-- drawn by tools/draw_dependencies.py: end -->

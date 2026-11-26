@@ -41,6 +41,37 @@ def imports():
     return found
 
 
+def used_units():
+    """{(module, imported module): set of the names of the second that the first uses: functions, classes, constants}.
+
+    A unit is used when it is imported by name (from caccometro.x import f) or called as x.f.
+    """
+    trees = {path.stem: ast.parse(path.read_text(encoding="utf-8")) for path in PACKAGE.glob("*.py")}
+    defined = {module: {node.name for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))}
+               | {target.id for node in tree.body if isinstance(node, (ast.Assign, ast.AnnAssign))
+                  for target in (node.targets if isinstance(node, ast.Assign) else [node.target])
+                  for target in (target.elts if isinstance(target, ast.Tuple) else [target])   # A, B = 1, 2
+                  if isinstance(target, ast.Name)}
+               for module, tree in trees.items()}
+    found = {}
+    for user, tree in trees.items():
+        aliases = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module == "caccometro":
+                aliases.update({alias.asname or alias.name: alias.name for alias in node.names})
+            elif isinstance(node, ast.ImportFrom) and (node.module or "").startswith("caccometro."):
+                module = node.module.split(".")[1]
+                found.setdefault((user, module), set()).update(
+                    alias.name for alias in node.names if alias.name in defined.get(module, ()))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in aliases:
+                module = aliases[node.value.id]
+                if node.attr in defined.get(module, ()):
+                    found.setdefault((user, module), set()).add(node.attr)
+    return found
+
+
 def cycles(graph):
     """Each import cycle once, as a list of modules, found by a depth-first search."""
     found, path = [], []
@@ -73,10 +104,11 @@ def render():
         lines.append(f'    subgraph {key}["{title}"]')
         lines.extend(f'        {name}("<b>{name}.py</b>")' for name in names)
         lines.append("    end")
+    units = used_units()
     for name in sorted(graph):
         for dep in sorted(graph[name] - set(EVERYWHERE)):
             if name not in SKIPPED:
-                lines.append(f"    {name} --> {dep}")
+                lines.append(f'    {name} -->|"{len(units.get((name, dep), ()))}"| {dep}')
     lines += [
         "    classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e",
         "    classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3",
@@ -86,7 +118,9 @@ def render():
         f"    class {','.join(LAYERS[3][2])} main",
         "```",
         "",
-        f"An arrow goes from a module to the modules it imports. Not drawn: `{'.py`, `'.join(EVERYWHERE)}.py`, imported by "
+        f"An arrow goes from a module to the modules it imports; its number is how many names of the imported "
+        f"module it uses: functions, classes and constants (the functions and classes: [functions.md](functions.md), "
+        f"column Used by). Not drawn: `{'.py`, `'.join(EVERYWHERE)}.py`, imported by "
         f"almost every module, and `__init__.py`, which holds only the version.",
     ]
     found = cycles(graph)
