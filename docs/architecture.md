@@ -49,7 +49,38 @@ Which module imports which, drawn from the code by `tools/draw_dependencies.py` 
 
 <!-- drawn by tools/draw_dependencies.py: start -->
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 flowchart TD
+    accTitle: Dependencies between modules
+    accDescr: Which module of caccometro imports which, in layers from the entry points down to the storage, with the number of names used
     subgraph start["🚪 Entry points"]
         __main__("<b>__main__.py</b>")
         webhook("<b>webhook.py</b>")
@@ -138,7 +169,38 @@ Import cycles: none.
 From sending to reply. In production Telegram calls the webhook; locally the bot asks Telegram for the updates (polling). The bot asks only for messages (`allowed_updates`).
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 flowchart TD
+    accTitle: Path of a message
+    accDescr: From Telegram to the reply, secret token, duplicate check, then a count, a command or a location
     you("👤 <b>1. You</b><br/>write 💩, a command or a location")
     tg("✈️ <b>2. Telegram</b><br/>delivers the message")
     secret{"Right secret token?"}
@@ -170,7 +232,7 @@ flowchart TD
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
     classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
-    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#3b2a1e
     classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
     class you person
     class tg,cmd,loc,reply step
@@ -190,39 +252,103 @@ flowchart TD
 The same path in time order, for a 💩 in a group followed by a location (production, webhook mode). Each update is a separate request: the database is what links the two.
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: A poop and its conquest
+    accDescr: A poop is counted and opens the window, then a location within 15 minutes conquers a tile and the bot answers with a map
     autonumber
-    actor you as 👤 You
+    participant you as 👤 You
     participant tg as ✈️ Telegram
     participant hook as webhook.py
     participant bot as bot.py
     participant msg as messages.py
     participant db as database.py
     participant maps as maps.py
-    you->>tg: 💩
-    tg->>hook: POST /webhook with the secret token
-    hook->>bot: process_update
-    bot->>msg: handle_message
-    msg->>db: add_count: +1 on the day it was sent
-    msg->>db: open_conquest_window: time of this 💩
-    msg->>tg: reply: funny sentence, 💩 today, send your location
-    hook-->>tg: 200
-    you->>tg: 📍 location, within 15 minutes
-    tg->>hook: POST /webhook
-    hook->>bot: process_update
-    bot->>msg: handle_message
-    msg->>db: conquer: one transaction checks and uses up the window, saves the conquest
-    db-->>msg: previous owner and all the conquests of the chat
-    msg->>maps: zoom_map: tiles around the conquest
-    maps-->>msg: JPEG, or None without the map tiles
-    msg->>tg: photo with 🚩, 🏠 or ⚔️, and 👑 if the king changed
-    hook-->>tg: 200
+    rect rgb(255, 250, 243)
+        you->>tg: 💩
+        tg->>hook: POST /webhook with the secret token
+        hook->>bot: process_update
+        bot->>msg: handle_message
+        msg->>db: add_count: +1 on the day it was sent
+        msg->>db: open_conquest_window: time of this 💩
+        msg->>tg: reply: funny sentence, 💩 today, send your location
+        hook-->>tg: 200
+        you->>tg: 📍 location, within 15 minutes
+        tg->>hook: POST /webhook
+        hook->>bot: process_update
+        bot->>msg: handle_message
+        msg->>db: conquer: one transaction checks and uses up the window, saves the conquest
+        db-->>msg: previous owner and all the conquests of the chat
+        msg->>maps: zoom_map: tiles around the conquest
+        maps-->>msg: JPEG, or None without the map tiles
+        msg->>tg: photo with 🚩, 🏠 or ⚔️, and 👑 if the king changed
+        hook-->>tg: 200
+    end
 ```
 
 The window of each person is one row of `last_poop`. A location conquers only while that row is younger than 15 minutes, and the conquest deletes it, so one 💩 gives one conquest. The tile belongs to the latest conquest saved for it, and the history is never reset.
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 stateDiagram-v2
+    accTitle: Conquest window
+    accDescr: A poop opens a 15 minute window, a location inside it conquers a new, defended or stolen tile, a location outside it conquers nothing
     direction LR
     closed: 🔒 No window
     open: ⏳ Window open, 15 minutes
@@ -262,7 +388,38 @@ The Mini App (#79) is one static page, `assets/webapp/index.html`, served by Fla
 - `/api/period?chat=<id>&year=<YYYY>[&month=<MM>]` sends a month or a year (`miniapp.period_data`): the leaderboard with the forecast like `/leaderboard_month`, the statistics like `/stats_month` with the regularity of each person (`analysis.regularity`, see [the study](research/regularity_index.md)), and the counts of every day for the charts drawn by the page.
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 flowchart TD
+    accTitle: How the Mini App gets its data
+    accDescr: The page calls the API with the signed initData, the server checks signature, chat and membership, then sends the data of the chat
     open("👤 <b>1. You open the Mini App</b><br/>menu button or /app")
     page("📄 <b>2. GET /app</b><br/>the static page")
     request("🔑 <b>3. GET /api/chat, then /api/period</b><br/>Authorization: tma initData")
@@ -286,7 +443,7 @@ flowchart TD
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
     classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
-    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#3b2a1e
     classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
     class open person
     class page,request,draw step
@@ -304,7 +461,39 @@ Each call holds the single worker of the web app like an update, and its calls t
 One SQLite file per chat, `db/<chat_id>_bot_data.db`:
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  themeCSS: ".relationshipLabelBox, .relationshipLabelBox rect { opacity: 1 } .labelBkg { background-color: #fffaf3 }"
+---
 erDiagram
+    accTitle: Database of a chat
+    accDescr: The tables of the SQLite file of one chat and how they are linked
     users ||--o{ user_count : "does"
     users ||--o{ conquests : "conquers"
     users ||--o| last_poop : "has open"

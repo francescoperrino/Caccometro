@@ -5,7 +5,38 @@ The service scripts in `tools/` that keep the production bot running: deploy, ba
 **Settings.** The scripts read `HOSTING_USERNAME` from the `.env` and the API token from the `HOSTING_API_TOKEN` environment variable (never in the `.env`, never printed). Run them from the repository root, with the virtual environment active. Backups and logs always end up in the project `backups/` and `logs/` folders, whatever folder the scripts start from, and only the owner can read them: they hold database copies and usernames.
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 flowchart TD
+    accTitle: Operations
+    accDescr: The local repository, the checks on GitHub, the release and the deploy to the hosting with a backup
     repo("💻 <b>1. Local repository</b><br/>development machine: code, tests")
     ci("✅ <b>2. CI on GitHub</b><br/>pytest on Python 3.10,<br/>required for the merge")
     rel("🏷️ <b>3. Release on GitHub</b><br/>signed tag vX.Y.Z")
@@ -29,7 +60,7 @@ flowchart TD
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
     classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
-    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#3b2a1e
     classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
     class repo,ci,rel,web,nightly,local,files step
     class deploy main
@@ -53,7 +84,38 @@ With `--yes` it saves the old files and the databases in `backups/<stamp>/`, upl
 A cron job on the development machine runs every night at 03:30 the backup and then the log summary, in the same line, so the summary runs even if the backup fails. Both write to `backups/db_backup.log`. The job runs only while the machine is on, and a skipped night is not caught up.
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 flowchart TD
+    accTitle: Nightly backup and log summary
+    accDescr: At 03,30 the databases are downloaded and checked, old copies are dropped, the logs are summarised and problems are sent on Telegram
     cron("🌙 <b>1. cron, 03:30</b>")
     download("🗄️ <b>2. backup_db.py</b><br/>downloads db/*.db<br/>to a new folder in backups/db/")
     healthy{"integrity_check ok, and no chat<br/>total down by more than 20%?"}
@@ -74,7 +136,7 @@ flowchart TD
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
     classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
-    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#3b2a1e
     classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
     class cron,download,summary step
     class keep main

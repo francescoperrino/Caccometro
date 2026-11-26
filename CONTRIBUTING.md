@@ -56,7 +56,38 @@ On GitHub the same tests run on every pull request and every push to `main`, on 
 ## Workflow of a change
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 flowchart TD
+    accTitle: Workflow of a change
+    accDescr: From the issue to the release, branch, commits checked by the hooks, pull request with tests, review, merge and deploy
     issue("📝 <b>1. Issue</b><br/>Bug, Feature or Task")
     branch("🌿 <b>2. Branch</b><br/>type/number_title")
     commits("💾 <b>3. Commits</b><br/>hooks: private files, tests,<br/>README charts")
@@ -72,7 +103,7 @@ flowchart TD
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
     classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
-    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#3b2a1e
     classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
     class issue,branch,commits,pr,release step
     class merge main
@@ -90,7 +121,7 @@ flowchart TD
 - Comments and docstrings in English. The first paragraph of the docstring of a public function or class is its line in [docs/functions.md](docs/functions.md): make it say what the function does. The bot messages are written in Italian inside `tr("...")`, with the English translation in `caccometro/i18n.py` ([docs/architecture.md](docs/architecture.md#translations)), under the comment of its command: that comment is the section of the sentence in [docs/replies.md](docs/replies.md), the page of every reply.
 - The `.py` files have CRLF line endings in the working tree on every system (`.gitattributes`).
 - No secrets in the repository: tokens live in `.env` (not tracked) or in environment variables.
-- The documentation: [README.md](README.md) for the people who use the bot, `docs/` and this file for the people who work on it. Keep the README commands table and the menus in `docs/deployment.md` in step with `menus.MENU`. The infographics in `docs/images/` are drawn by `tools/draw_infographics.py`: change the flow there and run it again. The other diagrams are Mermaid in the same colours: copy the `classDef` lines of an existing one.
+- The documentation: [README.md](README.md) for the people who use the bot, `docs/` and this file for the people who work on it. Keep the README commands table and the menus in `docs/deployment.md` in step with `menus.MENU`. The infographics in `docs/images/` are drawn by `tools/draw_infographics.py`: change the flow there and run it again. The other diagrams are Mermaid with one style, in `tools/mermaid_style.py`: start a new one with its `FRONTMATTER`, an `accTitle` and an `accDescr`, and use only its `classDef` lines (a test checks all three; the reasons are in [docs/research/diagrams.md](docs/research/diagrams.md)).
 
 ## Git hooks
 

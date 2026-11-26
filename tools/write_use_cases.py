@@ -12,8 +12,10 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
+sys.path.insert(0, str(REPO / "tools"))
 
 from caccometro.menus import MENU  # noqa: E402
+from mermaid_style import CLASSDEFS, FRONTMATTER, SEQUENCE_GROUND, accessible  # noqa: E402
 
 PACKAGE = REPO / "caccometro"
 OUT = REPO / "docs" / "use_cases.md"
@@ -109,6 +111,10 @@ def tree(code, module, function, depth=0, expanded=None):
         lines += tree(code, *target, depth + 1, expanded)
     return lines
 
+
+# wider gaps than the default, so the labels of the arrows of a communication diagram do not cover each other
+SPACED = FRONTMATTER.replace("\n---\n", "\n  flowchart:\n    nodeSpacing: 50\n    rankSpacing: 160\n---\n")
+assert SPACED != FRONTMATTER
 
 TELEGRAM_CALLS = {"reply_text", "reply_photo", "reply_media_group", "send_message", "get_chat_member",
                   "set_my_commands"}   # the Bot API methods the package calls, drawn as arrows to Telegram
@@ -239,7 +245,7 @@ class Sequence:
         return lines
 
 
-def sequence(code, actor, module, function):
+def sequence(code, actor, module, function, title):
     """Mermaid source of the sequence diagram of a use case that starts with `actor` calling `module.function`."""
     diagram = Sequence(code)
     node = code[module][0][function]
@@ -248,14 +254,17 @@ def sequence(code, actor, module, function):
     body = diagram.function(module, function, 1)
     actors = {"telegram": "participant telegram as ✈️ Telegram", "miniapp_page": "participant miniapp_page as 📱 Mini App page",
               "task": "participant task as 🕛 Scheduled task"}
-    header = ["sequenceDiagram", "    autonumber", f"    {actors[actor]}"]
+    header = ["sequenceDiagram", *accessible(f"Sequence diagram, {title}", f"The calls between the modules in time "
+                                                f"order, starting from {module}.{function}"),
+              "    autonumber", f"    {actors[actor]}"]
     header += [f"    {actors['telegram']}" for name in diagram.participants if name == "telegram" and actor != "telegram"]
     header += [f"    participant {name} as {name}.py" for name in diagram.participants if name != "telegram"]
     answer = [f"    {module}-->>{actor}: HTTP response"] if actor == "miniapp_page" else []   # a return, not a call
-    return "\n".join(header + [f"    {actor}->>{module}: {function}({arguments})"] + body + answer)
+    steps = [f"    {actor}->>{module}: {function}({arguments})"] + body + answer
+    return "\n".join(header + [f"    {SEQUENCE_GROUND}"] + ["    " + step for step in steps] + ["    end"])
 
 
-def communication(source):
+def communication(source, title):
     """Mermaid flowchart of a sequence diagram (UML communication diagram): the same participants, one arrow per
     pair of them with its calls, one dashed arrow back with what they return, each with its number in the sequence."""
     names, edges, step = {}, {}, 0
@@ -272,15 +281,14 @@ def communication(source):
             message = message.strip() if back else message.strip().split("(", 1)[0]
             calls = edges.setdefault((source_key, target, back), {})   # call or returned value -> its steps
             calls.setdefault(message, []).append(str(step))
-    # wider gaps than the default, so the labels of the arrows do not cover each other
-    lines = ['%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%', "flowchart LR"]
+    lines = ["flowchart LR", *accessible(f"Communication diagram, {title}", "The modules involved, the functions "
+                                         "each one calls in another and what comes back, numbered as in the sequence")]
     lines += [f'    {key}("<b>{label}</b>")' for key, label in names.items()]
     lines += [f'    {a} {"-.->" if back else "-->"}|"{"<br/>".join(", ".join(steps) + ".#nbsp;" + name for name, steps in calls.items())}"| {b}'
               for (a, b, back), calls in edges.items()]   # #nbsp; keeps a number on the line of its function
     actors = [key for key in names if key in ("telegram", "miniapp_page", "task")]
-    lines += ["    classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e",
-              "    classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3",
-              f"    class {','.join(key for key in names if key not in actors)} step",
+    lines += [f"    {line}" for line in CLASSDEFS if line.split()[1] in ("step", "person")]
+    lines += [f"    class {','.join(key for key in names if key not in actors)} step",
               f"    class {','.join(actors)} person"]
     return "\n".join(lines)
 
@@ -300,10 +308,11 @@ def render():
     code = parse()
     parts = [INTRO]
     for title, actor, module, function in handlers() + OTHERS:
-        source = sequence(code, actor, module, function)
+        plain = title.replace("`", "")
+        source = sequence(code, actor, module, function, plain)
         lines = tree(code, module, function)
         parts.append(f"\n## {title}\n\nEntry point: `{module}.{function}`\n\n"
-                     f"```mermaid\n{communication(source)}\n```\n\n```mermaid\n{source}\n```\n\n"
+                     f"```mermaid\n{SPACED}{communication(source, plain)}\n```\n\n```mermaid\n{FRONTMATTER}{source}\n```\n\n"
                      "<details>\n<summary>Call tree</summary>\n\n"
                      + ("\n".join(lines) if lines else "No other function of the package.") + "\n\n</details>\n")
     return "".join(parts)

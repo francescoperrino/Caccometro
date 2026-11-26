@@ -13,8 +13,41 @@ The views come from the code, not from a run: every branch appears, whether or n
 Entry point: `commands.start_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /start
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -32,19 +65,52 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /start
+    accDescr: The calls between the modules in time order, starting from commands.start_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
     participant chat as chat.py
     participant database as database.py
-    telegram->>commands: start_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    commands->>database: init_database(update.message.chat_id)
-    commands->>telegram: reply_text(tr('Ciao, sono 🤖 *Caccometro* 🤖.\nMan...)
+    rect rgb(255, 250, 243)
+        telegram->>commands: start_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        commands->>database: init_database(update.message.chat_id)
+        commands->>telegram: reply_text(tr('Ciao, sono 🤖 *Caccometro* 🤖.\nMan...)
+    end
 ```
 
 <details>
@@ -67,8 +133,41 @@ sequenceDiagram
 Entry point: `commands.leaderboard_month_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /leaderboard_month (/classifica_mese)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -96,7 +195,38 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /leaderboard_month (/classifica_mese)
+    accDescr: The calls between the modules in time order, starting from commands.leaderboard_month_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
@@ -105,49 +235,51 @@ sequenceDiagram
     participant analysis as analysis.py
     participant formatting as formatting.py
     participant charts as charts.py
-    telegram->>commands: leaderboard_month_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    opt date is None
-        commands->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+    rect rgb(255, 250, 243)
+        telegram->>commands: leaderboard_month_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        opt date is None
+            commands->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+        end
+        commands->>database: get_rank(update.message.chat_id, time_period, ...)
+        database-->>commands: rank
+        opt not rank
+            commands->>database: list_legacy_users(chat_id)
+            commands->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
+            Note over commands: returns
+        end
+        opt start_period <= today.isoformat() <= ...
+            commands->>database: get_all_user_rows(update.message.chat_id)
+            database-->>commands: (rows_by_user, _)
+            commands->>analysis: analyze_user(rows, today)
+            commands->>formatting: flame(analyze_user(rows, today).status)
+            commands->>database: get_daily_counts_between(update.message.chat_id, (today - time...)
+            database-->>commands: recent
+            commands->>analysis: forecast_totals({user.user_id: total for user, total ...)
+            analysis-->>commands: forecast
+        end
+        commands->>chat: escape_md(user.mention)
+        opt position in MEDALS
+            commands->>formatting: bold(name)
+            Note over commands: returns
+        end
+        commands->>formatting: tie_positions([t for _, t in rank])
+        commands->>formatting: standing_lines([(user.user_id, total) for user, tota...)
+        formatting-->>commands: standing
+        commands->>database: get_daily_counts(update.message.chat_id, time_period, ...)
+        database-->>commands: daily_counts
+        commands->>charts: generate_rank_chart(rank, daily_counts, time_period, date...)
+        commands->>chat: reply_chart(update, generate_rank_chart(rank, dai...)
+        opt fits_caption(message)
+            chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
+            Note over chat: returns
+        end
+        chat->>telegram: reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
+        chat->>telegram: reply_text(message, parse_mode='Markdown')
     end
-    commands->>database: get_rank(update.message.chat_id, time_period, ...)
-    database-->>commands: rank
-    opt not rank
-        commands->>database: list_legacy_users(chat_id)
-        commands->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
-        Note over commands: returns
-    end
-    opt start_period <= today.isoformat() <= ...
-        commands->>database: get_all_user_rows(update.message.chat_id)
-        database-->>commands: (rows_by_user, _)
-        commands->>analysis: analyze_user(rows, today)
-        commands->>formatting: flame(analyze_user(rows, today).status)
-        commands->>database: get_daily_counts_between(update.message.chat_id, (today - time...)
-        database-->>commands: recent
-        commands->>analysis: forecast_totals({user.user_id: total for user, total ...)
-        analysis-->>commands: forecast
-    end
-    commands->>chat: escape_md(user.mention)
-    opt position in MEDALS
-        commands->>formatting: bold(name)
-        Note over commands: returns
-    end
-    commands->>formatting: tie_positions([t for _, t in rank])
-    commands->>formatting: standing_lines([(user.user_id, total) for user, tota...)
-    formatting-->>commands: standing
-    commands->>database: get_daily_counts(update.message.chat_id, time_period, ...)
-    database-->>commands: daily_counts
-    commands->>charts: generate_rank_chart(rank, daily_counts, time_period, date...)
-    commands->>chat: reply_chart(update, generate_rank_chart(rank, dai...)
-    opt fits_caption(message)
-        chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
-        Note over chat: returns
-    end
-    chat->>telegram: reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
-    chat->>telegram: reply_text(message, parse_mode='Markdown')
 ```
 
 <details>
@@ -205,8 +337,41 @@ sequenceDiagram
 Entry point: `commands.leaderboard_year_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /leaderboard_year (/classifica_anno)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -234,7 +399,38 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /leaderboard_year (/classifica_anno)
+    accDescr: The calls between the modules in time order, starting from commands.leaderboard_year_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
@@ -243,49 +439,51 @@ sequenceDiagram
     participant analysis as analysis.py
     participant formatting as formatting.py
     participant charts as charts.py
-    telegram->>commands: leaderboard_year_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    opt date is None
-        commands->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+    rect rgb(255, 250, 243)
+        telegram->>commands: leaderboard_year_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        opt date is None
+            commands->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+        end
+        commands->>database: get_rank(update.message.chat_id, time_period, ...)
+        database-->>commands: rank
+        opt not rank
+            commands->>database: list_legacy_users(chat_id)
+            commands->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
+            Note over commands: returns
+        end
+        opt start_period <= today.isoformat() <= ...
+            commands->>database: get_all_user_rows(update.message.chat_id)
+            database-->>commands: (rows_by_user, _)
+            commands->>analysis: analyze_user(rows, today)
+            commands->>formatting: flame(analyze_user(rows, today).status)
+            commands->>database: get_daily_counts_between(update.message.chat_id, (today - time...)
+            database-->>commands: recent
+            commands->>analysis: forecast_totals({user.user_id: total for user, total ...)
+            analysis-->>commands: forecast
+        end
+        commands->>chat: escape_md(user.mention)
+        opt position in MEDALS
+            commands->>formatting: bold(name)
+            Note over commands: returns
+        end
+        commands->>formatting: tie_positions([t for _, t in rank])
+        commands->>formatting: standing_lines([(user.user_id, total) for user, tota...)
+        formatting-->>commands: standing
+        commands->>database: get_daily_counts(update.message.chat_id, time_period, ...)
+        database-->>commands: daily_counts
+        commands->>charts: generate_rank_chart(rank, daily_counts, time_period, date...)
+        commands->>chat: reply_chart(update, generate_rank_chart(rank, dai...)
+        opt fits_caption(message)
+            chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
+            Note over chat: returns
+        end
+        chat->>telegram: reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
+        chat->>telegram: reply_text(message, parse_mode='Markdown')
     end
-    commands->>database: get_rank(update.message.chat_id, time_period, ...)
-    database-->>commands: rank
-    opt not rank
-        commands->>database: list_legacy_users(chat_id)
-        commands->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
-        Note over commands: returns
-    end
-    opt start_period <= today.isoformat() <= ...
-        commands->>database: get_all_user_rows(update.message.chat_id)
-        database-->>commands: (rows_by_user, _)
-        commands->>analysis: analyze_user(rows, today)
-        commands->>formatting: flame(analyze_user(rows, today).status)
-        commands->>database: get_daily_counts_between(update.message.chat_id, (today - time...)
-        database-->>commands: recent
-        commands->>analysis: forecast_totals({user.user_id: total for user, total ...)
-        analysis-->>commands: forecast
-    end
-    commands->>chat: escape_md(user.mention)
-    opt position in MEDALS
-        commands->>formatting: bold(name)
-        Note over commands: returns
-    end
-    commands->>formatting: tie_positions([t for _, t in rank])
-    commands->>formatting: standing_lines([(user.user_id, total) for user, tota...)
-    formatting-->>commands: standing
-    commands->>database: get_daily_counts(update.message.chat_id, time_period, ...)
-    database-->>commands: daily_counts
-    commands->>charts: generate_rank_chart(rank, daily_counts, time_period, date...)
-    commands->>chat: reply_chart(update, generate_rank_chart(rank, dai...)
-    opt fits_caption(message)
-        chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
-        Note over chat: returns
-    end
-    chat->>telegram: reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
-    chat->>telegram: reply_text(message, parse_mode='Markdown')
 ```
 
 <details>
@@ -343,8 +541,41 @@ sequenceDiagram
 Entry point: `commands.stats_month_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /stats_month (/statistiche_mese)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -372,7 +603,38 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /stats_month (/statistiche_mese)
+    accDescr: The calls between the modules in time order, starting from commands.stats_month_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
@@ -381,45 +643,47 @@ sequenceDiagram
     participant analysis as analysis.py
     participant formatting as formatting.py
     participant charts as charts.py
-    telegram->>commands: stats_month_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    opt date is None
-        commands->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+    rect rgb(255, 250, 243)
+        telegram->>commands: stats_month_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        opt date is None
+            commands->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+        end
+        commands->>database: get_daily_counts(chat_id, time_period, date)
+        database-->>commands: daily_counts
+        commands->>database: get_users(chat_id)
+        commands->>analysis: period_statistics(daily_counts, get_users(chat_id), *pe...)
+        analysis-->>commands: statistics
+        opt not statistics
+            commands->>database: list_legacy_users(chat_id)
+            commands->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
+            Note over commands: returns
+        end
+        commands->>chat: escape_md(s['user'].mention)
+        opt position in MEDALS
+            commands->>formatting: bold(name)
+            Note over commands: returns
+        end
+        commands->>formatting: tie_positions([round(s['mean'], 2) for s in statist...)
+        commands->>formatting: standing_lines([(s['user'].user_id, round(s['mean'],...)
+        formatting-->>commands: standing
+        opt sender.user_id in names
+            commands->>database: get_first_days(chat_id)
+            commands->>analysis: period_regularity(daily_counts, get_first_days(chat_id)...)
+            analysis-->>commands: label
+        end
+        commands->>charts: generate_statistics_chart(statistics, daily_counts, time_period...)
+        commands->>chat: reply_chart(update, generate_statistics_chart(sta...)
+        opt fits_caption(message)
+            chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
+            Note over chat: returns
+        end
+        chat->>telegram: reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
+        chat->>telegram: reply_text(message, parse_mode='Markdown')
     end
-    commands->>database: get_daily_counts(chat_id, time_period, date)
-    database-->>commands: daily_counts
-    commands->>database: get_users(chat_id)
-    commands->>analysis: period_statistics(daily_counts, get_users(chat_id), *pe...)
-    analysis-->>commands: statistics
-    opt not statistics
-        commands->>database: list_legacy_users(chat_id)
-        commands->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
-        Note over commands: returns
-    end
-    commands->>chat: escape_md(s['user'].mention)
-    opt position in MEDALS
-        commands->>formatting: bold(name)
-        Note over commands: returns
-    end
-    commands->>formatting: tie_positions([round(s['mean'], 2) for s in statist...)
-    commands->>formatting: standing_lines([(s['user'].user_id, round(s['mean'],...)
-    formatting-->>commands: standing
-    opt sender.user_id in names
-        commands->>database: get_first_days(chat_id)
-        commands->>analysis: period_regularity(daily_counts, get_first_days(chat_id)...)
-        analysis-->>commands: label
-    end
-    commands->>charts: generate_statistics_chart(statistics, daily_counts, time_period...)
-    commands->>chat: reply_chart(update, generate_statistics_chart(sta...)
-    opt fits_caption(message)
-        chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
-        Note over chat: returns
-    end
-    chat->>telegram: reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
-    chat->>telegram: reply_text(message, parse_mode='Markdown')
 ```
 
 <details>
@@ -476,8 +740,41 @@ sequenceDiagram
 Entry point: `commands.stats_year_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /stats_year (/statistiche_anno)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -505,7 +802,38 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /stats_year (/statistiche_anno)
+    accDescr: The calls between the modules in time order, starting from commands.stats_year_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
@@ -514,45 +842,47 @@ sequenceDiagram
     participant analysis as analysis.py
     participant formatting as formatting.py
     participant charts as charts.py
-    telegram->>commands: stats_year_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    opt date is None
-        commands->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+    rect rgb(255, 250, 243)
+        telegram->>commands: stats_year_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        opt date is None
+            commands->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+        end
+        commands->>database: get_daily_counts(chat_id, time_period, date)
+        database-->>commands: daily_counts
+        commands->>database: get_users(chat_id)
+        commands->>analysis: period_statistics(daily_counts, get_users(chat_id), *pe...)
+        analysis-->>commands: statistics
+        opt not statistics
+            commands->>database: list_legacy_users(chat_id)
+            commands->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
+            Note over commands: returns
+        end
+        commands->>chat: escape_md(s['user'].mention)
+        opt position in MEDALS
+            commands->>formatting: bold(name)
+            Note over commands: returns
+        end
+        commands->>formatting: tie_positions([round(s['mean'], 2) for s in statist...)
+        commands->>formatting: standing_lines([(s['user'].user_id, round(s['mean'],...)
+        formatting-->>commands: standing
+        opt sender.user_id in names
+            commands->>database: get_first_days(chat_id)
+            commands->>analysis: period_regularity(daily_counts, get_first_days(chat_id)...)
+            analysis-->>commands: label
+        end
+        commands->>charts: generate_statistics_chart(statistics, daily_counts, time_period...)
+        commands->>chat: reply_chart(update, generate_statistics_chart(sta...)
+        opt fits_caption(message)
+            chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
+            Note over chat: returns
+        end
+        chat->>telegram: reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
+        chat->>telegram: reply_text(message, parse_mode='Markdown')
     end
-    commands->>database: get_daily_counts(chat_id, time_period, date)
-    database-->>commands: daily_counts
-    commands->>database: get_users(chat_id)
-    commands->>analysis: period_statistics(daily_counts, get_users(chat_id), *pe...)
-    analysis-->>commands: statistics
-    opt not statistics
-        commands->>database: list_legacy_users(chat_id)
-        commands->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
-        Note over commands: returns
-    end
-    commands->>chat: escape_md(s['user'].mention)
-    opt position in MEDALS
-        commands->>formatting: bold(name)
-        Note over commands: returns
-    end
-    commands->>formatting: tie_positions([round(s['mean'], 2) for s in statist...)
-    commands->>formatting: standing_lines([(s['user'].user_id, round(s['mean'],...)
-    formatting-->>commands: standing
-    opt sender.user_id in names
-        commands->>database: get_first_days(chat_id)
-        commands->>analysis: period_regularity(daily_counts, get_first_days(chat_id)...)
-        analysis-->>commands: label
-    end
-    commands->>charts: generate_statistics_chart(statistics, daily_counts, time_period...)
-    commands->>chat: reply_chart(update, generate_statistics_chart(sta...)
-    opt fits_caption(message)
-        chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
-        Note over chat: returns
-    end
-    chat->>telegram: reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
-    chat->>telegram: reply_text(message, parse_mode='Markdown')
 ```
 
 <details>
@@ -609,8 +939,41 @@ sequenceDiagram
 Entry point: `commands.records_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /records (/record)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -635,7 +998,38 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /records (/record)
+    accDescr: The calls between the modules in time order, starting from commands.records_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
@@ -643,54 +1037,56 @@ sequenceDiagram
     participant database as database.py
     participant analysis as analysis.py
     participant formatting as formatting.py
-    telegram->>commands: records_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    opt args and args[0].startswith('@')
-        commands->>database: find_user_by_username(chat_id, username)
-        database-->>commands: target
-        Note over commands: returns
-    end
-    opt replied is not None
-        commands->>chat: register_user(chat_id, replied)
-        Note over commands: returns
-    end
-    opt error
-        commands->>telegram: reply_text(error)
-        Note over commands: returns
-    end
-    opt target is None
-        commands->>database: get_all_user_rows(chat_id)
-        database-->>commands: (rows_by_user, users)
-        opt not rows_by_user
-            commands->>database: list_legacy_users(chat_id)
-            commands->>telegram: reply_text(tr('🤷 Nessun dato disponibile.') + le...)
+    rect rgb(255, 250, 243)
+        telegram->>commands: records_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        opt args and args[0].startswith('@')
+            commands->>database: find_user_by_username(chat_id, username)
+            database-->>commands: target
             Note over commands: returns
         end
-        commands->>analysis: analyze_group(rows_by_user, now_rome().date())
-        analysis-->>commands: board
-        commands->>chat: escape_md(user.mention)
-        commands->>formatting: format_group_record(board, names)
-        commands->>telegram: reply_text(format_group_record(board, names), pa...)
-        Note over commands: returns
+        opt replied is not None
+            commands->>chat: register_user(chat_id, replied)
+            Note over commands: returns
+        end
+        opt error
+            commands->>telegram: reply_text(error)
+            Note over commands: returns
+        end
+        opt target is None
+            commands->>database: get_all_user_rows(chat_id)
+            database-->>commands: (rows_by_user, users)
+            opt not rows_by_user
+                commands->>database: list_legacy_users(chat_id)
+                commands->>telegram: reply_text(tr('🤷 Nessun dato disponibile.') + le...)
+                Note over commands: returns
+            end
+            commands->>analysis: analyze_group(rows_by_user, now_rome().date())
+            analysis-->>commands: board
+            commands->>chat: escape_md(user.mention)
+            commands->>formatting: format_group_record(board, names)
+            commands->>telegram: reply_text(format_group_record(board, names), pa...)
+            Note over commands: returns
+        end
+        commands->>database: get_record(target.user_id, chat_id)
+        database-->>commands: rows
+        opt not rows
+            Note over commands: legacy_hint() as above
+            commands->>telegram: reply_text(tr('🤷 Nessun dato disponibile per {na...)
+            Note over commands: returns
+        end
+        commands->>analysis: analyze_user(user_rows, today)
+        commands->>database: get_all_user_rows(chat_id)
+        commands->>chat: escape_md(target.mention)
+        commands->>analysis: analyze_user(rows, today)
+        commands->>analysis: record_places(target.user_id, people)
+        commands->>formatting: format_user_record(escape_md(target.mention), analyze_us...)
+        formatting-->>commands: message
+        commands->>telegram: reply_text(message, parse_mode='Markdown')
     end
-    commands->>database: get_record(target.user_id, chat_id)
-    database-->>commands: rows
-    opt not rows
-        Note over commands: legacy_hint() as above
-        commands->>telegram: reply_text(tr('🤷 Nessun dato disponibile per {na...)
-        Note over commands: returns
-    end
-    commands->>analysis: analyze_user(user_rows, today)
-    commands->>database: get_all_user_rows(chat_id)
-    commands->>chat: escape_md(target.mention)
-    commands->>analysis: analyze_user(rows, today)
-    commands->>analysis: record_places(target.user_id, people)
-    commands->>formatting: format_user_record(escape_md(target.mention), analyze_us...)
-    formatting-->>commands: message
-    commands->>telegram: reply_text(message, parse_mode='Markdown')
 ```
 
 <details>
@@ -737,8 +1133,41 @@ sequenceDiagram
 Entry point: `commands.trophies_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /trophies (/trofei)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -769,7 +1198,38 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /trophies (/trofei)
+    accDescr: The calls between the modules in time order, starting from commands.trophies_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
@@ -779,52 +1239,54 @@ sequenceDiagram
     participant analysis as analysis.py
     participant conquest as conquest.py
     participant formatting as formatting.py
-    telegram->>commands: trophies_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    opt args and args[0].startswith('@')
-        commands->>database: find_user_by_username(chat_id, username)
-        database-->>commands: target
-        Note over commands: returns
+    rect rgb(255, 250, 243)
+        telegram->>commands: trophies_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        opt args and args[0].startswith('@')
+            commands->>database: find_user_by_username(chat_id, username)
+            database-->>commands: target
+            Note over commands: returns
+        end
+        opt replied is not None
+            commands->>chat: register_user(chat_id, replied)
+            Note over commands: returns
+        end
+        opt error
+            commands->>telegram: reply_text(error)
+            Note over commands: returns
+        end
+        commands->>database: get_all_user_rows(chat_id)
+        database-->>commands: (rows_by_user, users)
+        commands->>database: get_timed_conquests(chat_id)
+        commands->>trophies: trophies_by_user(rows_by_user, today, get_timed_conque...)
+        loop for (user_id, rows) in users_rows.ite...
+            trophies->>analysis: _parse(rows)
+        end
+        Note over trophies: _winners() as above
+        loop for (season, counts) in per_season.it...
+            trophies->>conquest: holdings([(user_id, cell) for user_id, _, cell...)
+        end
+        loop for user_id in set(users_rows) | set(...
+            trophies->>analysis: _parse(rows)
+            analysis-->>trophies: counts
+            trophies->>analysis: _runs(sorted(counts), counts)
+        end
+        trophies-->>commands: trophies
+        alt target is None
+            commands->>chat: escape_md(user.mention)
+            commands->>formatting: format_group_trophies(trophies, names)
+            formatting-->>commands: message
+        else
+            commands->>analysis: analyze_user(rows, today)
+            commands->>chat: escape_md(target.mention)
+            commands->>formatting: format_user_trophies(escape_md(target.mention), trophies.g...)
+            formatting-->>commands: message
+        end
+        commands->>telegram: reply_text(message, parse_mode='Markdown')
     end
-    opt replied is not None
-        commands->>chat: register_user(chat_id, replied)
-        Note over commands: returns
-    end
-    opt error
-        commands->>telegram: reply_text(error)
-        Note over commands: returns
-    end
-    commands->>database: get_all_user_rows(chat_id)
-    database-->>commands: (rows_by_user, users)
-    commands->>database: get_timed_conquests(chat_id)
-    commands->>trophies: trophies_by_user(rows_by_user, today, get_timed_conque...)
-    loop for (user_id, rows) in users_rows.ite...
-        trophies->>analysis: _parse(rows)
-    end
-    Note over trophies: _winners() as above
-    loop for (season, counts) in per_season.it...
-        trophies->>conquest: holdings([(user_id, cell) for user_id, _, cell...)
-    end
-    loop for user_id in set(users_rows) | set(...
-        trophies->>analysis: _parse(rows)
-        analysis-->>trophies: counts
-        trophies->>analysis: _runs(sorted(counts), counts)
-    end
-    trophies-->>commands: trophies
-    alt target is None
-        commands->>chat: escape_md(user.mention)
-        commands->>formatting: format_group_trophies(trophies, names)
-        formatting-->>commands: message
-    else
-        commands->>analysis: analyze_user(rows, today)
-        commands->>chat: escape_md(target.mention)
-        commands->>formatting: format_user_trophies(escape_md(target.mention), trophies.g...)
-        formatting-->>commands: message
-    end
-    commands->>telegram: reply_text(message, parse_mode='Markdown')
 ```
 
 <details>
@@ -873,8 +1335,41 @@ sequenceDiagram
 Entry point: `commands.conquests_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /conquests (/conquiste)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -905,7 +1400,38 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /conquests (/conquiste)
+    accDescr: The calls between the modules in time order, starting from commands.conquests_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
@@ -915,73 +1441,75 @@ sequenceDiagram
     participant formatting as formatting.py
     participant trophies as trophies.py
     participant maps as maps.py
-    telegram->>commands: conquests_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    opt args and args[0].startswith('@')
-        commands->>database: find_user_by_username(chat_id, username)
-        database-->>commands: target
-        Note over commands: returns
-    end
-    opt replied is not None
-        commands->>chat: register_user(chat_id, replied)
-        Note over commands: returns
-    end
-    opt error
-        commands->>telegram: reply_text(error)
-        Note over commands: returns
-    end
-    commands->>database: get_timed_conquests(chat_id)
-    database-->>commands: timed
-    commands->>conquest: holdings(history)
-    conquest-->>commands: (counts, king)
-    commands->>database: get_users(chat_id)
-    database-->>commands: users
-    alt target is not None
-        commands->>chat: escape_md(target.mention)
-        commands->>conquest: visited(history, target.user_id)
-    else
-        opt not (not counts)
-            commands->>conquest: mention_of(users, user_id)
-            commands->>chat: escape_md(mention_of(users, user_id))
-            opt position in MEDALS
-                commands->>formatting: bold(name)
-                Note over commands: returns
-            end
-            commands->>formatting: tie_positions([held for _, held in ranking])
-            commands->>trophies: season_of(now_rome().date())
-            trophies-->>commands: season
-            commands->>trophies: season_results(timed)
-            loop for (season, counts) in per_season.it...
-                trophies->>conquest: holdings([(user_id, cell) for user_id, _, cell...)
-            end
-            opt season in (results := season_results(...
-                commands->>conquest: mention_of(users, u)
-                commands->>chat: escape_md(mention_of(users, u))
-                commands->>formatting: format_season_line(season, results[season], {u: escape_m...)
+    rect rgb(255, 250, 243)
+        telegram->>commands: conquests_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        opt args and args[0].startswith('@')
+            commands->>database: find_user_by_username(chat_id, username)
+            database-->>commands: target
+            Note over commands: returns
+        end
+        opt replied is not None
+            commands->>chat: register_user(chat_id, replied)
+            Note over commands: returns
+        end
+        opt error
+            commands->>telegram: reply_text(error)
+            Note over commands: returns
+        end
+        commands->>database: get_timed_conquests(chat_id)
+        database-->>commands: timed
+        commands->>conquest: holdings(history)
+        conquest-->>commands: (counts, king)
+        commands->>database: get_users(chat_id)
+        database-->>commands: users
+        alt target is not None
+            commands->>chat: escape_md(target.mention)
+            commands->>conquest: visited(history, target.user_id)
+        else
+            opt not (not counts)
+                commands->>conquest: mention_of(users, user_id)
+                commands->>chat: escape_md(mention_of(users, user_id))
+                opt position in MEDALS
+                    commands->>formatting: bold(name)
+                    Note over commands: returns
+                end
+                commands->>formatting: tie_positions([held for _, held in ranking])
+                commands->>trophies: season_of(now_rome().date())
+                trophies-->>commands: season
+                commands->>trophies: season_results(timed)
+                loop for (season, counts) in per_season.it...
+                    trophies->>conquest: holdings([(user_id, cell) for user_id, _, cell...)
+                end
+                opt season in (results := season_results(...
+                    commands->>conquest: mention_of(users, u)
+                    commands->>chat: escape_md(mention_of(users, u))
+                    commands->>formatting: format_season_line(season, results[season], {u: escape_m...)
+                end
             end
         end
-    end
-    commands->>conquest: visited(history, target.user_id)
-    commands->>maps: render(view, history, users, shown)
-    commands->>chat: reply_charts(update, maps_drawn, message)
-    alt not charts
-        chat->>telegram: reply_text(message, parse_mode='Markdown')
-    else
-        alt len(charts) == 1
-            opt fits_caption(message)
-                chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
-                Note over chat: returns
-            end
-            chat->>telegram: reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
+        commands->>conquest: visited(history, target.user_id)
+        commands->>maps: render(view, history, users, shown)
+        commands->>chat: reply_charts(update, maps_drawn, message)
+        alt not charts
             chat->>telegram: reply_text(message, parse_mode='Markdown')
         else
-            opt not caption
+            alt len(charts) == 1
+                opt fits_caption(message)
+                    chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
+                    Note over chat: returns
+                end
+                chat->>telegram: reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
                 chat->>telegram: reply_text(message, parse_mode='Markdown')
+            else
+                opt not caption
+                    chat->>telegram: reply_text(message, parse_mode='Markdown')
+                end
+                chat->>telegram: reply_media_group([InputMediaPhoto(chart, caption=messa...)
             end
-            chat->>telegram: reply_media_group([InputMediaPhoto(chart, caption=messa...)
         end
     end
 ```
@@ -1036,8 +1564,41 @@ sequenceDiagram
 Entry point: `commands.app_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /app
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -1057,21 +1618,54 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /app
+    accDescr: The calls between the modules in time order, starting from commands.app_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
     participant chat as chat.py
     participant database as database.py
     participant miniapp as miniapp.py
-    telegram->>commands: app_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    commands->>miniapp: direct_link(context.bot.username, update.message....)
-    miniapp-->>commands: link
-    commands->>telegram: reply_text(tr('📱 Classifiche, statistiche e mapp...)
+    rect rgb(255, 250, 243)
+        telegram->>commands: app_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        commands->>miniapp: direct_link(context.bot.username, update.message....)
+        miniapp-->>commands: link
+        commands->>telegram: reply_text(tr('📱 Classifiche, statistiche e mapp...)
+    end
 ```
 
 <details>
@@ -1093,8 +1687,41 @@ sequenceDiagram
 Entry point: `commands.day_count_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /day_count (/conto_giorno)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -1115,40 +1742,73 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /day_count (/conto_giorno)
+    accDescr: The calls between the modules in time order, starting from commands.day_count_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
     participant chat as chat.py
     participant database as database.py
     participant formatting as formatting.py
-    telegram->>commands: day_count_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    opt args and args[0].startswith('@')
-        commands->>database: find_user_by_username(chat_id, username)
-        database-->>commands: target
-        Note over commands: returns
-    end
-    opt replied is not None
-        commands->>chat: register_user(chat_id, replied)
-        Note over commands: returns
-    end
-    opt error
-        commands->>telegram: reply_text(error)
-        Note over commands: returns
-    end
-    opt args
-        opt on ValueError
-            commands->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
+    rect rgb(255, 250, 243)
+        telegram->>commands: day_count_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        opt args and args[0].startswith('@')
+            commands->>database: find_user_by_username(chat_id, username)
+            database-->>commands: target
+            Note over commands: returns
         end
+        opt replied is not None
+            commands->>chat: register_user(chat_id, replied)
+            Note over commands: returns
+        end
+        opt error
+            commands->>telegram: reply_text(error)
+            Note over commands: returns
+        end
+        opt args
+            opt on ValueError
+                commands->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
+            end
+        end
+        commands->>database: get_count(target.user_id, selected_date, update...)
+        database-->>commands: count
+        commands->>formatting: day_count_sentence(target.mention, day, count)
+        commands->>telegram: reply_text(day_count_sentence(target.mention, da...)
     end
-    commands->>database: get_count(target.user_id, selected_date, update...)
-    database-->>commands: count
-    commands->>formatting: day_count_sentence(target.mention, day, count)
-    commands->>telegram: reply_text(day_count_sentence(target.mention, da...)
 ```
 
 <details>
@@ -1181,8 +1841,41 @@ sequenceDiagram
 Entry point: `commands.last_poop_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /last_poop (/ultima_cacca)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -1203,35 +1896,68 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /last_poop (/ultima_cacca)
+    accDescr: The calls between the modules in time order, starting from commands.last_poop_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
     participant chat as chat.py
     participant database as database.py
     participant formatting as formatting.py
-    telegram->>commands: last_poop_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    opt args and args[0].startswith('@')
-        commands->>database: find_user_by_username(chat_id, username)
-        database-->>commands: target
-        Note over commands: returns
+    rect rgb(255, 250, 243)
+        telegram->>commands: last_poop_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        opt args and args[0].startswith('@')
+            commands->>database: find_user_by_username(chat_id, username)
+            database-->>commands: target
+            Note over commands: returns
+        end
+        opt replied is not None
+            commands->>chat: register_user(chat_id, replied)
+            Note over commands: returns
+        end
+        opt error
+            commands->>telegram: reply_text(error)
+            Note over commands: returns
+        end
+        commands->>database: get_days_since_last_poop(target.user_id, update.message.chat_id)
+        database-->>commands: days
+        commands->>formatting: last_poop_sentence(target.mention, days)
+        commands->>telegram: reply_text(last_poop_sentence(target.mention, days))
     end
-    opt replied is not None
-        commands->>chat: register_user(chat_id, replied)
-        Note over commands: returns
-    end
-    opt error
-        commands->>telegram: reply_text(error)
-        Note over commands: returns
-    end
-    commands->>database: get_days_since_last_poop(target.user_id, update.message.chat_id)
-    database-->>commands: days
-    commands->>formatting: last_poop_sentence(target.mention, days)
-    commands->>telegram: reply_text(last_poop_sentence(target.mention, days))
 ```
 
 <details>
@@ -1263,8 +1989,41 @@ sequenceDiagram
 Entry point: `commands.add_poop_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /add_poop (/aggiungi_cacca)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -1286,45 +2045,78 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /add_poop (/aggiungi_cacca)
+    accDescr: The calls between the modules in time order, starting from commands.add_poop_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
     participant chat as chat.py
     participant database as database.py
     participant formatting as formatting.py
-    telegram->>commands: add_poop_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    opt args and args[0].startswith('@')
-        commands->>database: find_user_by_username(chat_id, username)
-        database-->>commands: target
-        Note over commands: returns
-    end
-    opt replied is not None
-        commands->>chat: register_user(chat_id, replied)
-        Note over commands: returns
-    end
-    opt error
-        commands->>telegram: reply_text(error)
-        Note over commands: returns
-    end
-    commands->>chat: is_chat_admin(update, context)
-    chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
-    commands->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
-    opt on ValueError
-        commands->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
-    end
-    commands->>database: add_count(target.user_id, selected_date, delta,...)
-    database-->>commands: (old_count, new_count)
-    commands->>chat: where(update)
-    alt delta < 0 and old_count == 0
-        commands->>telegram: reply_text(tr('⚠️ Il conteggio di {name} nel gio...)
-    else
-        commands->>formatting: change_count_sentence(target.mention, date, new_count, delta)
-        commands->>telegram: reply_text(change_count_sentence(target.mention,...)
+    rect rgb(255, 250, 243)
+        telegram->>commands: add_poop_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        opt args and args[0].startswith('@')
+            commands->>database: find_user_by_username(chat_id, username)
+            database-->>commands: target
+            Note over commands: returns
+        end
+        opt replied is not None
+            commands->>chat: register_user(chat_id, replied)
+            Note over commands: returns
+        end
+        opt error
+            commands->>telegram: reply_text(error)
+            Note over commands: returns
+        end
+        commands->>chat: is_chat_admin(update, context)
+        chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
+        commands->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
+        opt on ValueError
+            commands->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
+        end
+        commands->>database: add_count(target.user_id, selected_date, delta,...)
+        database-->>commands: (old_count, new_count)
+        commands->>chat: where(update)
+        alt delta < 0 and old_count == 0
+            commands->>telegram: reply_text(tr('⚠️ Il conteggio di {name} nel gio...)
+        else
+            commands->>formatting: change_count_sentence(target.mention, date, new_count, delta)
+            commands->>telegram: reply_text(change_count_sentence(target.mention,...)
+        end
     end
 ```
 
@@ -1362,8 +2154,41 @@ sequenceDiagram
 Entry point: `commands.remove_poop_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /remove_poop (/togli_cacca)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -1385,45 +2210,78 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /remove_poop (/togli_cacca)
+    accDescr: The calls between the modules in time order, starting from commands.remove_poop_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
     participant chat as chat.py
     participant database as database.py
     participant formatting as formatting.py
-    telegram->>commands: remove_poop_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    opt args and args[0].startswith('@')
-        commands->>database: find_user_by_username(chat_id, username)
-        database-->>commands: target
-        Note over commands: returns
-    end
-    opt replied is not None
-        commands->>chat: register_user(chat_id, replied)
-        Note over commands: returns
-    end
-    opt error
-        commands->>telegram: reply_text(error)
-        Note over commands: returns
-    end
-    commands->>chat: is_chat_admin(update, context)
-    chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
-    commands->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
-    opt on ValueError
-        commands->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
-    end
-    commands->>database: add_count(target.user_id, selected_date, delta,...)
-    database-->>commands: (old_count, new_count)
-    commands->>chat: where(update)
-    alt delta < 0 and old_count == 0
-        commands->>telegram: reply_text(tr('⚠️ Il conteggio di {name} nel gio...)
-    else
-        commands->>formatting: change_count_sentence(target.mention, date, new_count, delta)
-        commands->>telegram: reply_text(change_count_sentence(target.mention,...)
+    rect rgb(255, 250, 243)
+        telegram->>commands: remove_poop_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        opt args and args[0].startswith('@')
+            commands->>database: find_user_by_username(chat_id, username)
+            database-->>commands: target
+            Note over commands: returns
+        end
+        opt replied is not None
+            commands->>chat: register_user(chat_id, replied)
+            Note over commands: returns
+        end
+        opt error
+            commands->>telegram: reply_text(error)
+            Note over commands: returns
+        end
+        commands->>chat: is_chat_admin(update, context)
+        chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
+        commands->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
+        opt on ValueError
+            commands->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
+        end
+        commands->>database: add_count(target.user_id, selected_date, delta,...)
+        database-->>commands: (old_count, new_count)
+        commands->>chat: where(update)
+        alt delta < 0 and old_count == 0
+            commands->>telegram: reply_text(tr('⚠️ Il conteggio di {name} nel gio...)
+        else
+            commands->>formatting: change_count_sentence(target.mention, date, new_count, delta)
+            commands->>telegram: reply_text(change_count_sentence(target.mention,...)
+        end
     end
 ```
 
@@ -1461,8 +2319,41 @@ sequenceDiagram
 Entry point: `commands.language_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /language (/lingua)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -1484,35 +2375,68 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /language (/lingua)
+    accDescr: The calls between the modules in time order, starting from commands.language_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
     participant chat as chat.py
     participant database as database.py
     participant menus as menus.py
-    telegram->>commands: language_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    opt language not in i18n.LANGUAGES
-        commands->>telegram: reply_text(tr('🌐 La lingua di questa chat è {nam...)
-        Note over commands: returns
-    end
-    commands->>chat: is_chat_admin(update, context)
-    chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
-    opt not await is_chat_admin(update, context)
-        commands->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
-        Note over commands: returns
-    end
-    commands->>database: set_language(update.message.chat_id, language)
-    commands->>chat: where(update)
-    commands->>telegram: reply_text(tr('Da ora parlo italiano 🇮🇹'))
-    commands->>menus: set_chat_menu(context.bot, update.message.chat_id, ...)
-    menus->>telegram: set_my_commands(menu(language), scope=BotCommandScope...)
-    opt group
-        menus->>telegram: set_my_commands(menu(language, admins=True), scope=Bo...)
+    rect rgb(255, 250, 243)
+        telegram->>commands: language_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        opt language not in i18n.LANGUAGES
+            commands->>telegram: reply_text(tr('🌐 La lingua di questa chat è {nam...)
+            Note over commands: returns
+        end
+        commands->>chat: is_chat_admin(update, context)
+        chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
+        opt not await is_chat_admin(update, context)
+            commands->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
+            Note over commands: returns
+        end
+        commands->>database: set_language(update.message.chat_id, language)
+        commands->>chat: where(update)
+        commands->>telegram: reply_text(tr('Da ora parlo italiano 🇮🇹'))
+        commands->>menus: set_chat_menu(context.bot, update.message.chat_id, ...)
+        menus->>telegram: set_my_commands(menu(language), scope=BotCommandScope...)
+        opt group
+            menus->>telegram: set_my_commands(menu(language, admins=True), scope=Bo...)
+        end
     end
 ```
 
@@ -1540,8 +2464,41 @@ sequenceDiagram
 Entry point: `commands.link_history_command`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, /link_history (/collega_storico)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     commands("<b>commands.py</b>")
     chat("<b>chat.py</b>")
@@ -1561,67 +2518,100 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, /link_history (/collega_storico)
+    accDescr: The calls between the modules in time order, starting from commands.link_history_command
     autonumber
     participant telegram as ✈️ Telegram
     participant commands as commands.py
     participant chat as chat.py
     participant database as database.py
-    telegram->>commands: link_history_command(update, context)
-    commands->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>commands: sender
-    opt not args
-        commands->>database: list_legacy_users(chat_id)
-        database-->>commands: legacy
-        opt not legacy
-            commands->>telegram: reply_text(tr('🤷 Non ci sono dati storici da col...)
+    rect rgb(255, 250, 243)
+        telegram->>commands: link_history_command(update, context)
+        commands->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>commands: sender
+        opt not args
+            commands->>database: list_legacy_users(chat_id)
+            database-->>commands: legacy
+            opt not legacy
+                commands->>telegram: reply_text(tr('🤷 Non ci sono dati storici da col...)
+                Note over commands: returns
+            end
+            loop for (legacy_username, total) in legacy
+                commands->>database: find_user_by_username(chat_id, legacy_username)
+                database-->>commands: match
+            end
+            commands->>database: count_legacy_orphans(chat_id)
+            database-->>commands: orphans
+            commands->>telegram: reply_text('\n'.join(lines))
             Note over commands: returns
         end
-        loop for (legacy_username, total) in legacy
-            commands->>database: find_user_by_username(chat_id, legacy_username)
-            database-->>commands: match
+        commands->>chat: is_chat_admin(update, context)
+        chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
+        opt not await is_chat_admin(update, context)
+            commands->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
+            Note over commands: returns
         end
-        commands->>database: count_legacy_orphans(chat_id)
-        database-->>commands: orphans
-        commands->>telegram: reply_text('\n'.join(lines))
-        Note over commands: returns
-    end
-    commands->>chat: is_chat_admin(update, context)
-    chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
-    opt not await is_chat_admin(update, context)
-        commands->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
-        Note over commands: returns
-    end
-    opt len(args) == 1 and args[0] == 'auto'
-        commands->>database: link_legacy_by_username(chat_id)
-        database-->>commands: linked
-        loop for (legacy_username, user, days) in ...
-            commands->>chat: where(update)
+        opt len(args) == 1 and args[0] == 'auto'
+            commands->>database: link_legacy_by_username(chat_id)
+            database-->>commands: linked
+            loop for (legacy_username, user, days) in ...
+                commands->>chat: where(update)
+            end
+            commands->>database: list_legacy_users(chat_id)
+            database-->>commands: remaining
+            commands->>telegram: reply_text('\n'.join(lines))
+            Note over commands: returns
         end
-        commands->>database: list_legacy_users(chat_id)
-        database-->>commands: remaining
-        commands->>telegram: reply_text('\n'.join(lines))
-        Note over commands: returns
-    end
-    opt len(args) != 1
-        commands->>telegram: reply_text(invalid_format(usage))
-        Note over commands: returns
-    end
-    opt replied is None
-        commands->>telegram: reply_text(tr('⚠️ Rispondi a un messaggio della ...)
-        Note over commands: returns
-    end
-    commands->>chat: register_user(chat_id, replied)
-    chat-->>commands: target
-    commands->>database: link_legacy_username(chat_id, legacy_username, target.user_id)
-    database-->>commands: days
-    commands->>chat: where(update)
-    alt days == 0
-        commands->>telegram: reply_text(tr('🤷 Nessun dato storico trovato per...)
-    else
-        commands->>telegram: reply_text(tr('🔗 Collegati {days} giorni di dati...)
+        opt len(args) != 1
+            commands->>telegram: reply_text(invalid_format(usage))
+            Note over commands: returns
+        end
+        opt replied is None
+            commands->>telegram: reply_text(tr('⚠️ Rispondi a un messaggio della ...)
+            Note over commands: returns
+        end
+        commands->>chat: register_user(chat_id, replied)
+        chat-->>commands: target
+        commands->>database: link_legacy_username(chat_id, legacy_username, target.user_id)
+        database-->>commands: days
+        commands->>chat: where(update)
+        alt days == 0
+            commands->>telegram: reply_text(tr('🤷 Nessun dato storico trovato per...)
+        else
+            commands->>telegram: reply_text(tr('🔗 Collegati {days} giorni di dati...)
+        end
     end
 ```
 
@@ -1660,8 +2650,41 @@ sequenceDiagram
 Entry point: `messages.handle_message`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, A message in the chat, 💩 or 🚽 (text or sticker), a location, a mention of the bot, "run"
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     messages("<b>messages.py</b>")
     chat("<b>chat.py</b>")
@@ -1694,7 +2717,38 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, A message in the chat, 💩 or 🚽 (text or sticker), a location, a mention of the bot, "run"
+    accDescr: The calls between the modules in time order, starting from messages.handle_message
     autonumber
     participant telegram as ✈️ Telegram
     participant messages as messages.py
@@ -1705,83 +2759,85 @@ sequenceDiagram
     participant analysis as analysis.py
     participant conquest as conquest.py
     participant maps as maps.py
-    telegram->>messages: handle_message(update, context)
-    messages->>chat: register_sender(update)
-    chat->>database: get_language(update.message.chat_id)
-    chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-    chat-->>messages: sender
-    alt update.message.text
-        opt not (config.BOT_USERNAME and config.B...
-            alt '💩' in text or '🚽' in text
-                messages->>database: add_count(sender.user_id, today.strftime(STORIN...)
-                database-->>messages: (_, count)
-                messages->>database: open_conquest_window(sender.user_id, int(time.time() if se...)
-                messages->>chat: escape_md(sender.mention)
-                messages->>formatting: poop_sentence(escape_md(sender.mention), sent.hour,...)
-                opt count == 1
-                    messages->>database: get_record(sender.user_id, chat_id)
-                    messages->>trophies: new_streak_trophy(get_record(sender.user_id, chat_id), ...)
-                    trophies->>analysis: _parse(rows)
-                    analysis-->>trophies: counts
-                    trophies->>analysis: _runs(sorted((day for day in counts if day ...)
-                    trophies-->>messages: streak
-                    opt streak is not None
-                        messages->>formatting: format_streak_trophy(streak)
+    rect rgb(255, 250, 243)
+        telegram->>messages: handle_message(update, context)
+        messages->>chat: register_sender(update)
+        chat->>database: get_language(update.message.chat_id)
+        chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
+        chat-->>messages: sender
+        alt update.message.text
+            opt not (config.BOT_USERNAME and config.B...
+                alt '💩' in text or '🚽' in text
+                    messages->>database: add_count(sender.user_id, today.strftime(STORIN...)
+                    database-->>messages: (_, count)
+                    messages->>database: open_conquest_window(sender.user_id, int(time.time() if se...)
+                    messages->>chat: escape_md(sender.mention)
+                    messages->>formatting: poop_sentence(escape_md(sender.mention), sent.hour,...)
+                    opt count == 1
+                        messages->>database: get_record(sender.user_id, chat_id)
+                        messages->>trophies: new_streak_trophy(get_record(sender.user_id, chat_id), ...)
+                        trophies->>analysis: _parse(rows)
+                        analysis-->>trophies: counts
+                        trophies->>analysis: _runs(sorted((day for day in counts if day ...)
+                        trophies-->>messages: streak
+                        opt streak is not None
+                            messages->>formatting: format_streak_trophy(streak)
+                        end
+                    end
+                else
+                    opt re.search('\\brun\\b', text)
+                        messages->>chat: escape_md(sender.mention)
                     end
                 end
-            else
-                opt re.search('\\brun\\b', text)
-                    messages->>chat: escape_md(sender.mention)
-                end
             end
-        end
-        opt response
-            messages->>telegram: reply_text(response, parse_mode='Markdown')
-        end
-    else
-        alt update.message.sticker
-            opt emoji == '💩' or emoji == '🚽'
-                Note over messages: record_poop() as above
+            opt response
                 messages->>telegram: reply_text(response, parse_mode='Markdown')
             end
         else
-            opt update.message.location
-                messages->>conquest: cell_of(location.latitude, location.longitude)
-                messages->>database: conquer(chat_id, sender.user_id, int(sent_at....)
-                database-->>messages: result
-                messages->>conquest: holdings(history[:-1])
-                messages->>conquest: holdings(history)
-                conquest-->>messages: (counts, king)
-                messages->>database: get_users(chat_id)
-                database-->>messages: users
-                messages->>chat: escape_md(sender.mention)
-                opt not (previous is None)
-                    opt not (previous == sender.user_id)
-                        messages->>conquest: mention_of(users, previous)
-                        messages->>chat: escape_md(mention_of(users, previous))
-                    end
+            alt update.message.sticker
+                opt emoji == '💩' or emoji == '🚽'
+                    Note over messages: record_poop() as above
+                    messages->>telegram: reply_text(response, parse_mode='Markdown')
                 end
-                opt king != king_before
-                    messages->>conquest: mention_of(users, king)
-                    messages->>chat: escape_md(mention_of(users, king))
-                end
-                messages->>maps: render(maps.zoom_map, history, users)
-                messages->>chat: reply_charts(update, [history and maps.render(maps...)
-                alt not charts
-                    chat->>telegram: reply_text(message, parse_mode='Markdown')
-                else
-                    alt len(charts) == 1
-                        opt fits_caption(message)
-                            chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
-                            Note over chat: returns
+            else
+                opt update.message.location
+                    messages->>conquest: cell_of(location.latitude, location.longitude)
+                    messages->>database: conquer(chat_id, sender.user_id, int(sent_at....)
+                    database-->>messages: result
+                    messages->>conquest: holdings(history[:-1])
+                    messages->>conquest: holdings(history)
+                    conquest-->>messages: (counts, king)
+                    messages->>database: get_users(chat_id)
+                    database-->>messages: users
+                    messages->>chat: escape_md(sender.mention)
+                    opt not (previous is None)
+                        opt not (previous == sender.user_id)
+                            messages->>conquest: mention_of(users, previous)
+                            messages->>chat: escape_md(mention_of(users, previous))
                         end
-                        chat->>telegram: reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
+                    end
+                    opt king != king_before
+                        messages->>conquest: mention_of(users, king)
+                        messages->>chat: escape_md(mention_of(users, king))
+                    end
+                    messages->>maps: render(maps.zoom_map, history, users)
+                    messages->>chat: reply_charts(update, [history and maps.render(maps...)
+                    alt not charts
                         chat->>telegram: reply_text(message, parse_mode='Markdown')
                     else
-                        opt not caption
+                        alt len(charts) == 1
+                            opt fits_caption(message)
+                                chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
+                                Note over chat: returns
+                            end
+                            chat->>telegram: reply_photo(chart, read_timeout=PHOTO_READ_TIMEOUT)
                             chat->>telegram: reply_text(message, parse_mode='Markdown')
+                        else
+                            opt not caption
+                                chat->>telegram: reply_text(message, parse_mode='Markdown')
+                            end
+                            chat->>telegram: reply_media_group([InputMediaPhoto(chart, caption=messa...)
                         end
-                        chat->>telegram: reply_media_group([InputMediaPhoto(chart, caption=messa...)
                     end
                 end
             end
@@ -1853,8 +2909,41 @@ sequenceDiagram
 Entry point: `messages.handle_migration`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, A group becomes a supergroup
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
     messages("<b>messages.py</b>")
     database("<b>database.py</b>")
@@ -1871,22 +2960,55 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, A group becomes a supergroup
+    accDescr: The calls between the modules in time order, starting from messages.handle_migration
     autonumber
     participant telegram as ✈️ Telegram
     participant messages as messages.py
     participant database as database.py
     participant menus as menus.py
-    telegram->>messages: handle_migration(update, context)
-    messages->>database: migrate_chat(old_chat_id, new_chat_id)
-    database-->>messages: result
-    messages->>database: get_language(new_chat_id)
-    database-->>messages: language
-    opt language
-        messages->>menus: set_chat_menu(context.bot, new_chat_id, language, g...)
-        menus->>telegram: set_my_commands(menu(language), scope=BotCommandScope...)
-        opt group
-            menus->>telegram: set_my_commands(menu(language, admins=True), scope=Bo...)
+    rect rgb(255, 250, 243)
+        telegram->>messages: handle_migration(update, context)
+        messages->>database: migrate_chat(old_chat_id, new_chat_id)
+        database-->>messages: result
+        messages->>database: get_language(new_chat_id)
+        database-->>messages: language
+        opt language
+            messages->>menus: set_chat_menu(context.bot, new_chat_id, language, g...)
+            menus->>telegram: set_my_commands(menu(language), scope=BotCommandScope...)
+            opt group
+                menus->>telegram: set_my_commands(menu(language, admins=True), scope=Bo...)
+            end
         end
     end
 ```
@@ -1908,8 +3030,41 @@ sequenceDiagram
 Entry point: `webhook.mini_app`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, Open the Mini App, the page
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     miniapp_page("<b>📱 Mini App page</b>")
     webhook("<b>webhook.py</b>")
     miniapp_page -->|"1.#nbsp;mini_app"| webhook
@@ -1921,12 +3076,45 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, Open the Mini App, the page
+    accDescr: The calls between the modules in time order, starting from webhook.mini_app
     autonumber
     participant miniapp_page as 📱 Mini App page
     participant webhook as webhook.py
-    miniapp_page->>webhook: mini_app()
-    webhook-->>miniapp_page: HTTP response
+    rect rgb(255, 250, 243)
+        miniapp_page->>webhook: mini_app()
+        webhook-->>miniapp_page: HTTP response
+    end
 ```
 
 <details>
@@ -1941,8 +3129,41 @@ No other function of the package.
 Entry point: `webhook.api_chat`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, Mini App, data of the chat (map, seasons, records, trophies)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     miniapp_page("<b>📱 Mini App page</b>")
     telegram("<b>✈️ Telegram</b>")
     webhook("<b>webhook.py</b>")
@@ -1976,7 +3197,38 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, Mini App, data of the chat (map, seasons, records, trophies)
+    accDescr: The calls between the modules in time order, starting from webhook.api_chat
     autonumber
     participant miniapp_page as 📱 Mini App page
     participant telegram as ✈️ Telegram
@@ -1987,55 +3239,57 @@ sequenceDiagram
     participant maps as maps.py
     participant trophies as trophies.py
     participant analysis as analysis.py
-    miniapp_page->>webhook: api_chat()
-    webhook->>miniapp: user_of(request.headers.get('Authorization', ...)
-    webhook->>miniapp: known_chats()
-    webhook->>miniapp: is_member(application.bot, chat_id, user['id'])
-    miniapp->>telegram: get_chat_member(chat_id, user_id)
-    miniapp-->>webhook: member
-    webhook->>database: get_all_user_rows(chat_id)
-    database-->>webhook: (rows_by_user, users)
-    webhook->>database: get_timed_conquests(chat_id)
-    database-->>webhook: timed
-    webhook->>database: get_language(chat_id)
-    webhook->>miniapp: conquest_data(timed, users)
-    miniapp->>conquest: holdings(history)
-    conquest-->>miniapp: (counts, king)
-    miniapp->>maps: owners(history)
-    maps-->>miniapp: tiles
-    loop for res in LEVELS
-        miniapp->>maps: grouped(tiles, res)
-        maps-->>miniapp: owner_of
-    end
-    miniapp->>conquest: mention_of(users, user_id)
-    miniapp->>trophies: season_of(now_rome().date())
-    trophies-->>miniapp: season
-    miniapp->>trophies: season_results(timed)
-    loop for (season, counts) in per_season.it...
-        trophies->>conquest: holdings([(user_id, cell) for user_id, _, cell...)
-    end
-    loop for (i, (user_id, ts, cell)) in enume...
-        miniapp->>trophies: season_of(datetime.fromtimestamp(ts, ROME_TZ).d...)
+    rect rgb(255, 250, 243)
+        miniapp_page->>webhook: api_chat()
+        webhook->>miniapp: user_of(request.headers.get('Authorization', ...)
+        webhook->>miniapp: known_chats()
+        webhook->>miniapp: is_member(application.bot, chat_id, user['id'])
+        miniapp->>telegram: get_chat_member(chat_id, user_id)
+        miniapp-->>webhook: member
+        webhook->>database: get_all_user_rows(chat_id)
+        database-->>webhook: (rows_by_user, users)
+        webhook->>database: get_timed_conquests(chat_id)
+        database-->>webhook: timed
+        webhook->>database: get_language(chat_id)
+        webhook->>miniapp: conquest_data(timed, users)
+        miniapp->>conquest: holdings(history)
+        conquest-->>miniapp: (counts, king)
+        miniapp->>maps: owners(history)
+        maps-->>miniapp: tiles
+        loop for res in LEVELS
+            miniapp->>maps: grouped(tiles, res)
+            maps-->>miniapp: owner_of
+        end
+        miniapp->>conquest: mention_of(users, user_id)
+        miniapp->>trophies: season_of(now_rome().date())
         trophies-->>miniapp: season
+        miniapp->>trophies: season_results(timed)
+        loop for (season, counts) in per_season.it...
+            trophies->>conquest: holdings([(user_id, cell) for user_id, _, cell...)
+        end
+        loop for (i, (user_id, ts, cell)) in enume...
+            miniapp->>trophies: season_of(datetime.fromtimestamp(ts, ROME_TZ).d...)
+            trophies-->>miniapp: season
+        end
+        loop for season in sorted(last)
+            miniapp->>conquest: holdings([(user_id, cell) for user_id, _, cell...)
+            conquest-->>miniapp: (held, king)
+        end
+        webhook->>miniapp: records_data(rows_by_user, today, timed)
+        miniapp->>analysis: analyze_user(rows, today)
+        miniapp->>analysis: analyze_group(rows_by_user, today)
+        miniapp->>trophies: trophies_by_user(rows_by_user, today, timed)
+        loop for (user_id, rows) in users_rows.ite...
+            trophies->>analysis: _parse(rows)
+        end
+        Note over trophies: _winners() as above
+        loop for user_id in set(users_rows) | set(...
+            trophies->>analysis: _parse(rows)
+            analysis-->>trophies: counts
+            trophies->>analysis: _runs(sorted(counts), counts)
+        end
+        webhook-->>miniapp_page: HTTP response
     end
-    loop for season in sorted(last)
-        miniapp->>conquest: holdings([(user_id, cell) for user_id, _, cell...)
-        conquest-->>miniapp: (held, king)
-    end
-    webhook->>miniapp: records_data(rows_by_user, today, timed)
-    miniapp->>analysis: analyze_user(rows, today)
-    miniapp->>analysis: analyze_group(rows_by_user, today)
-    miniapp->>trophies: trophies_by_user(rows_by_user, today, timed)
-    loop for (user_id, rows) in users_rows.ite...
-        trophies->>analysis: _parse(rows)
-    end
-    Note over trophies: _winners() as above
-    loop for user_id in set(users_rows) | set(...
-        trophies->>analysis: _parse(rows)
-        analysis-->>trophies: counts
-        trophies->>analysis: _runs(sorted(counts), counts)
-    end
-    webhook-->>miniapp_page: HTTP response
 ```
 
 <details>
@@ -2083,8 +3337,41 @@ sequenceDiagram
 Entry point: `webhook.api_period`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, Mini App, a month or a year (leaderboard, statistics)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     miniapp_page("<b>📱 Mini App page</b>")
     telegram("<b>✈️ Telegram</b>")
     webhook("<b>webhook.py</b>")
@@ -2107,7 +3394,38 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, Mini App, a month or a year (leaderboard, statistics)
+    accDescr: The calls between the modules in time order, starting from webhook.api_period
     autonumber
     participant miniapp_page as 📱 Mini App page
     participant telegram as ✈️ Telegram
@@ -2115,30 +3433,32 @@ sequenceDiagram
     participant miniapp as miniapp.py
     participant database as database.py
     participant analysis as analysis.py
-    miniapp_page->>webhook: api_period()
-    webhook->>miniapp: user_of(request.headers.get('Authorization', ...)
-    webhook->>miniapp: known_chats()
-    webhook->>miniapp: is_member(application.bot, chat_id, user['id'])
-    miniapp->>telegram: get_chat_member(chat_id, user_id)
-    miniapp-->>webhook: member
-    webhook->>miniapp: period_data(chat_id, time_period, period, now_rom...)
-    miniapp->>database: get_rank(chat_id, time_period, period)
-    database-->>miniapp: rank
-    miniapp->>database: get_daily_counts_between(chat_id, start, end)
-    database-->>miniapp: daily
-    opt rank and start <= today.isoformat() <...
-        miniapp->>database: get_daily_counts_between(chat_id, (today - timedelta(days=FORE...)
-        database-->>miniapp: recent
-        miniapp->>analysis: forecast_totals({user.user_id: total for user, total ...)
-        analysis-->>miniapp: forecast
+    rect rgb(255, 250, 243)
+        miniapp_page->>webhook: api_period()
+        webhook->>miniapp: user_of(request.headers.get('Authorization', ...)
+        webhook->>miniapp: known_chats()
+        webhook->>miniapp: is_member(application.bot, chat_id, user['id'])
+        miniapp->>telegram: get_chat_member(chat_id, user_id)
+        miniapp-->>webhook: member
+        webhook->>miniapp: period_data(chat_id, time_period, period, now_rom...)
+        miniapp->>database: get_rank(chat_id, time_period, period)
+        database-->>miniapp: rank
+        miniapp->>database: get_daily_counts_between(chat_id, start, end)
+        database-->>miniapp: daily
+        opt rank and start <= today.isoformat() <...
+            miniapp->>database: get_daily_counts_between(chat_id, (today - timedelta(days=FORE...)
+            database-->>miniapp: recent
+            miniapp->>analysis: forecast_totals({user.user_id: total for user, total ...)
+            analysis-->>miniapp: forecast
+        end
+        miniapp->>database: get_users(chat_id)
+        miniapp->>analysis: period_statistics(daily, database.get_users(chat_id), s...)
+        analysis-->>miniapp: statistics
+        miniapp->>database: get_first_days(chat_id)
+        database-->>miniapp: first_days
+        miniapp->>analysis: period_regularity(daily, first_days, s['user'].user_id,...)
+        webhook-->>miniapp_page: HTTP response
     end
-    miniapp->>database: get_users(chat_id)
-    miniapp->>analysis: period_statistics(daily, database.get_users(chat_id), s...)
-    analysis-->>miniapp: statistics
-    miniapp->>database: get_first_days(chat_id)
-    database-->>miniapp: first_days
-    miniapp->>analysis: period_regularity(daily, first_days, s['user'].user_id,...)
-    webhook-->>miniapp_page: HTTP response
 ```
 
 <details>
@@ -2170,8 +3490,41 @@ sequenceDiagram
 Entry point: `announce.main`
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 160}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+  flowchart:
+    nodeSpacing: 50
+    rankSpacing: 160
+---
 flowchart LR
+    accTitle: Communication diagram, Midnight announcement (scheduled task)
+    accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     task("<b>🕛 Scheduled task</b>")
     telegram("<b>✈️ Telegram</b>")
     announce("<b>announce.py</b>")
@@ -2198,7 +3551,38 @@ flowchart LR
 ```
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 sequenceDiagram
+    accTitle: Sequence diagram, Midnight announcement (scheduled task)
+    accDescr: The calls between the modules in time order, starting from announce.main
     autonumber
     participant task as 🕛 Scheduled task
     participant telegram as ✈️ Telegram
@@ -2209,31 +3593,33 @@ sequenceDiagram
     participant chat as chat.py
     participant conquest as conquest.py
     participant formatting as formatting.py
-    task->>announce: main(argv)
-    loop for chat_id in chat_ids()
-        announce->>database: get_language(chat_id)
-        announce->>database: get_all_user_rows(chat_id)
-        database-->>announce: (rows_by_user, users)
-        announce->>trophies: monthly_winners(rows_by_user, today)
-        loop for (user_id, rows) in users_rows.ite...
-            trophies->>analysis: _parse(rows)
-        end
-        announce->>trophies: yearly_winners(rows_by_user, today)
-        Note over trophies: _winners() as above
-        announce->>chat: escape_md(user.mention)
-        opt today.month % 3 == 1
-            announce->>trophies: season_of(ended)
-            trophies-->>announce: key
-            announce->>database: get_timed_conquests(chat_id)
-            announce->>trophies: season_results(database.get_timed_conquests(chat_id))
-            loop for (season, counts) in per_season.it...
-                trophies->>conquest: holdings([(user_id, cell) for user_id, _, cell...)
+    rect rgb(255, 250, 243)
+        task->>announce: main(argv)
+        loop for chat_id in chat_ids()
+            announce->>database: get_language(chat_id)
+            announce->>database: get_all_user_rows(chat_id)
+            database-->>announce: (rows_by_user, users)
+            announce->>trophies: monthly_winners(rows_by_user, today)
+            loop for (user_id, rows) in users_rows.ite...
+                trophies->>analysis: _parse(rows)
             end
+            announce->>trophies: yearly_winners(rows_by_user, today)
+            Note over trophies: _winners() as above
+            announce->>chat: escape_md(user.mention)
+            opt today.month % 3 == 1
+                announce->>trophies: season_of(ended)
+                trophies-->>announce: key
+                announce->>database: get_timed_conquests(chat_id)
+                announce->>trophies: season_results(database.get_timed_conquests(chat_id))
+                loop for (season, counts) in per_season.it...
+                    trophies->>conquest: holdings([(user_id, cell) for user_id, _, cell...)
+                end
+            end
+            announce->>formatting: format_new_period(today, month, year, names, season)
         end
-        announce->>formatting: format_new_period(today, month, year, names, season)
-    end
-    loop for (chat_id, text) in messages
-        announce->>telegram: send_message(chat_id, text, parse_mode='Markdown')
+        loop for (chat_id, text) in messages
+            announce->>telegram: send_message(chat_id, text, parse_mode='Markdown')
+        end
     end
 ```
 

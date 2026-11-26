@@ -8,6 +8,10 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "tools"))
+
+from mermaid_style import CLASSDEFS, FRONTMATTER, accessible  # noqa: E402
+
 PACKAGE = REPO / "caccometro"
 DOC = REPO / "docs" / "architecture.md"
 MARKERS = ("<!-- drawn by tools/draw_dependencies.py: start -->", "<!-- drawn by tools/draw_dependencies.py: end -->")
@@ -99,7 +103,9 @@ def render():
     placed = [name for _, _, names in LAYERS for name in names] + EVERYWHERE + SKIPPED
     missing = sorted(set(graph) - set(placed))
     assert not missing, f"put {missing} in a layer of tools/draw_dependencies.py"
-    lines = ["```mermaid", "flowchart TD"]
+    lines = ["```mermaid", *FRONTMATTER.splitlines(), "flowchart TD",
+             *accessible("Dependencies between modules", "Which module of caccometro imports which, in layers from "
+                         "the entry points down to the storage, with the number of names used")]
     for key, title, names in LAYERS:
         lines.append(f'    subgraph {key}["{title}"]')
         lines.extend(f'        {name}("<b>{name}.py</b>")' for name in names)
@@ -110,9 +116,7 @@ def render():
             if name not in SKIPPED:
                 lines.append(f'    {name} -->|"{len(units.get((name, dep), ()))}"| {dep}')
     lines += [
-        "    classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e",
-        "    classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3",
-        "    classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3",
+        *(f"    {line}" for line in CLASSDEFS if line.split()[1] in ("step", "main", "person")),
         f"    class {','.join(LAYERS[0][2])} person",
         f"    class {','.join(name for _, _, names in LAYERS[1:] for name in names)} step",
         f"    class {','.join(LAYERS[3][2])} main",

@@ -130,6 +130,18 @@ def test_the_page_of_the_use_cases_is_up_to_date():
     assert read("docs/use_cases.md") == tool("write_use_cases").render(), "docs/use_cases.md is stale: run python tools/write_use_cases.py"
 
 
+def test_every_mermaid_diagram_has_the_style_of_the_docs():
+    style = tool("mermaid_style")
+    opening = style.FRONTMATTER[:-len("---\n")]   # the generators may add their own settings before the closing ---
+    for doc in [ROOT / "README.md", ROOT / "README.it.md", ROOT / "CONTRIBUTING.md", *(ROOT / "docs").rglob("*.md")]:
+        for block in re.findall(r"```mermaid\n(.*?)```", doc.read_text(encoding="utf-8"), re.S):
+            where = f"{doc.name}: {block.splitlines()[0]}..."
+            assert block.startswith(opening), f"{where} does not start with tools/mermaid_style.FRONTMATTER"
+            assert "accTitle:" in block and "accDescr:" in block, f"{where} has no accTitle or accDescr"
+            for line in re.findall(r"^\s*(classDef .*)$", block, re.MULTILINE):
+                assert line in style.CLASSDEFS, f"{where} has a classDef outside tools/mermaid_style.CLASSDEFS: {line}"
+
+
 def test_the_dependency_diagram_matches_the_imports(architecture):
     assert tool("draw_dependencies").updated(architecture) == architecture, "the diagram is stale: run python tools/draw_dependencies.py"
 

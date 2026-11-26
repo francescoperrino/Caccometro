@@ -26,7 +26,7 @@ Which views of the code the documentation of Caccometro (#204) should show, in w
 
 ## What we chose and why
 
-A proposal: the maintainer decides. Today the repository already goes past what C4 and arc42 ask at the bottom (modules, functions and use cases are written by the code and tested) and is missing the top (context and containers).
+Today the repository already goes past what C4 and arc42 ask at the bottom (modules, functions and use cases are written by the code and tested) and is missing the top (context and containers).
 
 | View | Framework | Where | Exists | Generated, tested |
 | --- | --- | --- | --- | --- |
@@ -85,6 +85,8 @@ config:
     labelBoxBkgColor: "#f3e4d0"
     loopTextColor: "#3b2a1e"
     sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
 ---
 ```
 
@@ -93,7 +95,7 @@ config:
 - **Sequence diagrams.** No `classDef`: they get the actor and signal variables, and their messages sit in one `rect rgb(255, 250, 243)` block, so the text has a cream ground in dark mode too. `autonumber` stays, as in the flowcharts' numbered cards.
 - **Infographics** keep their own background and `<title>`, so they read in both modes. Their alt text stays under 155 characters (the README one is longer) and the steps are also in the README text.
 
-**First step.** A throwaway pull request with an `info` block and one diagram carrying this frontmatter, seen in light and dark mode: it tells which Mermaid version GitHub runs, whether the frontmatter and `accTitle` survive. If the frontmatter is ignored, `classDef`, `rect` and the label chips still carry the style.
+**Checked on GitHub (November 2026).** A test page showed that GitHub runs Mermaid 12.3.0 and applies the frontmatter: the `base` theme, the palette, the `classDef` lines and the cream ground of the sequence diagrams, legible in light and dark mode. The one thing that disappeared in dark mode was the label under an `actor` stick figure, which has no fill: sequence diagrams use `participant` boxes only. The style lives in `tools/mermaid_style.py` and `tests/test_docs.py` checks every block.
 
 **Hand-written or generated.**
 
