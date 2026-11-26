@@ -24,7 +24,7 @@ Hai fatto il tuo dovere? Manda 💩 nel gruppo. Caccometro tiene il conto di tut
 - 📊 **Statistiche e grafici**: medie, la giornata tipo, chi è più regolare
 - 🏅 **Record e trofei**: serie di giorni, il 💩 del mese e dell'anno
 - 🚩 **Gioco di conquista**: dopo la 💩 manda la posizione e l'esagono sulla mappa è tuo, stagione dopo stagione
-- 📱 **Mini App**: mappa, classifiche, statistiche e trofei in un posto solo, aperta dalla chat
+- 📱 **Mini App**: mappa, classifiche, statistiche e trofei in un posto solo, aperta dalla chat; nella prima settimana del mese, il riepilogo del tuo mese (a gennaio, del tuo anno) da condividere
 - 🌍 Italiano e inglese, open source
 
 ## 📱 Mini App
@@ -86,7 +86,7 @@ Ogni comando ha anche un nome inglese (`/leaderboard_month`, `/add_poop`, ...), 
 - **`/record [io | @username]`**: senza argomenti i **record del gruppo** (chi detiene ciascun record e chi è in testa adesso). Con `io` i tuoi record, con `@username` (o rispondendo a un messaggio) quelli di un'altra persona, ciascuno con il suo **stato attuale** e il posto nel gruppo ("2° su 5").
 - **`/trofei [io | @username]`**: senza argomenti la **bacheca dei trofei** del gruppo; con `io`, `@username` o una risposta, i trofei di una persona, con quanti giorni mancano al prossimo trofeo di serie.
 - **`/conquiste [io | @username]`**: senza argomenti le **zone tenute** da ogni persona, prima il re della collina 👑; con `io`, `@username` o una risposta, le zone tenute e visitate da una persona, e mappe solo sue: Lombardia, Italia e mondo, più chiare dove ha perso zone, e una quarta mappa con le zone vere intorno all'ultima conquista (quelle perse tratteggiate).
-- **`/app`** manda un pulsante che apre la **Mini App** su questa chat. Nella chat privata con il bot, il pulsante del menu la apre sulla chat privata; i dati di un gruppo li vedono solo i suoi membri.
+- **`/app`** manda un pulsante che apre la **Mini App** su questa chat. Nella chat privata con il bot, il pulsante del menu la apre sulla chat privata; i dati di un gruppo li vedono solo i suoi membri. Dal 1° al 7 del mese la classifica apre **Il tuo mese**: il mese appena finito in poche schermate (totale, giorno migliore, serie più lunga, posto, confronto col mese prima), e Condividi ti manda l'immagine in privato da inoltrare o salvare. Dal 1° al 14 gennaio c'è anche **Il tuo anno**, con l'anno appena finito. L'annuncio di mezzanotte di un nuovo mese ha un pulsante che lo apre.
 - **`/conto_giorno [@username] [DD-MM-YYYY]`**: oggi se la data manca (anche `ieri`).
 - **`/aggiungi_cacca` e `/togli_cacca [@username] DD-MM-YYYY`** aggiungono o tolgono 1 💩 (fino a 0) in un giorno passato o di oggi (anche `oggi`, `ieri`). Sul conto di un altro: solo admin.
 - **`/collega_storico`** senza argomenti mostra cosa resta da collegare: vedi [Vecchio storico e supergruppi](#-regole).
