@@ -126,6 +126,10 @@ def test_the_page_of_the_functions_is_up_to_date():
     assert read("docs/functions.md") == tool("write_functions").render(), "docs/functions.md is stale: run python tools/write_functions.py"
 
 
+def test_the_page_of_the_use_cases_is_up_to_date():
+    assert read("docs/use_cases.md") == tool("write_use_cases").render(), "docs/use_cases.md is stale: run python tools/write_use_cases.py"
+
+
 def test_the_dependency_diagram_matches_the_imports(architecture):
     assert tool("draw_dependencies").updated(architecture) == architecture, "the diagram is stale: run python tools/draw_dependencies.py"
 

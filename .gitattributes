@@ -7,3 +7,4 @@
 # The generated pages are written with LF by their scripts in tools/, like the infographics.
 docs/replies.md text eol=lf
 docs/functions.md text eol=lf
+docs/use_cases.md text eol=lf

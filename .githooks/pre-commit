@@ -20,13 +20,14 @@ ${py:-python} -m pytest -q -p no:cacheprovider > /dev/null 2>&1 || {
     exit 1
 }
 
-# The README charts and the documentation infographics carry the bot version, the pages of the replies and of the functions follow the code:
+# The README charts and the documentation infographics carry the bot version, the pages of the replies, the functions and the use cases follow the code:
 # redraw them, refuse the commit if they changed (#143, #194, #204)
 ${py:-python} tools/sample_charts.py > /dev/null || exit 1
 ${py:-python} tools/draw_infographics.py > /dev/null || exit 1
 ${py:-python} tools/write_replies.py > /dev/null || exit 1
 ${py:-python} tools/write_functions.py > /dev/null || exit 1
-if ! git diff --quiet -- assets/screenshots docs/images docs/replies.md docs/functions.md || [ -n "$(git ls-files --others --exclude-standard -- assets/screenshots docs/images docs/replies.md docs/functions.md)" ]; then
-    echo "pre-commit: the README charts, the infographics, docs/replies.md or docs/functions.md changed. Check and stage them: git add assets/screenshots docs/images docs/replies.md docs/functions.md" >&2
+${py:-python} tools/write_use_cases.py > /dev/null || exit 1
+if ! git diff --quiet -- assets/screenshots docs/images docs/replies.md docs/functions.md docs/use_cases.md || [ -n "$(git ls-files --others --exclude-standard -- assets/screenshots docs/images docs/replies.md docs/functions.md docs/use_cases.md)" ]; then
+    echo "pre-commit: the README charts, the infographics or the generated pages in docs/ changed. Check and stage them: git add assets/screenshots docs/images docs/replies.md docs/functions.md docs/use_cases.md" >&2
     exit 1
 fi

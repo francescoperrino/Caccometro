@@ -27,7 +27,7 @@ caccometro/          the bot, as a Python package
   miniapp.py         Mini App: signed initData, membership checks, direct link, data of the map, seasons, records and periods
 assets/webapp/       the Mini App page (static HTML and JavaScript, libraries from a CDN)
 scripts/set_webhook.py   registers the webhook on Telegram (once)
-tools/               service scripts: deploy, database backups, log download and summary, bot version, command menus, README charts and maps, page of the replies, module diagram, page of the functions
+tools/               service scripts: deploy, database backups, log download and summary, bot version, command menus, README charts and maps, page of the replies, module diagram, pages of the functions and of the use cases
 .githooks/           git hooks (pre-commit, commit-msg), enabled with core.hooksPath
 .gitattributes       line endings of the .py files (CRLF) and of the hooks (LF)
 tests/               pytest tests
@@ -37,7 +37,7 @@ wsgi.py              template of the WSGI file for the hosting
 assets/              avatar, animation, fonts, medal images of the charts, README charts (screenshots/)
 ```
 
-Every public function and class, with what it does and which modules use it, is in [functions.md](functions.md), written from the code by `tools/write_functions.py`.
+Every public function and class, with what it does and which modules use it, is in [functions.md](functions.md), written from the code by `tools/write_functions.py`; which of them each use case calls is in [use_cases.md](use_cases.md), written by `tools/write_use_cases.py`.
 
 `analysis.py`, `trophies.py` and `conquest.py` do not touch the database or Telegram: they receive the counts and return records, statistics and trophies, which makes them the easiest parts to test.
 
