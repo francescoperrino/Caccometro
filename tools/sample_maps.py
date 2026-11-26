@@ -11,7 +11,7 @@ sys.path.insert(0, str(REPO))
 
 from caccometro import i18n, maps  # noqa: E402
 from caccometro.conquest import cell_of  # noqa: E402
-from caccometro.database import User  # noqa: E402
+from caccometro.model import User  # noqa: E402
 
 OUT = REPO / "assets" / "screenshots"
 PEOPLE = {1: User(1, "giulia", "Giulia"), 2: User(2, "marco", "Marco"), 3: User(3, None, "Anna")}  # Anna: no username

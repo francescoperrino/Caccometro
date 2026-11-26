@@ -168,6 +168,7 @@ caccometro/          the bot, as a Python package
   i18n.py            translations: the Italian sentences are the keys, one dictionary per language
   menus.py           command names and menu descriptions in both languages, menu of a chat
   database.py        SQLite database: schema, migration, queries
+  model.py           data types shared by every layer: User
   analysis.py        records, streaks, statistics and forecasts (pure functions, no database)
   conquest.py        conquest game: h3 tiles, 15 minute window, ownership and king of the hill (pure functions)
   trophies.py        trophies: 15-day streaks, 💩 of the month and of the year, conquest seasons (pure functions)
@@ -196,7 +197,7 @@ Every public function and class, with what it does and which modules use it, is 
 
 ## Dependencies between modules
 
-Which module imports which, drawn from the code by `tools/draw_dependencies.py` (a test fails when it no longer matches). The arrows mostly go down: the Telegram code uses the replies, the replies use the rules, and the rules and the storage know nothing of Telegram. Two arrows cross between rules and storage: `analysis.py` takes only the `User` type from `database.py`, never a query, and `database.py` uses `conquest.cell_of` to recalculate the saved conquests when the schema changes (#174).
+Which module imports which, drawn from the code by `tools/draw_dependencies.py` (a test fails when it no longer matches). The arrows mostly go down: the Telegram code uses the replies, the replies use the rules, and the rules and the storage know nothing of Telegram. The `User` type lives in `model.py`, below the storage, so that the rules can use it without depending on the storage. A test fails when a module imports from a layer above its own.
 
 <!-- drawn by tools/draw_dependencies.py: start -->
 ```mermaid
@@ -258,8 +259,11 @@ flowchart TD
     subgraph storage["🗄️ Storage"]
         database("<b>database.py</b>")
     end
+    subgraph types["🧱 Shared types"]
+        model("<b>model.py</b>")
+    end
     __main__ -->|"1"| bot
-    analysis -->|"1"| database
+    analysis -->|"1"| model
     announce -->|"1"| bot
     announce -->|"1"| chat
     announce -->|"4"| database
@@ -269,7 +273,8 @@ flowchart TD
     bot -->|"15"| commands
     bot -->|"1"| menus
     bot -->|"2"| messages
-    chat -->|"3"| database
+    chat -->|"2"| database
+    chat -->|"1"| model
     commands -->|"7"| analysis
     commands -->|"2"| charts
     commands -->|"7"| chat
@@ -280,7 +285,7 @@ flowchart TD
     commands -->|"1"| menus
     commands -->|"1"| miniapp
     commands -->|"3"| trophies
-    database -->|"1"| conquest
+    database -->|"1"| model
     formatting -->|"4"| analysis
     formatting -->|"1"| trophies
     maps -->|"8"| charts
@@ -309,7 +314,7 @@ flowchart TD
     classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     class __main__,webhook,announce person
-    class bot,commands,messages,chat,menus,miniapp,formatting,charts,maps,analysis,trophies,conquest,database step
+    class bot,commands,messages,chat,menus,miniapp,formatting,charts,maps,analysis,trophies,conquest,database,model step
     class analysis,trophies,conquest main
 ```
 

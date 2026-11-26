@@ -146,6 +146,15 @@ def test_the_dependency_diagram_matches_the_imports(architecture):
     assert tool("draw_dependencies").updated(architecture) == architecture, "the diagram is stale: run python tools/draw_dependencies.py"
 
 
+def test_modules_import_only_from_their_layer_or_lower_ones():
+    deps = tool("draw_dependencies")
+    level = {name: i for i, (_, _, names) in enumerate(deps.LAYERS) for name in names}
+    wrong = [f"{name} -> {dep}" for name, imported in deps.imports().items() if name in level
+             for dep in imported if dep in level and level[dep] < level[name]]
+    shared = [f"{name} -> {dep}" for name in deps.EVERYWHERE for dep in deps.imports()[name] if dep not in deps.EVERYWHERE]
+    assert not wrong + shared, f"imports against the layers of tools/draw_dependencies.py: {wrong + shared}"
+
+
 @pytest.mark.parametrize("name", ["README.md", "README.it.md"])
 def test_the_readmes_show_every_sample_chart(name):
     for chart in (ROOT / "assets" / "screenshots").glob("*.png"):

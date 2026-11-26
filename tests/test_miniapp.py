@@ -11,6 +11,7 @@ import pytest
 from telegram.error import Forbidden
 
 from caccometro import __version__, bot, conquest, database, miniapp, trophies, webhook
+from caccometro.model import User
 from conftest import CHAT_ID, uid
 
 TOKEN = os.environ["BOT_TOKEN"]
@@ -118,7 +119,7 @@ def test_mini_app_page_is_served(client):
 
 
 def test_conquest_data_sends_outlines_and_owners_at_every_zoom_but_no_locations():
-    users = {1: database.User(1, "anna", "Anna"), 2: database.User(2, None, "Bruno")}
+    users = {1: User(1, "anna", "Anna"), 2: User(2, None, "Bruno")}
     cell = conquest.cell_of(45.46, 9.19)
     other = conquest.cell_of(45.60, 9.40)
     data = miniapp.conquest_data([(1, 1_700_000_000, cell), (2, 1_700_000_100, cell), (1, 1_700_000_200, other),

@@ -3,6 +3,7 @@ import asyncio
 
 from caccometro import commands, messages
 from caccometro import database
+from caccometro.model import User
 from conftest import get_user, make_context, make_tg_user, make_update, uid
 
 
@@ -31,7 +32,7 @@ def test_plain_message_registers_the_user_and_stays_silent(chat_id):
     upd = make_update(text="ciao", username=None, user_id=777, full_name="Anna Rossi")
     run(messages.handle_message(upd, make_context()))
     upd.message.reply_text.assert_not_called()
-    assert get_user(chat_id, 777) == database.User(777, None, "Anna Rossi")
+    assert get_user(chat_id, 777) == User(777, None, "Anna Rossi")
 
 
 def test_message_without_sender_is_ignored():

@@ -9,7 +9,7 @@ from typing import NamedTuple, Optional, Tuple
 import numpy as np
 
 from caccometro.config import STORING_FORMAT
-from caccometro.database import User
+from caccometro.model import User
 
 Month = Tuple[int, int]  # (year, month)
 
@@ -52,7 +52,7 @@ class UserRecords(NamedTuple):
     status: Status
 
 
-class _Run(NamedTuple):
+class Run(NamedTuple):
     """A run of consecutive days with 💩: first and last day, length and total 💩."""
 
     start: date
@@ -61,20 +61,20 @@ class _Run(NamedTuple):
     total: int
 
 
-def _parse(rows):
+def parse_counts(rows):
     """[(date string, count)] -> {date: count}, ignoring days without 💩."""
     return {datetime.strptime(day, STORING_FORMAT).date(): count for day, count in rows if count > 0}
 
 
-def _runs(days_sorted, counts):
+def consecutive_runs(days_sorted, counts):
     """Runs of consecutive days with 💩."""
     runs = []
     for day in days_sorted:
         if runs and (day - runs[-1].end).days == 1:
             previous = runs[-1]
-            runs[-1] = _Run(previous.start, day, previous.days + 1, previous.total + counts[day])
+            runs[-1] = Run(previous.start, day, previous.days + 1, previous.total + counts[day])
         else:
-            runs.append(_Run(day, day, 1, counts[day]))
+            runs.append(Run(day, day, 1, counts[day]))
     return runs
 
 
@@ -116,9 +116,9 @@ def analyze_user(rows, today: date) -> UserRecords:
     rows: [(date 'YYYY-MM-DD', count)], at least one row with a positive count.
     today: the current date (passed in so that results are reproducible).
     """
-    counts = _parse(rows)
+    counts = parse_counts(rows)
     days = sorted(counts)
-    runs = _runs(days, counts)
+    runs = consecutive_runs(days, counts)
 
     top_count, top_days = _best(days, lambda d: counts[d])
     daily = Record(top_count, top_days)
@@ -357,7 +357,7 @@ def recap(daily, user_id, year, month, first_days) -> Optional[Recap]:
         return None
     mine = {date.fromisoformat(d): c for d, c in daily[user_id].items() if start <= d <= end and c > 0}
     best = max(mine, key=lambda d: (mine[d], -d.toordinal()))
-    run = max(_runs(sorted(mine), mine), key=lambda r: (r.days, -r.start.toordinal()))
+    run = max(consecutive_runs(sorted(mine), mine), key=lambda r: (r.days, -r.start.toordinal()))
     total = totals[user_id]
     above = [u for u, t in totals.items() if t > total]
     ahead = min(above, key=lambda u: (totals[u], u)) if above else None

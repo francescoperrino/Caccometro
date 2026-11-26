@@ -7,6 +7,7 @@ import pytest
 from caccometro import commands, messages
 from caccometro import database
 from caccometro import charts, i18n
+from caccometro.model import User
 from conftest import make_context, make_update, uid
 
 
@@ -121,7 +122,7 @@ def test_month_table_shows_daily_and_total_counts(seed, chat_id, monkeypatch):
 
 
 def test_rank_chart_tolerates_a_user_without_daily_counts(chat_id, isolated_folders):
-    rank = [(database.User(uid("mario"), "mario", "Mario"), 0)]
+    rank = [(User(uid("mario"), "mario", "Mario"), 0)]
     assert charts.generate_rank_chart(rank, {}, "month", "03-2024").startswith(b"\x89PNG")
 
 
@@ -201,7 +202,7 @@ def test_add_poop_reports_the_new_count(chat_id, seed):
 
 def test_poop_messages_sent_at_the_same_time_are_all_counted(chat_id):
     today = database.now_rome().strftime("%Y-%m-%d")
-    sender = database.User(uid("mario"), "mario", "Mario")
+    sender = User(uid("mario"), "mario", "Mario")
     threads = [threading.Thread(target=messages.record_poop, args=(sender, chat_id)) for _ in range(12)]
     for thread in threads:
         thread.start()

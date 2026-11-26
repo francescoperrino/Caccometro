@@ -25,6 +25,7 @@ from caccometro import charts  # noqa: E402
 from caccometro import webhook  # noqa: E402
 from caccometro import i18n  # noqa: E402
 from caccometro import maps  # noqa: E402
+from caccometro.model import User  # noqa: E402
 
 REAL_CACHED_TILE = maps.cached_tile  # replaced by no_network in every test
 
@@ -79,7 +80,7 @@ def get_user(chat_id, user_id):
         row = conn.execute('SELECT user_id, username, display_name FROM users WHERE user_id = ?', (user_id,)).fetchone()
     finally:
         conn.close()
-    return database.User(*row) if row else None
+    return User(*row) if row else None
 
 
 def make_tg_user(username="mario", user_id=None, full_name=None, is_bot=False):

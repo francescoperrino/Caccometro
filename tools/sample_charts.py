@@ -13,7 +13,7 @@ sys.path.insert(0, str(REPO))
 
 from caccometro import charts, i18n  # noqa: E402
 from caccometro.analysis import FORECAST_WINDOW_DAYS, forecast_totals, period_statistics  # noqa: E402
-from caccometro.database import User  # noqa: E402
+from caccometro.model import User  # noqa: E402
 
 OUT = REPO / "assets" / "screenshots"
 TODAY = date(2026, 3, 20)   # mid-month, so the ranking shows the forecast

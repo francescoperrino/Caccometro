@@ -3,10 +3,11 @@
 import os
 import sqlite3
 from datetime import datetime
-from typing import NamedTuple, Optional
+
+import h3
 
 from caccometro.config import PROJECT_DIR, now_rome, period_bounds
-from caccometro.conquest import cell_of
+from caccometro.model import User
 
 # Configurations
 DB_FOLDER = str(PROJECT_DIR / 'db')
@@ -17,23 +18,7 @@ DB_FOLDER = str(PROJECT_DIR / 'db')
 #   3   = conquest game: conquests and last_poop tables (#156)
 #   4   = conquest tiles at h3 resolution 7: every saved conquest recalculated from its location (#174)
 SCHEMA_VERSION = 4
-
-class User(NamedTuple):
-    """A Telegram user known to a chat."""
-    user_id: int
-    username: Optional[str]
-    display_name: str
-
-    @property
-    def name(self):
-        """Plain name for charts and tables: the username if any, otherwise the display name."""
-        return self.username or self.display_name
-
-    @property
-    def mention(self):
-        """Name for messages: '@username' if any, otherwise the display name."""
-        return f"@{self.username}" if self.username else self.display_name
-
+SCHEMA_4_RESOLUTION = 7   # frozen: a later change of conquest.RESOLUTION needs a schema 5
 
 # Database files whose schema has already been checked by this process
 _schema_ready = set()
@@ -111,8 +96,9 @@ def _ensure_schema(path):
                 conn.execute('CREATE INDEX IF NOT EXISTS idx_conquests_cell ON conquests (cell)')
                 # Time of the last 💩 of each user while its conquest window is unused
                 conn.execute('CREATE TABLE IF NOT EXISTS last_poop (user_id INTEGER PRIMARY KEY, ts INTEGER NOT NULL)')
-                # The tile of every conquest again from its location, at the resolution of the game (rows keep their order)
-                conn.create_function('cell_of', 2, cell_of, deterministic=True)
+                # The tile of every conquest again from its location, at the resolution of schema 4 (rows keep their order)
+                conn.create_function('cell_of', 2, lambda lat, lon: h3.latlng_to_cell(lat, lon, SCHEMA_4_RESOLUTION),
+                                     deterministic=True)
                 conn.execute('UPDATE conquests SET cell = cell_of(lat, lon)')
                 conn.execute(f'PRAGMA user_version = {SCHEMA_VERSION}')
             conn.execute('COMMIT')

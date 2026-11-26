@@ -6,7 +6,8 @@ from telegram.constants import ChatMemberStatus, MessageLimit
 from telegram.ext import ContextTypes
 
 from caccometro import i18n
-from caccometro.database import User, get_language, upsert_user
+from caccometro.database import get_language, upsert_user
+from caccometro.model import User
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ def display_name_of(tg_user):
 
 
 def register_user(chat_id, tg_user):
-    """Store the current username/name of a Telegram user and return it as a database.User."""
+    """Store the current username/name of a Telegram user and return it as a model.User."""
     user = User(tg_user.id, tg_user.username, display_name_of(tg_user))
     upsert_user(chat_id, user.user_id, user.username, user.display_name)
     return user

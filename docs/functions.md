@@ -12,6 +12,9 @@ Records and current status of the users' 💩 counts.
 | `class Record` | The best value of a metric and everything that reached it (ties are all kept). | only its own module |
 | `class Status` | Where the user stands right now, metric by metric. | only its own module |
 | `class UserRecords` | Personal records of one user, plus the current status they are compared with. | `formatting` |
+| `class Run` | A run of consecutive days with 💩: first and last day, length and total 💩. | only its own module |
+| `parse_counts(rows)` | [(date string, count)] -> {date: count}, ignoring days without 💩. | `trophies` |
+| `consecutive_runs(days_sorted, counts)` | Runs of consecutive days with 💩. | `trophies` |
 | `analyze_user(rows, today)` | Records and current status of one user. | `commands`, `miniapp` |
 | `class Holder` | Someone who holds (or shares) a group record. | only its own module |
 | `class Leaders` | The best value of a metric in the group and everyone who reached it. | `formatting` |
@@ -91,7 +94,7 @@ Helpers on Telegram updates shared by the commands and the message handler.
 | Function or class | What it does | Used by |
 | --- | --- | --- |
 | `display_name_of(tg_user)` | Name shown for users without a username: their full name, falling back to the numeric ID. | only its own module |
-| `register_user(chat_id, tg_user)` | Store the current username/name of a Telegram user and return it as a database.User. | `commands` |
+| `register_user(chat_id, tg_user)` | Store the current username/name of a Telegram user and return it as a model.User. | `commands` |
 | `register_sender(update)` | Record the sender of the message in the users table and return it; the replies follow the language of the chat. | `commands`, `messages` |
 | `where(update)` | 'PVT - &lt;chat name>' or 'GROUP - &lt;chat name>', for the log lines. | `commands` |
 | `escape_md(name)` | Escape a name for Telegram (legacy) Markdown. | `announce`, `commands`, `messages` |
@@ -152,7 +155,7 @@ Conquest game (#128): after a 💩 a location conquers the h3 hexagon it falls i
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `cell_of(lat, lon)` | The tile (h3 cell at RESOLUTION) of a point. | `database`, `messages` |
+| `cell_of(lat, lon)` | The tile (h3 cell at RESOLUTION) of a point. | `messages` |
 | `holdings(history)` | Replay the conquests [(user_id, cell)] in order: ({user_id: tiles held}, king). | `commands`, `maps`, `messages`, `miniapp`, `trophies` |
 | `visited(history, user_id)` | Number of different tiles the user has ever conquered. | `commands` |
 | `mention_of(users, user_id)` | Name for messages of a user of the chat; the user ID when the bot does not know it. | `commands`, `maps`, `messages`, `miniapp` |
@@ -163,9 +166,6 @@ SQLite storage, one database file per chat: schema, migration from the legacy sc
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `class User` | A Telegram user known to a chat. | `analysis`, `chat` |
-| `User.name` | Plain name for charts and tables: the username if any, otherwise the display name. |  |
-| `User.mention` | Name for messages: '@username' if any, otherwise the display name. |  |
 | `migrate_chat(old_chat_id, new_chat_id)` | Move the database of a group that became a supergroup to its new chat ID. | `messages` |
 | `init_database(chat_id)` | Initialize (or migrate) the SQLite database of a chat if needed. | `commands` |
 | `get_language(chat_id)` | Language chosen for the chat with /language; None when it was never chosen. | `announce`, `chat`, `messages`, `webhook` |
@@ -292,6 +292,16 @@ Mini App (#79): who opened it (signed initData), which chats they may see, and t
 | `recap_link(chat_id, user_id, yearly, token, now)` | The name of a short-lived link to a recap picture (#217), for the download of Telegram, which sends no initData: "chat.user.yearly.expiry.signature", signed with a key drawn from the bot token, so nobody can forge one. | `webhook` |
 | `recap_of_link(name, token, now)` | (chat_id, user_id, yearly) of a link made by recap_link, or None when it is forged or expired. | `webhook` |
 | `recap_image(chat_id, user_id, recap)` | The recap as the PNG to share, with the names the chat knows. | `webhook` |
+
+## model.py
+
+Data types shared by every layer: the storage returns them, the rules and the replies read them.
+
+| Function or class | What it does | Used by |
+| --- | --- | --- |
+| `class User` | A Telegram user known to a chat. | `analysis`, `chat`, `database` |
+| `User.name` | Plain name for charts and tables: the username if any, otherwise the display name. |  |
+| `User.mention` | Name for messages: '@username' if any, otherwise the display name. |  |
 
 ## trophies.py
 

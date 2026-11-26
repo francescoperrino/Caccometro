@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta
 
 from caccometro import database
+from caccometro.model import User
 from conftest import uid
 
 
@@ -36,7 +37,7 @@ def test_get_rank_ties_are_ordered_by_name(seed, chat_id):
 def test_get_rank_returns_user_objects(seed, chat_id):
     seed({"mario": {"2024-03-10": 2}})
     ((user, count),) = database.get_rank(chat_id, "month", "03-2024")
-    assert user == database.User(uid("mario"), "mario", "Mario")
+    assert user == User(uid("mario"), "mario", "Mario")
     assert count == 2
 
 

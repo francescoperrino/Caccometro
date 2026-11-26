@@ -118,13 +118,10 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
     - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `database.init_database`
-  - `conquest.cell_of` (see above)
 
 </details>
 
@@ -288,23 +285,19 @@ sequenceDiagram
 - `commands.leaderboard_command`
   - `chat.register_sender`
     - `database.get_language`
-      - `conquest.cell_of`
     - `chat.register_user`
       - `chat.display_name_of`
       - `database.upsert_user`
-        - `conquest.cell_of` (see above)
   - `commands.period_from_args`
   - `database.get_rank`
-    - `conquest.cell_of` (see above)
   - `commands.legacy_hint`
     - `database.list_legacy_users`
-      - `conquest.cell_of` (see above)
   - `database.get_all_user_rows`
-    - `conquest.cell_of` (see above)
   - `formatting.flame`
   - `analysis.analyze_user`
+    - `analysis.parse_counts`
+    - `analysis.consecutive_runs`
   - `database.get_daily_counts_between`
-    - `conquest.cell_of` (see above)
   - `analysis.forecast_totals`
   - `chat.escape_md`
   - `commands.ranked_line`
@@ -492,23 +485,19 @@ sequenceDiagram
 - `commands.leaderboard_command`
   - `chat.register_sender`
     - `database.get_language`
-      - `conquest.cell_of`
     - `chat.register_user`
       - `chat.display_name_of`
       - `database.upsert_user`
-        - `conquest.cell_of` (see above)
   - `commands.period_from_args`
   - `database.get_rank`
-    - `conquest.cell_of` (see above)
   - `commands.legacy_hint`
     - `database.list_legacy_users`
-      - `conquest.cell_of` (see above)
   - `database.get_all_user_rows`
-    - `conquest.cell_of` (see above)
   - `formatting.flame`
   - `analysis.analyze_user`
+    - `analysis.parse_counts`
+    - `analysis.consecutive_runs`
   - `database.get_daily_counts_between`
-    - `conquest.cell_of` (see above)
   - `analysis.forecast_totals`
   - `chat.escape_md`
   - `commands.ranked_line`
@@ -692,21 +681,16 @@ sequenceDiagram
 - `commands.stats_command`
   - `chat.register_sender`
     - `database.get_language`
-      - `conquest.cell_of`
     - `chat.register_user`
       - `chat.display_name_of`
       - `database.upsert_user`
-        - `conquest.cell_of` (see above)
   - `commands.period_from_args`
   - `database.get_daily_counts`
     - `database.get_daily_counts_between`
-      - `conquest.cell_of` (see above)
   - `analysis.period_statistics`
   - `database.get_users`
-    - `conquest.cell_of` (see above)
   - `commands.legacy_hint`
     - `database.list_legacy_users`
-      - `conquest.cell_of` (see above)
   - `chat.escape_md`
   - `commands.ranked_line`
     - `formatting.bold`
@@ -715,7 +699,6 @@ sequenceDiagram
   - `analysis.period_regularity`
     - `analysis.regularity`
   - `database.get_first_days`
-    - `conquest.cell_of` (see above)
   - `chat.reply_chart`
     - `chat.fits_caption`
   - `charts.generate_statistics_chart`
@@ -891,21 +874,16 @@ sequenceDiagram
 - `commands.stats_command`
   - `chat.register_sender`
     - `database.get_language`
-      - `conquest.cell_of`
     - `chat.register_user`
       - `chat.display_name_of`
       - `database.upsert_user`
-        - `conquest.cell_of` (see above)
   - `commands.period_from_args`
   - `database.get_daily_counts`
     - `database.get_daily_counts_between`
-      - `conquest.cell_of` (see above)
   - `analysis.period_statistics`
   - `database.get_users`
-    - `conquest.cell_of` (see above)
   - `commands.legacy_hint`
     - `database.list_legacy_users`
-      - `conquest.cell_of` (see above)
   - `chat.escape_md`
   - `commands.ranked_line`
     - `formatting.bold`
@@ -914,7 +892,6 @@ sequenceDiagram
   - `analysis.period_regularity`
     - `analysis.regularity`
   - `database.get_first_days`
-    - `conquest.cell_of` (see above)
   - `chat.reply_chart`
     - `chat.fits_caption`
   - `charts.generate_statistics_chart`
@@ -1094,33 +1071,29 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
     - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `commands.resolve_optional_target`
   - `commands.replied_person`
   - `commands.resolve_target`
     - `commands.parse_username_arg`
     - `commands.invalid_format`
     - `database.find_user_by_username`
-      - `conquest.cell_of` (see above)
     - `commands.replied_person` (see above)
     - `chat.register_user` (see above)
   - `commands.invalid_format` (see above)
 - `database.get_all_user_rows`
-  - `conquest.cell_of` (see above)
 - `commands.legacy_hint`
   - `database.list_legacy_users`
-    - `conquest.cell_of` (see above)
 - `analysis.analyze_group`
   - `analysis.analyze_user`
+    - `analysis.parse_counts`
+    - `analysis.consecutive_runs`
 - `chat.escape_md`
 - `formatting.format_group_record`
   - `formatting.bold`
 - `database.get_record`
-  - `conquest.cell_of` (see above)
 - `analysis.analyze_user` (see above)
 - `formatting.format_user_record`
   - `formatting.bold` (see above)
@@ -1184,7 +1157,7 @@ flowchart LR
     database -.->|"7.#nbsp;target<br/>11.#nbsp;(rows_by_user, users)"| commands
     commands -->|"9, 27.#nbsp;reply_text"| telegram
     commands -->|"13.#nbsp;trophies_by_user"| trophies
-    trophies -->|"14, 16.#nbsp;_parse<br/>18.#nbsp;_runs"| analysis
+    trophies -->|"14, 16.#nbsp;parse_counts<br/>18.#nbsp;consecutive_runs"| analysis
     trophies -->|"15.#nbsp;holdings"| conquest
     analysis -.->|"17.#nbsp;counts"| trophies
     trophies -.->|"19.#nbsp;trophies"| commands
@@ -1263,16 +1236,16 @@ sequenceDiagram
         commands->>database: get_timed_conquests(chat_id)
         commands->>trophies: trophies_by_user(rows_by_user, today, get_timed_conque...)
         loop for (user_id, rows) in users_rows.ite...
-            trophies->>analysis: _parse(rows)
+            trophies->>analysis: parse_counts(rows)
         end
         Note over trophies: _winners() as above
         loop for (season, counts) in per_season.it...
             trophies->>conquest: holdings([(user_id, cell) for user_id, _, cell...)
         end
         loop for user_id in set(users_rows) | set(...
-            trophies->>analysis: _parse(rows)
+            trophies->>analysis: parse_counts(rows)
             analysis-->>trophies: counts
-            trophies->>analysis: _runs(sorted(counts), counts)
+            trophies->>analysis: consecutive_runs(sorted(counts), counts)
         end
         trophies-->>commands: trophies
         alt target is None
@@ -1294,37 +1267,38 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
     - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `commands.resolve_optional_target`
   - `commands.replied_person`
   - `commands.resolve_target`
     - `commands.parse_username_arg`
     - `commands.invalid_format`
     - `database.find_user_by_username`
-      - `conquest.cell_of` (see above)
     - `commands.replied_person` (see above)
     - `chat.register_user` (see above)
   - `commands.invalid_format` (see above)
 - `database.get_all_user_rows`
-  - `conquest.cell_of` (see above)
 - `trophies.trophies_by_user`
   - `trophies.monthly_winners`
+    - `analysis.parse_counts`
   - `trophies.yearly_winners`
+    - `analysis.parse_counts` (see above)
   - `trophies.season_results`
     - `trophies.season_of`
     - `conquest.holdings`
   - `trophies.season_of` (see above)
   - `trophies.streak_runs`
+    - `analysis.parse_counts` (see above)
+    - `analysis.consecutive_runs`
 - `database.get_timed_conquests`
-  - `conquest.cell_of` (see above)
 - `chat.escape_md`
 - `formatting.format_group_trophies`
   - `formatting.bold`
 - `analysis.analyze_user`
+  - `analysis.parse_counts` (see above)
+  - `analysis.consecutive_runs` (see above)
 - `formatting.format_user_trophies`
   - `formatting.bold` (see above)
 
@@ -1519,26 +1493,21 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
     - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `commands.resolve_optional_target`
   - `commands.replied_person`
   - `commands.resolve_target`
     - `commands.parse_username_arg`
     - `commands.invalid_format`
     - `database.find_user_by_username`
-      - `conquest.cell_of` (see above)
     - `commands.replied_person` (see above)
     - `chat.register_user` (see above)
   - `commands.invalid_format` (see above)
 - `database.get_timed_conquests`
-  - `conquest.cell_of` (see above)
 - `conquest.holdings`
 - `database.get_users`
-  - `conquest.cell_of` (see above)
 - `chat.escape_md`
 - `conquest.visited`
 - `commands.ranked_line`
@@ -1673,11 +1642,9 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
     - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `miniapp.direct_link`
 
 </details>
@@ -1816,22 +1783,18 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
     - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `commands.resolve_target`
   - `commands.parse_username_arg`
   - `commands.invalid_format`
   - `database.find_user_by_username`
-    - `conquest.cell_of` (see above)
   - `commands.replied_person`
   - `chat.register_user` (see above)
 - `commands.invalid_format` (see above)
 - `commands.parse_date_arg`
 - `database.get_count`
-  - `conquest.cell_of` (see above)
 - `formatting.day_count_sentence`
 
 </details>
@@ -1965,21 +1928,17 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
     - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `commands.resolve_target`
   - `commands.parse_username_arg`
   - `commands.invalid_format`
   - `database.find_user_by_username`
-    - `conquest.cell_of` (see above)
   - `commands.replied_person`
   - `chat.register_user` (see above)
 - `commands.invalid_format` (see above)
 - `database.get_days_since_last_poop`
-  - `conquest.cell_of` (see above)
 - `formatting.last_poop_sentence`
 
 </details>
@@ -2126,16 +2085,13 @@ sequenceDiagram
 - `commands.change_count_command`
   - `chat.register_sender`
     - `database.get_language`
-      - `conquest.cell_of`
     - `chat.register_user`
       - `chat.display_name_of`
       - `database.upsert_user`
-        - `conquest.cell_of` (see above)
   - `commands.resolve_target`
     - `commands.parse_username_arg`
     - `commands.invalid_format`
     - `database.find_user_by_username`
-      - `conquest.cell_of` (see above)
     - `commands.replied_person`
     - `chat.register_user` (see above)
   - `commands.invalid_format` (see above)
@@ -2143,7 +2099,6 @@ sequenceDiagram
     - `chat.is_chat_admin`
   - `commands.parse_date_arg`
   - `database.add_count`
-    - `conquest.cell_of` (see above)
   - `chat.where`
   - `formatting.change_count_sentence`
 
@@ -2291,16 +2246,13 @@ sequenceDiagram
 - `commands.change_count_command`
   - `chat.register_sender`
     - `database.get_language`
-      - `conquest.cell_of`
     - `chat.register_user`
       - `chat.display_name_of`
       - `database.upsert_user`
-        - `conquest.cell_of` (see above)
   - `commands.resolve_target`
     - `commands.parse_username_arg`
     - `commands.invalid_format`
     - `database.find_user_by_username`
-      - `conquest.cell_of` (see above)
     - `commands.replied_person`
     - `chat.register_user` (see above)
   - `commands.invalid_format` (see above)
@@ -2308,7 +2260,6 @@ sequenceDiagram
     - `chat.is_chat_admin`
   - `commands.parse_date_arg`
   - `database.add_count`
-    - `conquest.cell_of` (see above)
   - `chat.where`
   - `formatting.change_count_sentence`
 
@@ -2445,14 +2396,11 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
     - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `chat.is_chat_admin`
 - `database.set_language`
-  - `conquest.cell_of` (see above)
 - `chat.where`
 - `menus.set_chat_menu`
   - `menus.menu`
@@ -2620,23 +2568,17 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
     - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `database.list_legacy_users`
-  - `conquest.cell_of` (see above)
 - `database.find_user_by_username`
-  - `conquest.cell_of` (see above)
 - `database.count_legacy_orphans`
-  - `conquest.cell_of` (see above)
 - `chat.is_chat_admin`
 - `database.link_legacy_by_username`
   - `database.list_legacy_users` (see above)
   - `database.find_user_by_username` (see above)
   - `database.link_legacy_username`
-    - `conquest.cell_of` (see above)
 - `chat.where`
 - `commands.invalid_format`
 - `commands.replied_person`
@@ -2702,7 +2644,7 @@ flowchart LR
     database -.->|"7.#nbsp;(_, count)<br/>23.#nbsp;result<br/>28.#nbsp;users"| messages
     messages -->|"10.#nbsp;poop_sentence<br/>17.#nbsp;format_streak_trophy"| formatting
     messages -->|"12.#nbsp;new_streak_trophy"| trophies
-    trophies -->|"13.#nbsp;_parse<br/>15.#nbsp;_runs"| analysis
+    trophies -->|"13.#nbsp;parse_counts<br/>15.#nbsp;consecutive_runs"| analysis
     analysis -.->|"14.#nbsp;counts"| trophies
     trophies -.->|"16.#nbsp;streak"| messages
     messages -->|"19, 20.#nbsp;reply_text"| telegram
@@ -2776,9 +2718,9 @@ sequenceDiagram
                     opt count == 1
                         messages->>database: get_record(sender.user_id, chat_id)
                         messages->>trophies: new_streak_trophy(get_record(sender.user_id, chat_id), ...)
-                        trophies->>analysis: _parse(rows)
+                        trophies->>analysis: parse_counts(rows)
                         analysis-->>trophies: counts
-                        trophies->>analysis: _runs(sorted((day for day in counts if day ...)
+                        trophies->>analysis: consecutive_runs(sorted((day for day in counts if day ...)
                         trophies-->>messages: streak
                         opt streak is not None
                             messages->>formatting: format_streak_trophy(streak)
@@ -2850,31 +2792,26 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
     - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `messages.record_poop`
   - `database.add_count`
-    - `conquest.cell_of` (see above)
   - `database.open_conquest_window`
-    - `conquest.cell_of` (see above)
   - `formatting.poop_sentence`
     - `formatting.poop_pool`
   - `chat.escape_md`
   - `trophies.new_streak_trophy`
+    - `analysis.parse_counts`
+    - `analysis.consecutive_runs`
   - `database.get_record`
-    - `conquest.cell_of` (see above)
   - `formatting.format_streak_trophy`
 - `chat.escape_md` (see above)
 - `messages.record_conquest`
   - `database.conquer`
-    - `conquest.cell_of` (see above)
-  - `conquest.cell_of` (see above)
+  - `conquest.cell_of`
   - `conquest.holdings`
   - `database.get_users`
-    - `conquest.cell_of` (see above)
   - `chat.escape_md` (see above)
   - `conquest.mention_of`
 - `chat.reply_charts`
@@ -3017,9 +2954,7 @@ sequenceDiagram
 <summary>Call tree</summary>
 
 - `database.migrate_chat`
-  - `conquest.cell_of`
 - `database.get_language`
-  - `conquest.cell_of` (see above)
 - `menus.set_chat_menu`
   - `menus.menu`
 
@@ -3187,7 +3122,7 @@ flowchart LR
     trophies -.->|"21, 25.#nbsp;season"| miniapp
     trophies -->|"23.#nbsp;holdings"| conquest
     miniapp -->|"29.#nbsp;analyze_user<br/>30.#nbsp;analyze_group<br/>40.#nbsp;recap"| analysis
-    trophies -->|"32, 33.#nbsp;_parse<br/>35.#nbsp;_runs"| analysis
+    trophies -->|"32, 33.#nbsp;parse_counts<br/>35.#nbsp;consecutive_runs"| analysis
     analysis -.->|"34.#nbsp;counts"| trophies
     miniapp -->|"37.#nbsp;get_daily_counts_between<br/>39.#nbsp;get_first_days"| database
     database -.->|"38.#nbsp;daily"| miniapp
@@ -3282,13 +3217,13 @@ sequenceDiagram
         miniapp->>analysis: analyze_group(rows_by_user, today)
         miniapp->>trophies: trophies_by_user(rows_by_user, today, timed)
         loop for (user_id, rows) in users_rows.ite...
-            trophies->>analysis: _parse(rows)
+            trophies->>analysis: parse_counts(rows)
         end
         Note over trophies: _winners() as above
         loop for user_id in set(users_rows) | set(...
-            trophies->>analysis: _parse(rows)
+            trophies->>analysis: parse_counts(rows)
             analysis-->>trophies: counts
-            trophies->>analysis: _runs(sorted(counts), counts)
+            trophies->>analysis: consecutive_runs(sorted(counts), counts)
         end
         webhook->>miniapp: recaps(chat_id, user_id, today)
         miniapp->>database: get_daily_counts_between(chat_id, start.isoformat(), end.isofo...)
@@ -3309,11 +3244,8 @@ sequenceDiagram
   - `miniapp.known_chats`
   - `miniapp.is_member`
 - `database.get_all_user_rows`
-  - `conquest.cell_of`
 - `database.get_timed_conquests`
-  - `conquest.cell_of` (see above)
 - `database.get_language`
-  - `conquest.cell_of` (see above)
 - `miniapp.conquest_data`
   - `conquest.holdings`
   - `maps.owners`
@@ -3328,25 +3260,30 @@ sequenceDiagram
     - `conquest.holdings` (see above)
 - `miniapp.records_data`
   - `analysis.analyze_user`
+    - `analysis.parse_counts`
+    - `analysis.consecutive_runs`
   - `miniapp.plain`
   - `analysis.analyze_group`
     - `analysis.analyze_user` (see above)
   - `trophies.trophies_by_user`
     - `trophies.monthly_winners`
+      - `analysis.parse_counts` (see above)
     - `trophies.yearly_winners`
+      - `analysis.parse_counts` (see above)
     - `trophies.season_results` (see above)
     - `trophies.season_of` (see above)
     - `trophies.streak_runs`
+      - `analysis.parse_counts` (see above)
+      - `analysis.consecutive_runs` (see above)
 - `miniapp.recaps`
   - `miniapp.plain` (see above)
   - `miniapp.recap_data`
     - `database.get_daily_counts_between`
-      - `conquest.cell_of` (see above)
     - `analysis.recap`
+      - `analysis.consecutive_runs` (see above)
       - `analysis.period_regularity`
         - `analysis.regularity`
     - `database.get_first_days`
-      - `conquest.cell_of` (see above)
 
 </details>
 
@@ -3489,15 +3426,11 @@ sequenceDiagram
   - `miniapp.is_member`
 - `miniapp.period_data`
   - `database.get_rank`
-    - `conquest.cell_of`
   - `database.get_daily_counts_between`
-    - `conquest.cell_of` (see above)
   - `analysis.forecast_totals`
   - `analysis.period_statistics`
   - `database.get_users`
-    - `conquest.cell_of` (see above)
   - `database.get_first_days`
-    - `conquest.cell_of` (see above)
   - `analysis.period_regularity`
     - `analysis.regularity`
 
@@ -3557,7 +3490,7 @@ flowchart LR
     announce -->|"2.#nbsp;get_language<br/>3.#nbsp;get_all_user_rows<br/>11.#nbsp;get_timed_conquests"| database
     database -.->|"4.#nbsp;(rows_by_user, users)"| announce
     announce -->|"5.#nbsp;monthly_winners<br/>7.#nbsp;yearly_winners<br/>9.#nbsp;season_of<br/>12.#nbsp;season_results"| trophies
-    trophies -->|"6.#nbsp;_parse"| analysis
+    trophies -->|"6.#nbsp;parse_counts"| analysis
     announce -->|"8.#nbsp;escape_md"| chat
     trophies -.->|"10.#nbsp;key"| announce
     trophies -->|"13.#nbsp;holdings"| conquest
@@ -3622,7 +3555,7 @@ sequenceDiagram
             database-->>announce: (rows_by_user, users)
             announce->>trophies: monthly_winners(rows_by_user, today)
             loop for (user_id, rows) in users_rows.ite...
-                trophies->>analysis: _parse(rows)
+                trophies->>analysis: parse_counts(rows)
             end
             announce->>trophies: yearly_winners(rows_by_user, today)
             Note over trophies: _winners() as above
@@ -3658,18 +3591,17 @@ sequenceDiagram
   - `announce.chat_ids`
   - `announce.announcement`
     - `database.get_language`
-      - `conquest.cell_of`
     - `database.get_all_user_rows`
-      - `conquest.cell_of` (see above)
     - `trophies.monthly_winners`
+      - `analysis.parse_counts`
     - `trophies.yearly_winners`
+      - `analysis.parse_counts` (see above)
     - `chat.escape_md`
     - `trophies.season_of`
     - `trophies.season_results`
       - `trophies.season_of` (see above)
       - `conquest.holdings`
     - `database.get_timed_conquests`
-      - `conquest.cell_of` (see above)
     - `formatting.format_new_period`
       - `formatting.bold`
   - `announce.recap_button`

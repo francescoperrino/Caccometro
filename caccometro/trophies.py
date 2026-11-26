@@ -5,7 +5,7 @@ Pure functions, like analysis.py: the trophies are computed from the stored coun
 from datetime import date, datetime
 from typing import NamedTuple, Optional
 
-from caccometro.analysis import Period, _parse, _runs
+from caccometro.analysis import Period, consecutive_runs, parse_counts
 from caccometro.config import ROME_TZ
 from caccometro.conquest import holdings
 
@@ -34,17 +34,17 @@ class UserTrophies(NamedTuple):
 
 def streak_runs(rows):
     """[(Period, days)] of the runs worth at least one trophy. rows: [(date 'YYYY-MM-DD', count)]."""
-    counts = _parse(rows)
-    return [(Period(run.start, run.end), run.days) for run in _runs(sorted(counts), counts)
+    counts = parse_counts(rows)
+    return [(Period(run.start, run.end), run.days) for run in consecutive_runs(sorted(counts), counts)
             if run.days >= STREAK_STEP]
 
 
 def new_streak_trophy(rows, today: date) -> Optional[int]:
     """Days of the run ending today if today makes them a multiple of STREAK_STEP; None otherwise."""
-    counts = _parse(rows)
+    counts = parse_counts(rows)
     if today not in counts:
         return None
-    last = _runs(sorted(day for day in counts if day <= today), counts)[-1]
+    last = consecutive_runs(sorted(day for day in counts if day <= today), counts)[-1]
     return last.days if last.days % STREAK_STEP == 0 else None
 
 
@@ -52,7 +52,7 @@ def _winners(users_rows, period_of):
     """{period: Winners} of every period with 💩; period_of maps a date to its period."""
     totals = {}
     for user_id, rows in users_rows.items():
-        for day, count in _parse(rows).items():
+        for day, count in parse_counts(rows).items():
             per_user = totals.setdefault(period_of(day), {})
             per_user[user_id] = per_user.get(user_id, 0) + count
     result = {}

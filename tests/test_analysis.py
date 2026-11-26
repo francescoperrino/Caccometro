@@ -5,7 +5,7 @@ from datetime import date, timedelta
 import pytest
 
 from caccometro.analysis import Period, analyze_user, forecast_totals, period_statistics
-from caccometro.database import User
+from caccometro.model import User
 
 # Jan 2024: 1,2,1 on days 1-3, then day 7 | Feb: day 10 (x3) | Mar: day 1
 ROWS = [

@@ -11,7 +11,7 @@ from PIL import Image
 
 from caccometro import commands, maps
 from caccometro.conquest import cell_of
-from caccometro.database import User
+from caccometro.model import User
 from conftest import REAL_CACHED_TILE, make_context, make_update, uid
 from test_conquest import MILAN, ROME, T0, poop_and_conquer
 

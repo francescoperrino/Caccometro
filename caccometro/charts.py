@@ -179,7 +179,7 @@ def generate_rank_chart(rank, daily_counts, time_period, date, forecast=None):
     medals, and the cumulative counts of every user below it.
 
     Args:
-        rank (list): (database.User, total) pairs, best first.
+        rank (list): (model.User, total) pairs, best first.
         daily_counts (dict): {user_id: {'YYYY-MM-DD': count}} for the period (see database.get_daily_counts).
         time_period (str): 'month' or 'year'.
         date (str): 'MM-YYYY' or 'YYYY'.
@@ -320,7 +320,7 @@ def generate_statistics_chart(statistics, daily_counts, time_period, date):
     and a box plot of the daily counts below it.
 
     Args:
-        statistics (list): dicts with 'user' (database.User), 'mean', 'median' and 'variance'.
+        statistics (list): dicts with 'user' (model.User), 'mean', 'median' and 'variance'.
         daily_counts (dict): {user_id: {'YYYY-MM-DD': count}} for the period (see database.get_daily_counts).
         time_period (str): 'month' or 'year'.
         date (str): 'MM-YYYY' or 'YYYY'.

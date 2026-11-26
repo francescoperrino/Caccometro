@@ -23,6 +23,7 @@ LAYERS = [
     ("replies", "💬 Replies: texts, charts, maps", ["formatting", "charts", "maps"]),
     ("rules", "🧮 Rules: pure functions", ["analysis", "trophies", "conquest"]),
     ("storage", "🗄️ Storage", ["database"]),
+    ("types", "🧱 Shared types", ["model"]),
 ]
 EVERYWHERE = ["config", "i18n"]
 SKIPPED = ["__init__"]   # only the version
