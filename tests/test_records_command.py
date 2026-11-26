@@ -61,7 +61,7 @@ def test_record_shows_the_current_status_of_every_metric(seed):
     assert "↳ Questo mese:" in text
     assert "↳ In corso: 3 giorni di fila" in text
     assert "↳ In corso: 3 💩 nella serie" in text
-    assert "↳ In corso: oggi hai fatto 💩, nessuna pausa" in text
+    assert "↳ In corso: 💩 fatta oggi, nessuna pausa" in text
 
 
 def test_record_in_a_forum_topic_shows_the_group_not_the_topic_creator(seed):

@@ -135,17 +135,17 @@ def format_user_record(name, records: UserRecords, places=None):
     status = records.status
     places = places or {}
     lines = [f"📊 {bold(tr('Record per {name}').format(name=name))} 📊\n"]
-    record_flag = tr(" 🔥 è il tuo record!")
+    record_flag = tr(" 🔥 è il record!")
     no_streak = tr("   ↳ In corso: nessuna serie")
 
     # most 💩 in a day
     daily = records.daily
     if len(daily.when) > RECENT:     # with small counts a record is often tied on dozens of days
-        lines.append(tr("🥵 Hai fatto 💩 {value} {times} in {count} giorni diversi (gli ultimi: {days}).").format(
+        lines.append(tr("🥵 Più 💩 in un giorno: {value} {times} in {count} giorni diversi (gli ultimi: {days}).").format(
             value=daily.value, times=_times(daily.value), count=len(daily.when),
             days=', '.join(_date(d) for d in daily.when[-RECENT:][::-1])))
     else:
-        lines.append(tr("🥵 Hai fatto 💩 {value} {times} il {days}.").format(
+        lines.append(tr("🥵 Più 💩 in un giorno: {value} {times} il {days}.").format(
             value=daily.value, times=_times(daily.value), days=_recent(daily.when, _date)))
     lines[-1] += _place(places, 'daily')
     flag = record_flag if _matches_record(status.today_count, daily.value) else ""
@@ -154,27 +154,27 @@ def format_user_record(name, records: UserRecords, places=None):
     # months: records only exist for completed months
     best, worst = records.best_month, records.worst_month
     if best is not None:
-        lines.append(tr("🤩 Hai fatto 💩 {value} {times} {label} {months}.").format(
-            value=best.value, times=_times(best.value), label=_month_label(best.when), months=_recent(best.when, _month)))
+        lines.append(tr("🤩 Mese migliore: {value} 💩 {label} {months}.").format(
+            value=best.value, label=_month_label(best.when), months=_recent(best.when, _month)))
     else:
         lines.append(tr("🗓️ Il record mensile sarà disponibile dopo il primo mese completo."))
     lines[-1] += _place(places, 'best_month')
     if worst is not None:
-        lines.append(tr("😭 Hai fatto solo 💩 {value} {times} {label} {months}.").format(
-            value=worst.value, times=_times(worst.value), label=_month_label(worst.when), months=_recent(worst.when, _month)))
+        lines.append(tr("😭 Mese peggiore: solo {value} 💩 {label} {months}.").format(
+            value=worst.value, label=_month_label(worst.when), months=_recent(worst.when, _month)))
     else:
         lines.append(tr("🗓️ Il mese peggiore sarà disponibile dopo almeno due mesi di dati."))
     lines[-1] += _place(places, 'worst_month')
     flag = ""
     if best is not None and status.month_count > best.value:
-        flag = tr(" 🔥 già oltre il tuo record mensile!")
+        flag = tr(" 🔥 già oltre il record mensile!")
     elif best is not None and _matches_record(status.month_count, best.value):
         flag = tr(" 🔥 record mensile eguagliato!")
     lines.append(tr("   ↳ Questo mese: {count} 💩 finora").format(count=status.month_count) + flag)
 
     # longest run of consecutive days
     streak = records.streak_days
-    lines.append(tr("🥳 Hai fatto 💩 per {days} ({when}).").format(
+    lines.append(tr("🥳 Serie più lunga: {days} ({when}).").format(
         days=_consecutive_days(streak.value), when=_recent(streak.when, _period)))
     lines[-1] += _place(places, 'streak_days')
     if status.streak_days > 0:
@@ -187,7 +187,7 @@ def format_user_record(name, records: UserRecords, places=None):
 
     # most 💩 in a run
     streak_count = records.streak_count
-    lines.append(tr("🫣 Hai fatto 💩 {value} {times} in una serie di giorni consecutivi ({when}).").format(
+    lines.append(tr("🫣 Più 💩 in una serie: {value} {times} ({when}).").format(
         value=streak_count.value, times=_times(streak_count.value), when=_recent(streak_count.when, _period)))
     lines[-1] += _place(places, 'streak_count')
     if status.streak_count > 0:
@@ -199,13 +199,13 @@ def format_user_record(name, records: UserRecords, places=None):
     # longest pause
     gap = records.gap_days
     if gap is not None:
-        lines.append(tr("🤢 Non hai fatto 💩 per {days} ({when}).").format(
+        lines.append(tr("🤢 Pausa più lunga: {days} ({when}).").format(
             days=_consecutive_days(gap.value), when=_recent(gap.when, _period)))
     else:
         lines.append(tr("🤢 Non ci sono ancora giorni senza 💩 tra la prima e l'ultima registrazione."))
     lines[-1] += _place(places, 'gap_days')
     if status.gap_days == 0:
-        lines.append(tr("   ↳ In corso: oggi hai fatto 💩, nessuna pausa"))
+        lines.append(tr("   ↳ In corso: 💩 fatta oggi, nessuna pausa"))
     else:
         flag = tr(" 🔥 già oltre il record!") if gap is not None and status.gap_days > gap.value else ""
         lines.append(tr("   ↳ In corso: {count} {days} senza 💩").format(count=status.gap_days, days=_days(status.gap_days)) + flag)

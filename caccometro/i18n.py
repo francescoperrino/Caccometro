@@ -289,32 +289,32 @@ EN = {
 
     # /records of one person
     "Record per {name}": "Records of {name}",
-    " 🔥 è il tuo record!": " 🔥 it is your record!",
-    " 🔥 già oltre il tuo record mensile!": " 🔥 already beyond your monthly record!",
+    " 🔥 è il record!": " 🔥 it is the record!",
+    " 🔥 già oltre il record mensile!": " 🔥 already beyond the monthly record!",
     " 🔥 record mensile eguagliato!": " 🔥 monthly record equalled!",
     " 🔥 già oltre il record!": " 🔥 already beyond the record!",
     " (fino a ieri)": " (until yesterday)",
-    "🥵 Hai fatto 💩 {value} {times} in {count} giorni diversi (gli ultimi: {days}).":
-        "🥵 You did 💩 {value} {times} on {count} different days (the latest: {days}).",
-    "🥵 Hai fatto 💩 {value} {times} il {days}.": "🥵 You did 💩 {value} {times} on {days}.",
+    "🥵 Più 💩 in un giorno: {value} {times} in {count} giorni diversi (gli ultimi: {days}).":
+        "🥵 Most 💩 in a day: {value} {times} on {count} different days (the latest: {days}).",
+    "🥵 Più 💩 in un giorno: {value} {times} il {days}.": "🥵 Most 💩 in a day: {value} {times} on {days}.",
     "   ↳ Oggi: {count} 💩": "   ↳ Today: {count} 💩",
-    "🤩 Hai fatto 💩 {value} {times} {label} {months}.": "🤩 You did 💩 {value} {times} {label} {months}.",
-    "😭 Hai fatto solo 💩 {value} {times} {label} {months}.": "😭 You only did 💩 {value} {times} {label} {months}.",
+    "🤩 Mese migliore: {value} 💩 {label} {months}.": "🤩 Best month: {value} 💩 {label} {months}.",
+    "😭 Mese peggiore: solo {value} 💩 {label} {months}.": "😭 Worst month: only {value} 💩 {label} {months}.",
     "🗓️ Il record mensile sarà disponibile dopo il primo mese completo.":
         "🗓️ The monthly record will be available after the first complete month.",
     "🗓️ Il mese peggiore sarà disponibile dopo almeno due mesi di dati.":
         "🗓️ The worst month will be available after at least two months of data.",
     "   ↳ Questo mese: {count} 💩 finora": "   ↳ This month: {count} 💩 so far",
-    "🥳 Hai fatto 💩 per {days} ({when}).": "🥳 You did 💩 for {days} ({when}).",
+    "🥳 Serie più lunga: {days} ({when}).": "🥳 Longest streak: {days} ({when}).",
     "   ↳ In corso: {count} {days} di fila": "   ↳ Now: {count} {days} in a row",
     "   ↳ In corso: nessuna serie": "   ↳ Now: no streak",
-    "🫣 Hai fatto 💩 {value} {times} in una serie di giorni consecutivi ({when}).":
-        "🫣 You did 💩 {value} {times} in one streak of consecutive days ({when}).",
+    "🫣 Più 💩 in una serie: {value} {times} ({when}).":
+        "🫣 Most 💩 in a streak: {value} {times} ({when}).",
     "   ↳ In corso: {count} 💩 nella serie": "   ↳ Now: {count} 💩 in the streak",
-    "🤢 Non hai fatto 💩 per {days} ({when}).": "🤢 You did no 💩 for {days} ({when}).",
+    "🤢 Pausa più lunga: {days} ({when}).": "🤢 Longest pause: {days} ({when}).",
     "🤢 Non ci sono ancora giorni senza 💩 tra la prima e l'ultima registrazione.":
         "🤢 There are no days without 💩 yet between the first and the last record.",
-    "   ↳ In corso: oggi hai fatto 💩, nessuna pausa": "   ↳ Now: you did 💩 today, no pause",
+    "   ↳ In corso: 💩 fatta oggi, nessuna pausa": "   ↳ Now: 💩 done today, no pause",
     "   ↳ In corso: {count} {days} senza 💩": "   ↳ Now: {count} {days} without 💩",
 
     # /records of the group
