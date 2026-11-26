@@ -3,7 +3,6 @@
 Usage: python tools/fetch_logs.py (settings: see deploy.py)
 Old rotated logs (*.gz) stay on the server; they are rarely needed.
 """
-from pathlib import Path
 
 import httpx
 

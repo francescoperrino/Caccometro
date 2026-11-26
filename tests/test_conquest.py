@@ -53,18 +53,23 @@ def test_cells_are_resolution_6():
     assert conquest.cell_of(*MILAN) != conquest.cell_of(*ROME)
 
 
+def conquests(chat_id):
+    """Every conquest of the chat as [(user_id, cell)], in order."""
+    return [(user_id, cell) for user_id, _, cell in database.get_timed_conquests(chat_id)]
+
+
 # the window
 
 def test_a_location_without_a_poop_conquers_nothing(chat_id):
     assert send("mario", location=MILAN) == "Prima la 💩, poi la conquista 😏"
-    assert database.get_conquests(chat_id) == []
+    assert conquests(chat_id) == []
 
 
 def test_a_location_within_15_minutes_conquers_once(chat_id):
     send("mario", "💩")
     assert send("mario", location=MILAN, at=T0 + timedelta(minutes=15)).startswith("🚩")
     assert send("mario", location=ROME, at=T0 + timedelta(minutes=16)) == "Prima la 💩, poi la conquista 😏"
-    assert len(database.get_conquests(chat_id)) == 1
+    assert len(conquests(chat_id)) == 1
 
 
 def test_the_window_closes_after_15_minutes_and_does_not_go_backwards(chat_id):
@@ -131,7 +136,7 @@ def test_a_version_2_database_gets_the_conquest_tables(tmp_path):
                           PRAGMA user_version = 2;""")
     conn.close()
     assert database.get_count(1, "2026-11-01", -4004) == 2
-    assert database.get_conquests(-4004) == []
+    assert conquests(-4004) == []
     assert sqlite3.connect(path).execute("PRAGMA user_version").fetchone()[0] == database.SCHEMA_VERSION
 
 
@@ -147,8 +152,8 @@ def test_a_version_3_database_gets_its_conquests_recalculated_at_the_new_resolut
     conn.execute("PRAGMA user_version = 3")
     conn.commit()
     conn.close()
-    assert database.get_conquests(-4005) == [(u, conquest.cell_of(lat, lon)) for u, _, lat, lon in rows]  # same order
-    assert {h3.get_resolution(cell) for _, cell in database.get_conquests(-4005)} == {conquest.RESOLUTION}
+    assert conquests(-4005) == [(u, conquest.cell_of(lat, lon)) for u, _, lat, lon in rows]  # same order
+    assert {h3.get_resolution(cell) for _, cell in conquests(-4005)} == {conquest.RESOLUTION}
     assert sqlite3.connect(path).execute("PRAGMA user_version").fetchone()[0] == database.SCHEMA_VERSION
 
 
@@ -161,5 +166,5 @@ def test_a_supergroup_merge_keeps_the_conquests():
     database.open_conquest_window(1, 300, old)  # window still open when the group is upgraded
     database.add_count(1, "2026-11-02", 1, new)
     assert database.migrate_chat(old, new) == "merged"
-    assert database.get_conquests(new) == [(1, "c1")]
+    assert conquests(new) == [(1, "c1")]
     assert database.conquer(new, 1, 400, 45.0, 9.0, "c2", conquest.WINDOW_SECONDS) is not None

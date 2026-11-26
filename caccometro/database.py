@@ -456,14 +456,6 @@ def get_timed_conquests(chat_id):
     finally:
         conn.close()
 
-def get_conquests(chat_id):
-    """Every conquest of the chat [(user_id, cell)] in order."""
-    conn = _connect(chat_id)
-    try:
-        return _conquests(conn)
-    finally:
-        conn.close()
-
 
 # Legacy data (counts recorded by username before the user-ID schema)
 

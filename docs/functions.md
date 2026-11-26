@@ -184,7 +184,6 @@ SQLite storage, one database file per chat: schema, migration from the legacy sc
 | `open_conquest_window(user_id, ts, chat_id)` | Remember the time (Unix seconds) of a 💩 of the user: it opens the conquest window. | `messages` |
 | `conquer(chat_id, user_id, ts, lat, lon, cell, window)` | Conquer `cell` if the user sent a 💩 at most `window` seconds before `ts`; the window is then used up. | `messages` |
 | `get_timed_conquests(chat_id)` | Every conquest of the chat [(user_id, ts, cell)] in order, for the seasons. | `announce`, `commands`, `webhook` |
-| `get_conquests(chat_id)` | Every conquest of the chat [(user_id, cell)] in order. | none in the package |
 | `list_legacy_users(chat_id)` | Legacy usernames not yet linked to a user, as [(username, total_count)] sorted by name. | `commands` |
 | `count_legacy_orphans(chat_id)` | Number of legacy rows without a username: they cannot be linked to anybody by name. | `commands` |
 | `link_legacy_username(chat_id, legacy_username, user_id)` | Move the legacy history of a username (case-insensitive) to a user ID. | `commands` |

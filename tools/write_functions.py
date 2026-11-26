@@ -5,7 +5,6 @@ Listed: the public functions, classes and methods (no leading underscore). "What
 its docstring; "Used by" lists the other modules that import it by name or call it as module.unit.
 """
 import ast
-import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
