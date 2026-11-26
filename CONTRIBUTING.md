@@ -49,7 +49,7 @@ In polling mode the bot asks Telegram for the updates itself: no public server i
 python -m pytest -q
 ```
 
-The tests (in `tests/`) do not call Telegram: they use temporary databases and fake objects, and write the log to a temporary folder. They cover commands, message counting, schema migration, records, statistics, trophies, charts, webhook, retries and translations. `tests/test_docs.py` also checks that the documentation matches the code: every command in the README table and in the menus of [docs/deployment.md](docs/deployment.md), every module in [docs/architecture.md](docs/architecture.md), every variable in `.env.example`, every service script in [docs/operations.md](docs/operations.md), every file named exists, and that [docs/replies.md](docs/replies.md) is up to date.
+The tests (in `tests/`) do not call Telegram: they use temporary databases and fake objects, and write the log to a temporary folder. They cover commands, message counting, schema migration, records, statistics, trophies, charts, webhook, retries and translations. `tests/test_docs.py` also checks that the documentation matches the code: every command in the README table and in the menus of [docs/deployment.md](docs/deployment.md), every module in [docs/architecture.md](docs/architecture.md), every variable in `.env.example`, every service script in [docs/operations.md](docs/operations.md), every file named exists, and that [docs/replies.md](docs/replies.md) and [docs/functions.md](docs/functions.md) are up to date.
 
 On GitHub the same tests run on every pull request and every push to `main`, on Python 3.10: the `pytest` check must pass before a merge.
 
@@ -87,7 +87,7 @@ flowchart TD
 
 ## Conventions
 
-- Comments and docstrings in English. The bot messages are written in Italian inside `tr("...")`, with the English translation in `caccometro/i18n.py` ([docs/architecture.md](docs/architecture.md#translations)), under the comment of its command: that comment is the section of the sentence in [docs/replies.md](docs/replies.md), the page of every reply.
+- Comments and docstrings in English. The first paragraph of the docstring of a public function or class is its line in [docs/functions.md](docs/functions.md): make it say what the function does. The bot messages are written in Italian inside `tr("...")`, with the English translation in `caccometro/i18n.py` ([docs/architecture.md](docs/architecture.md#translations)), under the comment of its command: that comment is the section of the sentence in [docs/replies.md](docs/replies.md), the page of every reply.
 - The `.py` files have CRLF line endings in the working tree on every system (`.gitattributes`).
 - No secrets in the repository: tokens live in `.env` (not tracked) or in environment variables.
 - The documentation: [README.md](README.md) for the people who use the bot, `docs/` and this file for the people who work on it. Keep the README commands table and the menus in `docs/deployment.md` in step with `menus.MENU`. The infographics in `docs/images/` are drawn by `tools/draw_infographics.py`: change the flow there and run it again. The other diagrams are Mermaid in the same colours: copy the `classDef` lines of an existing one.
@@ -96,7 +96,7 @@ flowchart TD
 
 The hooks in `.githooks/` run once enabled with `git config core.hooksPath .githooks`:
 
-- `pre-commit` refuses the private files (`.env`, `logs/`, `backups/`, the logs), runs the tests, and redraws the README charts with `tools/sample_charts.py` the infographics with `tools/draw_infographics.py` and the page of the replies with `tools/write_replies.py`. When they changed (new chart style, translations, version, new sentences), it stops the commit: look at `assets/screenshots/`, `docs/images/` and `docs/replies.md` and stage them.
+- `pre-commit` refuses the private files (`.env`, `logs/`, `backups/`, the logs), runs the tests, and redraws the README charts with `tools/sample_charts.py` the infographics with `tools/draw_infographics.py` and the page of the replies with `tools/write_replies.py` and the page of the functions with `tools/write_functions.py`. When they changed (new chart style, translations, version, new sentences, new or changed functions), it stops the commit: look at `assets/screenshots/`, `docs/images/`, `docs/replies.md` and `docs/functions.md` and stage them.
 - `commit-msg` refuses co-author and "Generated with" lines.
 
 Extra personal rules can go in `.git/hooks/local-pre-commit` and `.git/hooks/local-commit-msg`, which the versioned hooks call when they exist.

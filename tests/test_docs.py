@@ -33,6 +33,15 @@ def architecture():
     return read("docs/architecture.md")
 
 
+def tool(name):
+    """The script tools/<name>.py as a module (tools/ is not a package)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(name, ROOT / "tools" / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def code_block_containing(readme, marker):
     """The fenced block that contains the first occurrence of `marker`."""
     at = readme.index(marker)
@@ -110,19 +119,15 @@ def test_the_relative_links_point_to_existing_files(doc):
 
 
 def test_the_page_of_the_replies_is_up_to_date():
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("write_replies", ROOT / "tools" / "write_replies.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    assert read("docs/replies.md") == module.render(), "docs/replies.md is stale: run python tools/write_replies.py"
+    assert read("docs/replies.md") == tool("write_replies").render(), "docs/replies.md is stale: run python tools/write_replies.py"
+
+
+def test_the_page_of_the_functions_is_up_to_date():
+    assert read("docs/functions.md") == tool("write_functions").render(), "docs/functions.md is stale: run python tools/write_functions.py"
 
 
 def test_the_dependency_diagram_matches_the_imports(architecture):
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("draw_dependencies", ROOT / "tools" / "draw_dependencies.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    assert module.updated(architecture) == architecture, "the diagram is stale: run python tools/draw_dependencies.py"
+    assert tool("draw_dependencies").updated(architecture) == architecture, "the diagram is stale: run python tools/draw_dependencies.py"
 
 
 @pytest.mark.parametrize("name", ["README.md", "README.it.md"])
