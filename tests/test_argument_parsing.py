@@ -1,19 +1,24 @@
 """Command argument validation and case-insensitive usernames."""
-import asyncio
 from datetime import datetime
 
 import pytest
 
 from caccometro import arguments, cmd_counts, cmd_leaderboards, cmd_records
 from caccometro import database
-from conftest import make_context, make_update, uid
-
-
-def run(coro):
-    return asyncio.run(coro)
+from conftest import make_context, make_update, run, uid
 
 
 def reply_of(command, *args, username="mario"):
+    """Run a command and return the text of its reply; fail when it does not reply.
+
+    Args:
+        command (callable): the handler.
+        *args: the arguments of the command.
+        username (str): the sender.
+
+    Returns:
+        str: the reply.
+    """
     upd = make_update(username=username)
     run(command(upd, make_context(*args)))
     assert upd.message.reply_text.called, "il comando deve rispondere, non sollevare eccezioni"

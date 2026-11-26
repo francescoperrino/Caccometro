@@ -1,17 +1,11 @@
 """Bot setup: BOT_USERNAME, error handler, polling."""
-import asyncio
 import logging
 import runpy
 
-import pytest
 from telegram.ext import Application
 
 from caccometro import bot, config, messages
-from conftest import make_context, make_update
-
-
-def run(coro):
-    return asyncio.run(coro)
+from conftest import make_context, make_update, run
 
 
 def test_bot_mention_is_case_insensitive(monkeypatch):

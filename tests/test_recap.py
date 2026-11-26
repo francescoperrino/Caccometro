@@ -6,13 +6,22 @@ from telegram.error import Forbidden
 
 from caccometro import analysis, announce, bot, charts, database, miniapp, webhook
 from caccometro.config import ROME_TZ
-from conftest import CHAT_ID, uid
-from test_miniapp import BOT_USER, USER_ID, init_data
+from conftest import BOT_USER, CHAT_ID, uid
+from test_miniapp import USER_ID, init_data
 
 FIRST_DAYS = {1: "2026-01-01", 2: "2026-01-01", 3: "2026-01-01"}
 
 
 def october(days, count=1):
+    """The counts of some days of October 2026.
+
+    Args:
+        days (iterable): the days of the month.
+        count (int): the 💩 of each day.
+
+    Returns:
+        dict: {'YYYY-MM-DD': count}.
+    """
     return {f"2026-10-{d:02d}": count for d in days}
 
 
@@ -93,7 +102,14 @@ def test_every_month_and_the_year_have_a_background_in_both_styles():
 
 @pytest.fixture
 def telegram(monkeypatch):
-    """Telegram for the API: a member, and sendPhoto recorded (or refused with `refuse`)."""
+    """Telegram for the API: a member, and sendPhoto recorded (or refused with `refuse`).
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): pytest's fixture.
+
+    Returns:
+        dict: the state, with the 'photos' sent and the 'refuse' switch.
+    """
     state = {"photos": [], "refuse": False}
 
     async def fake_post(endpoint, data=None, **kwargs):
@@ -121,6 +137,16 @@ def telegram(monkeypatch):
 
 
 def call(method, path, user_id=USER_ID):
+    """Call the API as a Mini App user.
+
+    Args:
+        method (str): 'get' or 'post'.
+        path (str): the path.
+        user_id (int): the user.
+
+    Returns:
+        flask.Response: the response.
+    """
     return getattr(webhook.app.test_client(), method)(path, headers={"Authorization": "tma " + init_data(user_id=user_id)})
 
 

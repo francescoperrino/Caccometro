@@ -12,15 +12,24 @@ from telegram.error import Forbidden
 
 from caccometro import __version__, bot, conquest, database, miniapp, trophies, webhook
 from caccometro.model import User
-from conftest import CHAT_ID, uid
+from conftest import BOT_USER, CHAT_ID, uid
 
 TOKEN = os.environ["BOT_TOKEN"]
 USER_ID = 42
-BOT_USER = {"id": 7, "is_bot": True, "first_name": "Caccometro", "username": "caccometro_test_bot"}
 
 
 def init_data(user_id=USER_ID, auth_date=None, token=TOKEN, **extra):
-    """initData signed like Telegram does (the test user is made up)."""
+    """initData signed like Telegram does (the test user is made up).
+
+    Args:
+        user_id (int): the user.
+        auth_date (float): when it was signed; None for now.
+        token (str): the token that signs it.
+        **extra: more fields.
+
+    Returns:
+        str: the URL-encoded initData.
+    """
     fields = {"auth_date": str(int(auth_date or time.time())),
               "user": json.dumps({"id": user_id, "first_name": "Mario"}), **extra}
     check = "\n".join(f"{k}={v}" for k, v in sorted(fields.items()))
@@ -49,7 +58,14 @@ def test_direct_link_opens_the_mini_app_on_the_chat():
 
 @pytest.fixture
 def telegram(monkeypatch):
-    """Telegram answers getMe, getChat and getChatMember; `status` sets the membership."""
+    """Telegram answers getMe, getChat and getChatMember; `status` sets the membership.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): pytest's fixture.
+
+    Returns:
+        dict: the state, with 'status' and the 'calls' made.
+    """
     state = {"status": "member", "calls": []}
 
     async def fake_post(endpoint, data=None, **kwargs):
@@ -73,10 +89,25 @@ def telegram(monkeypatch):
 
 @pytest.fixture
 def client():
+    """The Flask test client.
+
+    Returns:
+        flask.testing.FlaskClient: the client.
+    """
     return webhook.app.test_client()
 
 
 def get(client, path, data=None):
+    """GET a path signed as a Mini App user.
+
+    Args:
+        client (flask.testing.FlaskClient): the test client.
+        path (str): the path.
+        data (str): the initData; None for a valid one.
+
+    Returns:
+        flask.Response: the response.
+    """
     return client.get(path, headers={"Authorization": "tma " + (data if data is not None else init_data())})
 
 

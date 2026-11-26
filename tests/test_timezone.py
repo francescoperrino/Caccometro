@@ -19,6 +19,16 @@ def test_constipation_days_uses_rome_today(seed, chat_id, monkeypatch):
 
 
 def statistics_caption(command, monkeypatch, now):
+    """The caption of a statistics chart when the Italian time is a given one.
+
+    Args:
+        command (callable): the handler.
+        monkeypatch (pytest.MonkeyPatch): pytest's fixture.
+        now (datetime): the Italian time.
+
+    Returns:
+        str: the caption.
+    """
     for module in (arguments, cmd_leaderboards):   # the current period, then the days gone by
         monkeypatch.setattr(module, "now_rome", lambda: now)
     upd = make_update()

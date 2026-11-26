@@ -40,6 +40,15 @@ def test_every_sentence_has_the_name_and_every_pool_is_used_in_full():
 
 
 def reply_at(hour, text="💩"):
+    """The reply to a message sent at a given Italian hour.
+
+    Args:
+        hour (int): the hour.
+        text (str): the text of the message.
+
+    Returns:
+        str: the reply.
+    """
     sent = ROME.localize(datetime(2026, 11, 19, hour, 30))
     upd = make_update(text=text, date=sent)
     asyncio.run(messages.handle_message(upd, make_context()))

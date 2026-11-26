@@ -6,6 +6,16 @@ from conftest import make_context, make_update, uid
 
 
 def ask(command, sender, *args):
+    """Run a command as a user.
+
+    Args:
+        command (callable): the handler.
+        sender (str): the user.
+        *args: the arguments of the command.
+
+    Returns:
+        types.SimpleNamespace: the message, with the calls made on it.
+    """
     upd = make_update(username=sender, user_id=uid(sender))
     asyncio.run(command(upd, make_context(*args)))
     return upd.message

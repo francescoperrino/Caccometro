@@ -1,19 +1,19 @@
 """Characterization tests for the handlers (happy path)."""
-import asyncio
 from datetime import datetime
 
 import pytz
 
 from caccometro import cmd_counts, cmd_leaderboards, cmd_records, cmd_settings, messages
 from caccometro import database
-from conftest import make_context, make_update, uid
-
-
-def run(coro):
-    return asyncio.run(coro)
+from conftest import make_context, make_update, run, uid
 
 
 def today_rome():
+    """Today in Rome as 'YYYY-MM-DD'.
+
+    Returns:
+        str: the date.
+    """
     return datetime.now(pytz.timezone("Europe/Rome")).strftime("%Y-%m-%d")
 
 

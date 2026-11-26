@@ -20,13 +20,24 @@ PARIS, NEW_YORK, FIJI = (48.8566, 2.3522), (40.7128, -74.006), (-17.7, 179.9)
 
 @pytest.fixture
 def tiles(monkeypatch):
-    """Map tiles are blank images: the maps get drawn without network."""
+    """Map tiles are blank images: the maps get drawn without network.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): pytest's fixture.
+    """
     monkeypatch.setattr(maps, "_cached_tile", lambda *args: Image.new("RGB", (maps.TILE_SIZE, maps.TILE_SIZE), "white"))
 
 
 @pytest.fixture
 def drawn(monkeypatch):
-    """Record what draw() is asked to draw instead of drawing it."""
+    """Record what _draw() is asked to draw instead of drawing it.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): pytest's fixture.
+
+    Returns:
+        list: the (args, kwargs) of each call.
+    """
     calls = []
     monkeypatch.setattr(maps, "_draw", lambda *args, **kwargs: calls.append((args, kwargs)) or b"png")
     return calls
@@ -99,7 +110,14 @@ def test_the_maps_are_drawn(tiles):
 # the tile cache
 
 def client_answering(*statuses):
-    """httpx client whose answers have the given statuses in turn; it counts its requests."""
+    """An httpx client whose answers have the given statuses in turn; it counts its requests.
+
+    Args:
+        *statuses: the HTTP status of each answer.
+
+    Returns:
+        httpx.Client: the client.
+    """
     answers = iter(statuses)
     client = httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(next(answers), content=png())))
     client.requests = lambda: len(statuses) - len(list(answers))
@@ -107,6 +125,11 @@ def client_answering(*statuses):
 
 
 def png():
+    """A red PNG tile.
+
+    Returns:
+        bytes: the image.
+    """
     out = __import__("io").BytesIO()
     Image.new("RGB", (maps.TILE_SIZE, maps.TILE_SIZE), "red").save(out, "PNG")
     return out.getvalue()

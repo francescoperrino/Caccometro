@@ -14,6 +14,18 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def run(command, *args, member_status="member", chat_type="group", chat_id=None):
+    """Run a command and return the text of its reply.
+
+    Args:
+        command (callable): the handler.
+        *args: the arguments of the command.
+        member_status (str): the status of the sender in the chat.
+        chat_type (str): 'group' or 'private'.
+        chat_id (int): the chat; None for the default one.
+
+    Returns:
+        str: the reply.
+    """
     upd = make_update(chat_type=chat_type, **({"chat_id": chat_id} if chat_id else {}))
     asyncio.run(command(upd, make_context(*args, member_status=member_status)))
     return upd.message.reply_text.call_args[0][0]
@@ -73,7 +85,11 @@ def test_an_unknown_stored_language_falls_back_to_italian():
 # ---------------------------------------------------------------- the dictionaries
 
 def translated_sentences():
-    """Every literal sentence passed to tr() in the bot code."""
+    """Every literal sentence passed to tr() in the bot code.
+
+    Returns:
+        set: the sentences.
+    """
     found = set()
     for source in (ROOT / "caccometro").glob("*.py"):
         for node in ast.walk(ast.parse(source.read_text(encoding="utf-8"))):
@@ -84,6 +100,14 @@ def translated_sentences():
 
 
 def fields(text):
+    """The names of the {fields} of a sentence.
+
+    Args:
+        text (str): the sentence.
+
+    Returns:
+        list: the names, sorted.
+    """
     return sorted(name for _, name, _, _ in string.Formatter().parse(text) if name is not None)
 
 

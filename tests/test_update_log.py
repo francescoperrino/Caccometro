@@ -9,12 +9,22 @@ from telegram.request import HTTPXRequest
 
 from caccometro import bot, webhook
 from test_robust_sending import network_error
-from test_webhook_identity import BOT_USER, SECRET, message_dict, telegram_calls, telegram_update  # noqa: F401  (fixture)
+from conftest import BOT_USER
+from test_webhook_identity import SECRET, message_dict, telegram_calls, telegram_update  # noqa: F401  (fixture)
 
 DONE = re.compile(r"Update (\d+) done: command=(\S+) chat=(\w+) ms=(\d+) attempts=(\d+) outcome=(\w+)$")
 
 
 def post(update, caplog):
+    """POST an update to the webhook and return the 'done' lines that were logged.
+
+    Args:
+        update (dict): the update.
+        caplog (pytest.LogCaptureFixture): pytest's fixture.
+
+    Returns:
+        list: the groups of each 'done' line.
+    """
     pytest.importorskip("asgiref")   # Flask async views need it
     with caplog.at_level(logging.INFO, logger="caccometro"):
         assert webhook.app.test_client().post("/webhook", headers=SECRET, json=update).status_code == 200
@@ -23,6 +33,15 @@ def post(update, caplog):
 
 
 def command(text, update_id):
+    """The update of a command.
+
+    Args:
+        text (str): the text, starting with the command.
+        update_id (int): the update ID.
+
+    Returns:
+        dict: the update.
+    """
     update = telegram_update(text=text, update_id=update_id)
     update["message"]["entities"] = [{"type": "bot_command", "offset": 0, "length": len(text.split()[0])}]
     return update
@@ -42,7 +61,14 @@ def test_an_italian_command_is_logged_with_its_english_name(telegram_calls, capl
 
 @pytest.fixture
 def flaky_telegram(monkeypatch):
-    """sendMessage fails with a proxy 503 `failures` times, getMe `me_failures` times, then they work (fresh process)."""
+    """sendMessage fails with a proxy 503 `failures` times, getMe `me_failures` times, then they work (fresh process).
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): pytest's fixture.
+
+    Returns:
+        object: the state, with those counters and the calls made.
+    """
     state = type("State", (), {"failures": 0, "calls": 0, "me_failures": 0, "me_calls": 0})()
 
     async def fake_do_request(self, url, method, *args, **kwargs):

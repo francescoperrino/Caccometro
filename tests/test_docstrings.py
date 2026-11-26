@@ -7,16 +7,31 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 MODULES = sorted(path for path in [*(ROOT / "caccometro").glob("*.py"), *(ROOT / "scripts").glob("*.py"),
-                      *(ROOT / "tools").glob("*.py")]
+                      *(ROOT / "tools").glob("*.py"), *(ROOT / "tests").glob("*.py")]
                  if path.stem != "__init__")
 
 
 def parse(path):
+    """Parse a source file.
+
+    Args:
+        path (pathlib.Path): the file.
+
+    Returns:
+        ast.Module: the tree.
+    """
     return ast.parse(path.read_text(encoding="utf-8"))
 
 
 def own_nodes(function):
-    """The nodes of a function without those of the functions, classes and lambdas inside it."""
+    """The nodes of a function without those of the functions, classes and lambdas inside it.
+
+    Args:
+        function (ast.FunctionDef): the function.
+
+    Yields:
+        ast.AST: each node.
+    """
     stack = list(function.body)
     while stack:
         node = stack.pop()
@@ -26,7 +41,14 @@ def own_nodes(function):
 
 
 def definitions(tree):
-    """[(qualified name, node, is nested in a function)] of every function and class."""
+    """Every function and class of a module, with where it is.
+
+    Args:
+        tree (ast.Module): the module.
+
+    Returns:
+        list: [(qualified name, node, is nested in a function)].
+    """
     found = []
 
     def visit(node, prefix, nested):
@@ -42,13 +64,30 @@ def definitions(tree):
 
 
 def sections(docstring):
-    """{section name: its text} of a Google style docstring."""
+    """The sections of a Google style docstring.
+
+    Args:
+        docstring (str): the docstring.
+
+    Returns:
+        dict: {section name: its text}.
+    """
     parts = re.split(r"^(Args|Returns|Yields|Raises|Attributes|Example):\s*$", docstring, flags=re.MULTILINE)
     return dict(zip(parts[1::2], parts[2::2]))
 
 
 def needs_sections(node, nested):
-    """Plain functions and methods need Args, Returns and Raises; closures, dunders, properties and parameterless views only a summary."""
+    """Tell whether a definition must have Args, Returns and Raises.
+
+    Plain functions and methods do; closures, dunders, properties and parameterless views only need a summary.
+
+    Args:
+        node (ast.AST): the definition.
+        nested (bool): True when it is inside a function.
+
+    Returns:
+        bool: True when the sections are required.
+    """
     if nested or isinstance(node, ast.ClassDef) or node.name.startswith("__"):
         return False
     if not node.args.args and any(isinstance(d, ast.Call) and getattr(d.func, "attr", "") == "route" for d in node.decorator_list):
@@ -63,6 +102,8 @@ def test_the_docstrings_follow_the_rules(path):
     if not ast.get_docstring(tree):
         problems.append("module: no docstring")
     for name, node, nested in definitions(tree):
+        if path.parent.name == "tests" and (name.startswith("test_") or nested):
+            continue   # a test is named for what it checks; the helpers around it are documented
         docstring = ast.get_docstring(node)
         if not docstring:
             problems.append(f"{name}: no docstring")

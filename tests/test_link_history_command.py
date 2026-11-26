@@ -1,12 +1,10 @@
 """The /link_history command: link the old username-based history to Telegram users."""
-import asyncio
 import logging
-from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 from caccometro import bot, cmd_leaderboards, cmd_settings
 from caccometro import database
-from conftest import make_context, make_legacy_db, make_tg_user, make_update
+from conftest import make_context, make_legacy_db, make_tg_user, make_update, run
 
 CHAT = -2002
 ROWS = [
@@ -17,15 +15,24 @@ ROWS = [
 ]
 
 
-def run(coro):
-    return asyncio.run(coro)
-
-
 def legacy(tmp_path):
+    """Create the old-layout database of the chat.
+
+    Args:
+        tmp_path (pathlib.Path): pytest's temporary folder.
+    """
     make_legacy_db(str(tmp_path / "db"), CHAT, ROWS)
 
 
 def reply_of(upd):
+    """The text of the reply to an update.
+
+    Args:
+        upd (types.SimpleNamespace): the update the command was run with.
+
+    Returns:
+        str: the reply.
+    """
     return upd.message.reply_text.call_args[0][0]
 
 

@@ -1,18 +1,21 @@
 """Fixes for the /records command."""
-import asyncio
 from datetime import datetime, timedelta
 
 import pytz
 
 from caccometro import cmd_records
-from conftest import make_context, make_tg_user, make_update
-
-
-def run(coro):
-    return asyncio.run(coro)
+from conftest import make_context, make_tg_user, make_update, run
 
 
 def record_text(username="mario"):
+    """The text of /records io for a user.
+
+    Args:
+        username (str): the user.
+
+    Returns:
+        str: the reply.
+    """
     upd = make_update(username=username)
     run(cmd_records.records_command(upd, make_context("io")))
     return upd.message.reply_text.call_args[0][0]

@@ -17,14 +17,40 @@ LEGACY_ROWS = [
 
 
 def db_file(tmp_path, chat_id):
+    """The database file of a chat in the temporary folder.
+
+    Args:
+        tmp_path (pathlib.Path): pytest's temporary folder.
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        str: the path.
+    """
     return str(tmp_path / "db" / f"{chat_id}_bot_data.db")
 
 
 def make_legacy_db(tmp_path, chat_id=LEGACY_CHAT, rows=LEGACY_ROWS):
+    """Create an old-layout database in the temporary folder.
+
+    Args:
+        tmp_path (pathlib.Path): pytest's temporary folder.
+        chat_id (int): the Telegram chat.
+        rows (list): [(username, 'YYYY-MM-DD', count)].
+    """
     conftest.make_legacy_db(str(tmp_path / "db"), chat_id, rows)
 
 
 def query(path, sql, params=()):
+    """Run a query on a database file.
+
+    Args:
+        path (str): the file.
+        sql (str): the query.
+        params (tuple): its parameters.
+
+    Returns:
+        list: the rows.
+    """
     conn = sqlite3.connect(path)
     try:
         return conn.execute(sql, params).fetchall()
@@ -33,11 +59,24 @@ def query(path, sql, params=()):
 
 
 def columns(path, table):
+    """The column names of a table.
+
+    Args:
+        path (str): the database file.
+        table (str): the table.
+
+    Returns:
+        list: the names.
+    """
     return [row[1] for row in query(path, f"PRAGMA table_info({table})")]
 
 
 def forget_schema_check(path):
-    """Simulate a new process: the schema check cache is empty again."""
+    """Simulate a new process: the schema check cache is empty again.
+
+    Args:
+        path (str): the database file.
+    """
     database._schema_ready.discard(path)
 
 

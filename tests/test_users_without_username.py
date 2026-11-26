@@ -1,17 +1,17 @@
 """Users are identified by their Telegram user ID: a missing username is not a problem."""
-import asyncio
 
 from caccometro import cmd_counts, cmd_leaderboards, cmd_records, messages
 from caccometro import database
 from caccometro.model import User
-from conftest import get_user, make_context, make_tg_user, make_update, uid
-
-
-def run(coro):
-    return asyncio.run(coro)
+from conftest import get_user, make_context, make_tg_user, make_update, run, uid
 
 
 def today():
+    """Today in Rome as 'YYYY-MM-DD'.
+
+    Returns:
+        str: the date.
+    """
     return database.now_rome().strftime("%Y-%m-%d")
 
 

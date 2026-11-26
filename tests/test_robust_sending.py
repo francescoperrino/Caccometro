@@ -13,12 +13,20 @@ from test_webhook_identity import SECRET, telegram_calls, telegram_update  # noq
 
 
 class Attempts(list):
+    """The calls made to the fake HTTP layer; `errors` are raised one per call, `sleeps` the waits asked for."""
     errors = ()
 
 
 @pytest.fixture
 def attempts(monkeypatch):
-    """Fake HTTP layer: fails with the errors in `attempts.errors`, one per call, then succeeds."""
+    """Fake HTTP layer: fails with the errors in `attempts.errors`, one per call, then succeeds.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): pytest's fixture.
+
+    Returns:
+        Attempts: the calls, to inspect.
+    """
     calls = Attempts()
     calls.sleeps = []
 
@@ -37,13 +45,28 @@ def attempts(monkeypatch):
 
 
 def network_error(cause):
-    """A NetworkError as PTB raises it: the httpx error is its cause."""
+    """A NetworkError as PTB raises it: the httpx error is its cause.
+
+    Args:
+        cause (Exception): the httpx error.
+
+    Returns:
+        NetworkError: the error.
+    """
     error = TimedOut() if isinstance(cause, httpx.TimeoutException) else NetworkError(f"httpx.{type(cause).__name__}")
     error.__cause__ = cause
     return error
 
 
 def send(request):
+    """Send a request through a request object, as the library does.
+
+    Args:
+        request: the request object.
+
+    Returns:
+        The result of do_request.
+    """
     return asyncio.run(request.do_request("https://api.telegram.org/x", "POST"))
 
 

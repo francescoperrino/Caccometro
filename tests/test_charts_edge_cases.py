@@ -14,10 +14,20 @@ class RecordingDays(dict):
     """Per-user {day: count} dict that records every day the chart looks up."""
 
     def __init__(self, *args, **kwargs):
+        """Start with no day looked up."""
         super().__init__(*args, **kwargs)
         self.requested = set()
 
     def get(self, key, default=None):
+        """Look up a day, remembering it.
+
+        Args:
+            key (str): the day.
+            default: the value when the day is missing.
+
+        Returns:
+            The count of the day, or `default`.
+        """
         self.requested.add(key)
         return super().get(key, default)
 

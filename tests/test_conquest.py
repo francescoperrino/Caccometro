@@ -11,13 +11,34 @@ T0 = datetime(2026, 11, 19, 10, 0, tzinfo=timezone.utc)
 
 
 def send(name, text=None, location=None, at=T0, chat_type="group"):
-    """A message of `name` handled by the bot; returns the reply text."""
+    """A message of a user handled by the bot.
+
+    Args:
+        name (str): the user.
+        text (str): the text of the message.
+        location (telegram.Location): the location of a location message.
+        at (datetime): when the message was sent.
+        chat_type (str): 'group' or 'private'.
+
+    Returns:
+        str: the reply text.
+    """
     upd = make_update(text=text, username=name, user_id=uid(name), location=location, date=at, chat_type=chat_type)
     asyncio.run(messages.handle_message(upd, make_context()))
     return upd.message.reply_text.call_args.args[0]
 
 
 def poop_and_conquer(name, location, at=T0):
+    """A 💩 followed a minute later by a location.
+
+    Args:
+        name (str): the user.
+        location (telegram.Location): where.
+        at (datetime): when the 💩 was sent.
+
+    Returns:
+        str: the reply to the location.
+    """
     send(name, "💩", at=at)
     return send(name, location=location, at=at + timedelta(minutes=1))
 
@@ -54,7 +75,14 @@ def test_cells_are_resolution_6():
 
 
 def conquests(chat_id):
-    """Every conquest of the chat as [(user_id, cell)], in order."""
+    """Every conquest of the chat, in order.
+
+    Args:
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        list: [(user_id, cell)].
+    """
     return [(user_id, cell) for user_id, _, cell in database.get_timed_conquests(chat_id)]
 
 

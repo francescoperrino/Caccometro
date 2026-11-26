@@ -2,8 +2,6 @@
 import random
 from datetime import date, timedelta
 
-import pytest
-
 from caccometro.analysis import Period, analyze_user, forecast_totals, period_statistics
 from caccometro.model import User
 
@@ -18,6 +16,14 @@ APRIL = date(2024, 4, 15)
 
 
 def iso(day):
+    """A date as 'YYYY-MM-DD'.
+
+    Args:
+        day (date): the date.
+
+    Returns:
+        str: the text.
+    """
     return day.isoformat()
 
 

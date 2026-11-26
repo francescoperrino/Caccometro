@@ -14,6 +14,16 @@ APRIL = date(2024, 4, 15)
 
 
 def message(rows, today=APRIL, name="@mario"):
+    """The /records message of one user.
+
+    Args:
+        rows (list): [(date, count)].
+        today (date): the current date.
+        name (str): the name written in the title.
+
+    Returns:
+        str: the message.
+    """
     return format_user_record(name, analyze_user(rows, today))
 
 

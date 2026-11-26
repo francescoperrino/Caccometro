@@ -1,5 +1,4 @@
 """One database read per command instead of one per user and day; atomic count updates."""
-import asyncio
 import threading
 
 import pytest
@@ -8,16 +7,19 @@ from caccometro import cmd_counts, cmd_leaderboards, messages
 from caccometro import database
 from caccometro import charts, i18n
 from caccometro.model import User
-from conftest import make_context, make_update, uid
-
-
-def run(coro):
-    return asyncio.run(coro)
+from conftest import make_context, make_update, run, uid
 
 
 @pytest.fixture
 def connections(monkeypatch):
-    """Counts how many database connections are opened."""
+    """Count how many database connections are opened.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): pytest's fixture.
+
+    Returns:
+        dict: {'n': the number of connections opened}.
+    """
     counter = {"n": 0}
     real_connect = database._connect
 
@@ -30,6 +32,12 @@ def connections(monkeypatch):
 
 
 def seed_busy_chat(seed, names=("mario", "luigi", "anna", "giulia", "carlo")):
+    """Fill the chat with the same four days for each of the users.
+
+    Args:
+        seed (callable): the fixture that registers users and counts.
+        names (tuple): the users.
+    """
     seed({name: {"2024-03-10": 2, "2024-03-20": 1, "2024-07-01": 3, "2024-12-31": 1} for name in names})
 
 
@@ -84,7 +92,19 @@ def test_chart_commands_use_a_handful_of_connections(seed, connections, command,
 # ---------------------------------------------------------------- charts built from the daily counts
 
 def table_of_rank_chart(monkeypatch, rank, daily, period, date, chat_id):
-    """Run generate_rank_chart and return the text of its table."""
+    """Run generate_rank_chart and return the text of its table.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): pytest's fixture.
+        rank (list): [(User, total)].
+        daily (dict): {user_id: {'YYYY-MM-DD': count}}.
+        period (str): 'month' or 'year'.
+        date (str): 'MM-YYYY' or 'YYYY'.
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        list: the rows of the table, each a list of cell texts.
+    """
     captured = {}
     real_png = charts.png_bytes
 

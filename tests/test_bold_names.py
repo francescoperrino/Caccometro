@@ -17,7 +17,14 @@ NAME = "Mario_*[x"
 
 
 def bold_segments(text):
-    """The bold segments of a legacy Markdown text; fails if an escaped character is inside one or a `*` is left open."""
+    """The bold segments of a legacy Markdown text; fails if an escaped character is inside one or a `*` is left open.
+
+    Args:
+        text (str): the message.
+
+    Returns:
+        list: the text of each bold segment.
+    """
     segments, current = [], None
     for part in ESCAPED.split(text):
         if ESCAPED.fullmatch(part):
@@ -47,6 +54,15 @@ def test_bold_is_well_formed(name):
 
 
 def run(command, *args):
+    """Run a command for a user without username and return the text of its reply.
+
+    Args:
+        command (callable): the handler.
+        *args: the arguments of the command.
+
+    Returns:
+        str: the reply.
+    """
     upd = make_update(username=None, user_id=5, full_name=NAME)
     asyncio.run(command(upd, make_context(*args)))
     return upd.message.reply_text.call_args[0][0]

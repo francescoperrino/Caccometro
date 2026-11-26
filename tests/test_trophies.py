@@ -1,5 +1,4 @@
 """Trophies (#6): streaks every 15 days, 💩 of the month and of the year, /trophies and the midnight announcement."""
-import asyncio
 from datetime import date, datetime, timedelta, timezone
 
 from caccometro import announce, cmd_records, database, messages
@@ -7,15 +6,20 @@ from caccometro.analysis import Period
 from caccometro.formatting import format_group_trophies, format_new_period, format_user_trophies
 from caccometro.trophies import (SeasonResult, UserTrophies, Winners, monthly_winners, new_streak_trophy, season_results,
                                  _streak_runs, trophies_by_user, yearly_winners)
-from conftest import make_context, make_update, uid
-
-
-def run(coro):
-    return asyncio.run(coro)
+from conftest import make_context, make_update, run
 
 
 def days_from(start, n, count=1):
-    """n consecutive days from `start` ('YYYY-MM-DD'), each with `count` 💩, as stored rows."""
+    """Consecutive days as stored rows.
+
+    Args:
+        start (str): the first day, 'YYYY-MM-DD'.
+        n (int): how many days.
+        count (int): the 💩 of each day.
+
+    Returns:
+        list: [(date, count)].
+    """
     first = date.fromisoformat(start)
     return [((first + timedelta(days=i)).isoformat(), count) for i in range(n)]
 
@@ -139,6 +143,15 @@ def test_poop_without_milestone_has_no_trophy(seed, monkeypatch):
 # ---------------------------------------------------------------- /trophies
 
 def trophies_text(*args, **update_kwargs):
+    """Run /trophies and return the text of its reply.
+
+    Args:
+        *args: the arguments of the command.
+        **update_kwargs: more arguments for make_update().
+
+    Returns:
+        str: the reply.
+    """
     upd = make_update(**update_kwargs)
     run(cmd_records.trophies_command(upd, make_context(*args)))
     return upd.message.reply_text.call_args[0][0]
@@ -257,6 +270,16 @@ def test_send_failures_do_not_stop_the_other_chats(seed, chat_id, monkeypatch, i
 # ---------------------------------------------------------------- conquest seasons (#129)
 
 def ts(year, month, day):
+    """The Unix time of a day at noon.
+
+    Args:
+        year (int): the year.
+        month (int): the month.
+        day (int): the day.
+
+    Returns:
+        int: the seconds.
+    """
     return int(datetime(year, month, day, 12).timestamp())
 
 

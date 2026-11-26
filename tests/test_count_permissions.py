@@ -10,6 +10,17 @@ from conftest import make_context, make_update, uid
 
 
 def run(command, *args, member_status="member", chat_type="group"):
+    """Run a command and return the text of its reply.
+
+    Args:
+        command (callable): the handler.
+        *args: the arguments of the command.
+        member_status (str): the status of the sender in the chat.
+        chat_type (str): 'group' or 'private'.
+
+    Returns:
+        str: the reply.
+    """
     upd = make_update(chat_type=chat_type)
     asyncio.run(command(upd, make_context(*args, member_status=member_status)))
     return upd.message.reply_text.call_args[0][0]

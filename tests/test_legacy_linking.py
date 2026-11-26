@@ -12,6 +12,15 @@ ROWS = [
 
 
 def legacy_chat(tmp_path, rows=ROWS):
+    """A chat with a database in the old layout.
+
+    Args:
+        tmp_path (pathlib.Path): pytest's temporary folder.
+        rows (list): [(username, 'YYYY-MM-DD', count)].
+
+    Returns:
+        int: the chat ID.
+    """
     make_legacy_db(str(tmp_path / "db"), CHAT, rows)
     return CHAT
 

@@ -1,5 +1,5 @@
 """Characterization tests for database.py: they pin the current behavior (counts are keyed by user ID)."""
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from caccometro import database
 from caccometro.model import User
@@ -14,7 +14,16 @@ def test_seed_and_get_count_roundtrip(seed, chat_id):
 
 
 def ranking(chat_id, period, date):
-    """Rank as [(display name, count)] to keep the assertions readable."""
+    """The rank of a period, as names and counts to keep the assertions readable.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        period (str): 'month' or 'year'.
+        date (str): 'MM-YYYY' or 'YYYY'.
+
+    Returns:
+        list: [(name, count)].
+    """
     return [(user.name, count) for user, count in database.get_rank(chat_id, period, date)]
 
 
