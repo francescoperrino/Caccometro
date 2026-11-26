@@ -402,7 +402,7 @@ flowchart TD
     poop("💩 <b>3. Count</b><br/>+1 on the day it was sent,<br/>Italian time; opens the<br/>15-minute window")
     cmd("📊 <b>3. Command</b><br/>a cmd_*.py module reads the database,<br/>computes with analysis.py<br/>and trophies.py")
     loc("📍 <b>3. Location</b><br/>messages.py conquers the tile<br/>if a 💩 came in the last 15 min,<br/>zoom map from maps.py")
-    reply("💬 <b>4. Reply</b><br/>text or chart in the chat language;<br/>_RetryingRequest: up to 6 attempts")
+    reply("💬 <b>4. Reply</b><br/>text or chart in the chat language;<br/>retrying request: up to 6 attempts")
     r403["403, dropped"]
     r200["200, ignored<br/>(Telegram sent it again)"]
     silent["no reply"]
@@ -434,10 +434,10 @@ flowchart TD
     class r403,r200,silent stop
 ```
 
-- When an update is done, `bot.py` (`_LoggingApplication`) writes one line: `Update <id> done: command=<English command, or message, sticker, location> chat=<private|group> ms=<duration> attempts=<requests to Telegram, retries included> outcome=<ok|lost|error>`. `lost` means the network gave up after all the attempts, `error` any other exception. In webhook mode the line covers the whole request, also the start of the Application (its `getMe` after a reload, with the retries), and is written even when the start fails. No names, no text: the nightly summary is built on this line.
+- When an update is done, `bot.py` (the logging application class) writes one line: `Update <id> done: command=<English command, or message, sticker, location> chat=<private|group> ms=<duration> attempts=<requests to Telegram, retries included> outcome=<ok|lost|error>`. `lost` means the network gave up after all the attempts, `error` any other exception. In webhook mode the line covers the whole request, also the start of the Application (its `getMe` after a reload, with the retries), and is written even when the start fails. No names, no text: the nightly summary is built on this line.
 - An error inside a command or the counting goes to the error handler of `bot.py` (logged with the traceback and the command): the webhook still answers 200, so Telegram does not send the update again. A 💩 is counted before the reply is sent, so a lost reply never loses the count.
 - An error outside the handlers (for example the bot cannot start) makes the webhook answer 500. Telegram sends the update again later. The `update_id` is remembered once the Application has started, so a 💩 is never counted twice, and an update refused because the start failed is processed when it comes again.
-- `_RetryingRequest` waits 1, 2, 4, 8 and 16 seconds between the attempts. It does not retry timeouts and read errors, because the message may have already arrived.
+- The retrying request class of `bot.py` waits 1, 2, 4, 8 and 16 seconds between the attempts. It does not retry timeouts and read errors, because the message may have already arrived.
 - The webhook starts and stops the Application at every request: each Flask request has its own event loop.
 
 ## A 💩 and its conquest
@@ -576,7 +576,7 @@ Seasons are not drawn: they are calendar quarters computed from the dates of the
 The Mini App (#79) is one static page, `assets/webapp/index.html`, served by Flask at `/app`, with its libraries from a CDN and no build step. It opens from the menu button of the private chat or from the button of `/app` in a chat (direct link `t.me/<bot>/app?startapp=<chat_id>`, already on that chat: groups accept only plain URL buttons). The page asks the JSON API of `webhook.py` for the data:
 
 - every call carries the signed `initData` in `Authorization: tma <initData>`; `miniapp.user_of` checks the signature with the bot token and refuses it after 24 hours (401);
-- `webhook._member_chat` checks the chat of every call: it must have a database (404 otherwise: the API never creates one) and the user must be a member: `getChatMember`, trusted for 5 minutes, refuses who left or was kicked (403); the private chat needs no check;
+- The membership check of `webhook.py` runs on the chat of every call: it must have a database (404 otherwise: the API never creates one) and the user must be a member: `getChatMember`, trusted for 5 minutes, refuses who left or was kicked (403); the private chat needs no check;
 - `/api/chat?chat=<id>` sends what does not depend on a period: the bot version (shown at the bottom of every tab), the language and today's date of the chat; the conquest map (`miniapp.conquest_data`: for each h3 resolution from 7, the tiles, to 1, the world, the hexagons with their owner, the tiles each member holds and ever conquered inside and the outline computed with `h3`, plus names, ranking, king, current season and `seasons`, the conquests and the tiles held of every season from `miniapp._season_boards`); and the records and trophies of the group and of each person (`miniapp.records_data`, the same functions as `/records` and `/trophies`); `recaps`, the month just ended of the user who opens it from the 1st to the 7th, and the year just ended from the 1st to the 14th of January (`miniapp.recaps`, `analysis.recap`; #195). The saved locations never leave the server;
 - `/api/period?chat=<id>&year=<YYYY>[&month=<MM>]` sends a month or a year (`miniapp.period_data`): the leaderboard with the forecast like `/leaderboard_month`, the statistics like `/stats_month` with the regularity of each person (`analysis.regularity`, see [the study](research/regularity_index.md)), and the counts of every day for the charts drawn by the page;
 - `/api/recap?chat=<id>` draws the recap as a picture (`charts.generate_recap_image`, 1080x1350, on the background of the month or of the year in `assets/recap/`, `charts.RECAP_STYLE` picks the generated pictures or the drawn shapes): `GET` gives it to the page (`&year=1` for the year), which shows it as the last screen of the recap; with `POST` the bot sends it in that chat (the group, or the private chat with the bot), at most once every 30 seconds per person; 403 with `{"error": "start"}` when, in private, the user never started the bot, `{"error": "chat"}` when the bot cannot write in the group. `POST` with `&to=link` gives a link `/api/recap/<chat>.<user>.<yearly>.<expiry>.<signature>.png`, signed with a key drawn from the bot token and valid 15 minutes, that serves the picture without initData as an attachment: Telegram's download (`downloadFile`, Bot API 8.0) needs it where the web view has no share sheet (Android); elsewhere the page shares the picture it already has with `navigator.share`. The midnight announcement of a new month carries a button with the direct link `startapp=<chat_id>_recap`, which opens the recap; on the 1st of January a second button, `_year`, opens the year. `/app/recap/<month>.jpg` serves the drawn backgrounds behind the screens of the recap.
@@ -648,7 +648,7 @@ flowchart TD
 
 The page follows Telegram's light or dark mode and its back button; how it is organised and why is in [Mini App design](research/mini_app_design.md).
 
-Each call holds the single worker of the web app like an update, and its calls to Telegram go through `_RetryingRequest`.
+Each call holds the single worker of the web app like an update, and its calls to Telegram go through the retrying request class of `bot.py`.
 
 ## Database
 

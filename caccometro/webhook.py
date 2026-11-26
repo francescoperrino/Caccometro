@@ -26,7 +26,7 @@ SEEN_UPDATE_IDS = deque(maxlen=500)
 async def webhook():
     """Receive an update from Telegram and pass it to the library.
 
-    Refused with 403 without the secret token; an update already processed is ignored; any failure answers 500.
+    Refused with 403 without the secret token; an update already processed is ignored; a failure while reading the update or starting the application answers 500, while errors inside a handler are logged and still answer 200.
     """
     # Only Telegram knows the secret: without it anybody could send fake updates (compared as bytes: str raises on non-ASCII)
     received_secret = request.headers.get('X-Telegram-Bot-Api-Secret-Token', '')

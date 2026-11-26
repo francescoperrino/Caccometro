@@ -87,7 +87,7 @@ async def handle_migration(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     Args:
         update (Update): the incoming message.
-        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+        context (ContextTypes.DEFAULT_TYPE): the handler context, which gives access to the bot.
     """
     old_chat_id = update.message.migrate_from_chat_id
     new_chat_id = update.message.chat_id
@@ -114,7 +114,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     Args:
         update (Update): the incoming message.
-        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+        context (ContextTypes.DEFAULT_TYPE): the handler context, which gives access to the bot.
     """
     if not update.message:
         logger.info("Update type not managed")
