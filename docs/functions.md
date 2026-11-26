@@ -222,8 +222,8 @@ Translations of the bot messages: the Italian sentences are the keys, one dictio
 | --- | --- | --- |
 | `use(language)` | Answer in `language` from now on, in the current update (or in the current chat of the announcement). | `announce`, `chat`, `commands`, `webhook` |
 | `current()` | The language in use. | `charts`, `commands` |
-| `tr(text)` | `text` (an Italian sentence) in the language in use; the Italian text when there is no translation. | `announce`, `charts`, `commands`, `formatting`, `maps`, `messages`, `webhook` |
-| `month_name(number)` | Name of month `number` (1-12) in the language in use. | `charts`, `formatting`, `webhook` |
+| `tr(text)` | `text` (an Italian sentence) in the language in use; the Italian text when there is no translation. | `announce`, `charts`, `commands`, `formatting`, `maps`, `messages` |
+| `month_name(number)` | Name of month `number` (1-12) in the language in use. | `charts`, `formatting` |
 
 ## maps.py
 
@@ -290,6 +290,8 @@ Mini App (#79): who opened it (signed initData), which chats they may see, and t
 | `season_boards(timed)` | Every season with a conquest, oldest first (#190): the conquests each member made in it, stolen tiles included (the rule of the conqueror title), and the tiles each one held at its end (now, for the current season), with its king. | only its own module |
 | `recap_data(chat_id, user_id, today, yearly)` | The recap (#195) of one person: of the month just ended from the 1st to the RECAP_DAYS-th of a month, or with `yearly` of the year just ended from the 1st to the YEAR_RECAP_DAYS-th of January; None on other days or without 💩. | `webhook` |
 | `recaps(chat_id, user_id, today)` | The recaps to show today, the year first: none, one, or in early January the year and December. | `webhook` |
+| `recap_link(chat_id, user_id, yearly, token, now)` | The name of a short-lived link to a recap picture (#217), for the download of Telegram, which sends no initData: "chat.user.yearly.expiry.signature", signed with a key drawn from the bot token, so nobody can forge one. | `webhook` |
+| `recap_of_link(name, token, now)` | (chat_id, user_id, yearly) of a link made by recap_link, or None when it is forged or expired. | `webhook` |
 | `recap_image(chat_id, user_id, recap)` | The recap as the PNG to share, with the names the chat knows. | `webhook` |
 
 ## trophies.py
@@ -323,5 +325,6 @@ Webhook: the Flask app the web server runs; Telegram posts every update to /webh
 | `async member_chat()` | The chat of ?chat= when the signed user is one of its members: (chat_id, user_id, None), or (None, None, the error Response). | only its own module |
 | `async api_chat()` | Data of one chat, only for its members (left or kicked users get 403). | `@app.route('/api/chat')` |
 | `async api_period()` | Leaderboard and statistics of ?year= (and ?month=) in one chat, only for its members. | `@app.route('/api/period')` |
-| `async api_recap()` | The picture of the recap (#195) of the signed user: GET gives it to the Mini App, which shows it on its last screen; POST sends the same picture to the user's private chat, from where it can be forwarded or saved. | `@app.route('/api/recap', methods=['GET', 'POST'])` |
+| `async api_recap()` | The picture of the recap (#195) of the signed user: GET gives it to the Mini App, which shows it on its last screen; POST sends the same picture in the chat (the group, or the private chat with the bot), and POST with to=link gives a short-lived link to it for the download of Telegram (#217). | `@app.route('/api/recap', methods=['GET', 'POST'])` |
+| `recap_download(name)` | The recap picture behind a link of recap_link (#217): Telegram downloads it to the phone, without initData. | `@app.route('/api/recap/<name>.png')` |
 | `index()` | Welcome page, useful for testing if the web app works; the deploy reads the version here. | `@app.route('/')` |

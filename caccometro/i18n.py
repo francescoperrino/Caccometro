@@ -389,8 +389,6 @@ EN = {
     "il {day} {month}": "on {month} {day}",
     "giorno di fila": "day streak",
     "giorni di fila": "day streak",
-    "✨ Il tuo mese di {month}: inoltralo o salvalo per condividerlo.": "✨ Your {month}: forward it or save it to share it.",
-    "✨ Il tuo {year}: inoltralo o salvalo per condividerlo.": "✨ Your {year}: forward it or save it to share it.",
 
     # Shared: charts
     "Classifica di {title}": "Leaderboard of {title}",

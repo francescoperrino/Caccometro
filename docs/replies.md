@@ -330,8 +330,6 @@ Every sentence the bot can send, in English and Italian, from `caccometro/i18n.p
 | on {month} {day} | il {day} {month} |
 | day streak | giorno di fila |
 | day streak | giorni di fila |
-| ✨ Your {month}: forward it or save it to share it. | ✨ Il tuo mese di {month}: inoltralo o salvalo per condividerlo. |
-| ✨ Your {year}: forward it or save it to share it. | ✨ Il tuo {year}: inoltralo o salvalo per condividerlo. |
 
 ## Shared: charts
 

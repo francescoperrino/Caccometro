@@ -192,6 +192,29 @@ def recaps(chat_id, user_id, today):
     return [plain(r) for r in (recap_data(chat_id, user_id, today, yearly=True), recap_data(chat_id, user_id, today)) if r]
 
 
+LINK_SECONDS = 15 * 60  # how long the link of a recap picture works (#217)
+
+
+def _link_signature(payload, token):
+    return hmac.new(hashlib.sha256(b'RecapLink' + token.encode()).digest(), payload.encode(), hashlib.sha256).hexdigest()
+
+
+def recap_link(chat_id, user_id, yearly, token, now=None):
+    """The name of a short-lived link to a recap picture (#217), for the download of Telegram, which sends no initData:
+    "chat.user.yearly.expiry.signature", signed with a key drawn from the bot token, so nobody can forge one."""
+    payload = f"{chat_id}.{user_id}.{int(yearly)}.{int(now or time.time()) + LINK_SECONDS}"
+    return f"{payload}.{_link_signature(payload, token)}"
+
+
+def recap_of_link(name, token, now=None):
+    """(chat_id, user_id, yearly) of a link made by recap_link, or None when it is forged or expired."""
+    payload, _, signature = name.rpartition('.')
+    if not hmac.compare_digest(_link_signature(payload, token).encode(), signature.encode()):
+        return None
+    chat_id, user_id, yearly, expiry = (int(part) for part in payload.split('.'))
+    return (chat_id, user_id, yearly == 1) if (now or time.time()) < expiry else None
+
+
 def recap_image(chat_id, user_id, recap):
     """The recap as the PNG to share, with the names the chat knows."""
     users = database.get_users(chat_id)

@@ -135,19 +135,44 @@ def test_the_summary_screen_shows_the_same_picture_that_is_shared(telegram):
     assert telegram["photos"] == []   # showing it sends nothing
 
 
-def test_share_sends_the_picture_only_to_who_asks_once_every_30_seconds(telegram):
+def test_share_sends_the_picture_in_the_chat_once_every_30_seconds(telegram):
     assert call("post", f"/api/recap?chat={CHAT_ID}").get_json() == {"sent": True}
-    assert telegram["photos"] == [USER_ID]
+    assert telegram["photos"] == [CHAT_ID]   # in the group the Mini App was opened from
     assert call("post", f"/api/recap?chat={CHAT_ID}").status_code == 429
-    assert telegram["photos"] == [USER_ID]
+    assert telegram["photos"] == [CHAT_ID]
 
 
-def test_share_asks_to_start_the_bot_when_it_cannot_write_in_private(telegram):
+def test_share_tells_when_the_bot_cannot_write_in_the_group(telegram):
     telegram["refuse"] = True
     response = call("post", f"/api/recap?chat={CHAT_ID}")
-    assert response.status_code == 403 and response.get_json()["error"] == "start"
+    assert response.status_code == 403 and response.get_json()["error"] == "chat"
     telegram["refuse"] = False
     assert call("post", f"/api/recap?chat={CHAT_ID}").status_code == 200   # a refused send does not count for the 30 seconds
+
+
+def test_share_in_private_asks_to_start_the_bot_first(telegram):
+    database.add_count(USER_ID, "2026-10-10", 1, USER_ID)   # the private chat with the bot
+    telegram["refuse"] = True
+    response = call("post", f"/api/recap?chat={USER_ID}")
+    assert response.status_code == 403 and response.get_json()["error"] == "start"
+    telegram["refuse"] = False
+    assert call("post", f"/api/recap?chat={USER_ID}").status_code == 200 and telegram["photos"] == [USER_ID]
+
+
+def test_the_link_downloads_the_picture_without_initdata(telegram):
+    url = call("post", f"/api/recap?chat={CHAT_ID}&to=link").get_json()["url"]
+    assert url.startswith("https://") and telegram["photos"] == []
+    response = webhook.app.test_client().get("/" + url.split("/", 3)[3])
+    assert response.status_code == 200 and response.data.startswith(b"\x89PNG")
+    assert response.headers["Content-Disposition"].startswith("attachment")
+    assert response.headers["Access-Control-Allow-Origin"] == "https://web.telegram.org"
+
+
+@pytest.mark.parametrize("change", ["forged", "expired", "junk"])
+def test_a_forged_or_expired_link_finds_nothing(telegram, change):
+    name = miniapp.recap_link(CHAT_ID, USER_ID, False, webhook.BOT_TOKEN, now=1 if change == "expired" else None)
+    name = {"forged": name.replace(f"{CHAT_ID}.", "-42.", 1), "expired": name, "junk": "a.b"}[change]
+    assert webhook.app.test_client().get(f"/api/recap/{name}.png").status_code == 404
 
 
 def test_share_needs_a_recap_and_a_signature(telegram):
