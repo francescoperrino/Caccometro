@@ -158,6 +158,9 @@
   .rank.on { background: color-mix(in srgb, var(--accent) 12%, var(--card)); }
   .rank .pos { width: 22px; flex: none; color: var(--hint); font-weight: 800; text-align: center; }
   .rank .name, .record .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 700; }
+  .rank .name { display: flex; align-items: center; }  /* the name gives way (ellipsis) before the badge and the tie label */
+  .rank .name .text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank .name .you, .rank .name .tie { flex: none; }
   .rank .num, .record .num { flex: none; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
   .record .emoji { flex: none; font-size: 22px; }
   .record .grow { display: flex; flex-direction: column; white-space: normal; }
@@ -861,7 +864,7 @@ function showApp(chatId, data, openOn) {
       el('span', { className: 'medal' }, MEDALS[positions[i]] || ''));
     const top = entries.slice(0, 3).map(step);
     const rest = entries.slice(3).map((e, k) => el('button', { className: 'rank' + (e.id === me ? ' me' : ''), style: `--tint:${color(e.id)}`, onclick: () => openPerson(e.id) },
-      el('span', { className: 'pos' }, String(positions[k + 3] + 1)), el('span', { className: 'name' }, e.label || plainName(e.id), ...you(e),
+      el('span', { className: 'pos' }, String(positions[k + 3] + 1)), el('span', { className: 'name' }, el('span', { className: 'text' }, e.label || plainName(e.id)), ...you(e),
         ...(tied(k + 3) ? [el('span', { className: 'tie' }, tr('pari'))] : [])), ...(e.streak ? flame(e.id) : []),
       el('span', { className: 'num' }, e.text ?? String(e.value))));
     // second, first, third: the leader in the middle and higher
