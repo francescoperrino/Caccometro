@@ -1,4 +1,6 @@
-"""Midnight announcement of the 💩 of the month (on January 1st also of the year, on a quarter's first day the season) in every chat.
+"""Midnight announcement of the 💩 of the month in every chat.
+
+On January 1st also of the year, on the first day of a quarter also of the season.
 
 Run by a daily scheduled task on the hosting, from the folder that holds `db/`:
     python3.10 -m caccometro.announce
@@ -33,14 +35,26 @@ DB_NAME = re.compile(r'^(-?\d+)_bot_data\.db$')
 
 
 def _chat_ids():
-    """IDs of the chats that have a database."""
+    """The IDs of the chats that have a database.
+
+    Returns:
+        list: the chat IDs, sorted.
+    """
     if not os.path.isdir(database.DB_FOLDER):
         return []
     return sorted(int(match.group(1)) for name in os.listdir(database.DB_FOLDER) if (match := DB_NAME.match(name)))
 
 
 def _announcement(chat_id, today: date):
-    """Message for the chat on `today` (the first day of a month), in its language; None when there is nobody to celebrate."""
+    """The message of a chat for a new month, in its language.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        today (date): the first day of a month.
+
+    Returns:
+        str: the message in Markdown; None when there is nobody to celebrate.
+    """
     i18n.use(database.get_language(chat_id))
     rows_by_user, users = database.get_all_user_rows(chat_id)
     ended = today - timedelta(days=1)
@@ -57,8 +71,17 @@ def _announcement(chat_id, today: date):
 
 
 def _recap_button(chat_id, today):
-    """Buttons under the announcement of a new month that open the Mini App on the recap of the month just ended, and on
-    the 1st of January on the recap of the year too (#195)."""
+    """The buttons under the announcement of a new month.
+
+    They open the Mini App on the recap of the month just ended, and on the 1st of January on the recap of the year too.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        today (date): the first day of a month.
+
+    Returns:
+        InlineKeyboardMarkup: the buttons.
+    """
     buttons = [InlineKeyboardButton(tr("✨ Il tuo mese"), url=miniapp.direct_link(BOT_USERNAME, chat_id, 'recap'))]
     if today.month == 1:
         buttons.insert(0, InlineKeyboardButton(tr("✨ Il tuo anno"), url=miniapp.direct_link(BOT_USERNAME, chat_id, 'year')))
@@ -66,7 +89,12 @@ def _recap_button(chat_id, today):
 
 
 async def _announce(today: date, dry_run=False):
-    """Send the announcement to every chat; a chat that fails (e.g. the bot was removed) does not stop the others."""
+    """Send the announcement to every chat; a chat that fails (e.g. the bot was removed) does not stop the others.
+
+    Args:
+        today (date): the first day of a month.
+        dry_run (bool): True to print the messages instead of sending them.
+    """
     messages = []
     for chat_id in _chat_ids():
         try:
@@ -92,9 +120,15 @@ async def _announce(today: date, dry_run=False):
 
 
 def _wait_for_midnight(now: datetime):
-    """Sleep until the next midnight in Italy when it is less than MAX_WAIT away; return that midnight, or None.
+    """Sleep until the next midnight in Italy when it is less than MAX_WAIT away.
 
     The caller announces for the returned day: waking up a moment before midnight must not change it.
+
+    Args:
+        now (datetime): the current Italian time.
+
+    Returns:
+        datetime: that midnight; None when it is farther than MAX_WAIT and nothing was waited for.
     """
     midnight = datetime.combine(now.date() + timedelta(days=1), datetime.min.time())
     if midnight - now > MAX_WAIT:
@@ -104,7 +138,11 @@ def _wait_for_midnight(now: datetime):
 
 
 def main(argv=None):
-    """Entry point of the scheduled task."""
+    """Entry point of the scheduled task.
+
+    Args:
+        argv (list): the command line arguments; None to read them from sys.argv.
+    """
     parser = argparse.ArgumentParser(description="Announce the 💩 of the month and of the year.")
     parser.add_argument('--date', type=date.fromisoformat, help="announce as if this day had just begun")
     parser.add_argument('--dry-run', action='store_true', help="print the messages instead of sending them")

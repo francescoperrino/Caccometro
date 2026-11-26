@@ -1,4 +1,4 @@
-"""The docstrings follow the Google style of the rules in issue #187: summary line, Args, Returns, Raises."""
+"""Every function, class and module has a Google style docstring: a summary line, Args, Returns, Raises."""
 import ast
 import re
 from pathlib import Path
@@ -6,23 +6,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-# Modules not converted yet: each commit of #187 removes some, the last one empties the list
-PENDING = {
-    "__main__",
-    "announce",
-    "arguments",
-    "bot",
-    "chat",
-    "cmd_conquests",
-    "cmd_counts",
-    "cmd_leaderboards",
-    "cmd_records",
-    "cmd_settings",
-    "messages",
-    "miniapp",
-    "webhook",
-}
-MODULES = sorted(path for path in (ROOT / "caccometro").glob("*.py") if path.stem not in PENDING | {"__init__"})
+MODULES = sorted(path for path in [*(ROOT / "caccometro").glob("*.py"), *(ROOT / "scripts").glob("*.py")]
+                 if path.stem != "__init__")
 
 
 def parse(path):
@@ -62,9 +47,11 @@ def sections(docstring):
 
 
 def needs_sections(node, nested):
-    """Plain functions and methods need Args, Returns and Raises; closures, dunders and properties only a summary."""
+    """Plain functions and methods need Args, Returns and Raises; closures, dunders, properties and parameterless views only a summary."""
     if nested or isinstance(node, ast.ClassDef) or node.name.startswith("__"):
         return False
+    if not node.args.args and any(isinstance(d, ast.Call) and getattr(d.func, "attr", "") == "route" for d in node.decorator_list):
+        return False   # a Flask view without parameters: a summary is enough
     return not any(isinstance(d, ast.Name) and d.id == "property" for d in node.decorator_list)
 
 

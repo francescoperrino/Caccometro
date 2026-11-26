@@ -24,7 +24,6 @@ from caccometro.config import BOT_TOKEN, PROJECT_DIR, ROME_TZ, RUN_MODE
 from caccometro.menus import MENU
 from caccometro.messages import handle_message, handle_migration
 
-# Enable logging
 log_filename = os.environ.get('LOG_FILE', str(PROJECT_DIR / 'caccometro.log'))  # the tests point it elsewhere
 LOG_MAX_BYTES = 1_000_000  # 1 MB per file...
 LOG_BACKUPS = 3            # ...and 3 older files: the logs never take more than about 4 MB
@@ -32,10 +31,16 @@ file_handler = RotatingFileHandler(log_filename, maxBytes=LOG_MAX_BYTES, backupC
 
 
 def _log_handlers(run_mode):
-    """The bot log goes to the rotating file; to the console too only when running locally (polling).
+    """The handlers of the bot log: the rotating file, and the console too only when running locally.
 
     In webhook mode the console is the web server error log: writing there too kept every line twice.
     Crashes before logging is set up (e.g. at import) still reach it.
+
+    Args:
+        run_mode (str): 'POLLING' (local) or another value (webhook).
+
+    Returns:
+        list: the logging handlers.
     """
     if run_mode == 'POLLING':
         return [file_handler, logging.StreamHandler()]
@@ -43,11 +48,14 @@ def _log_handlers(run_mode):
 
 
 def _keep_app_log_out_of_the_root_logger(run_mode):
-    """In webhook mode the bot's own records go straight to the file and stop at the 'caccometro' logger.
+    """In webhook mode send the bot's own records straight to the file and stop them at the 'caccometro' logger.
 
     The hosting puts a handler of its own on the root logger, after this module is imported (it shows every record,
     message only, in the web server error log). Records of the libraries still reach it: that is where their
     crashes belong. Polling mode (local development) keeps the console handler of _log_handlers().
+
+    Args:
+        run_mode (str): 'POLLING' (local) or another value (webhook).
     """
     if run_mode != 'POLLING':
         app_logger = logging.getLogger('caccometro')
@@ -71,7 +79,14 @@ CURRENT_UPDATE = ContextVar('current_update', default=None)
 
 
 def _update_kind(update):
-    """'/<English command name>', 'sticker', 'location' or 'message': what the update asked the bot, for the log."""
+    """What the update asked the bot, for the log.
+
+    Args:
+        update (Update): the incoming update.
+
+    Returns:
+        str: '/<English command name>', 'sticker', 'location', 'message' or 'other'.
+    """
     message = getattr(update, 'message', None)
     if message is None:
         return 'other'
@@ -88,7 +103,17 @@ def _update_kind(update):
 
 
 def _update_line(update, attempts, outcome, ms):
-    """The line written when an update is done: no names, no text, only what the nightly summary needs."""
+    """The line written when an update is done: no names, no text, only what the nightly summary needs.
+
+    Args:
+        update (Update): the update.
+        attempts (int): the requests made to Telegram while handling it.
+        outcome (str): 'ok', 'lost' or 'error'.
+        ms (int): how long it took, in milliseconds.
+
+    Returns:
+        str: the line.
+    """
     chat = getattr(update, 'effective_chat', None)
     chat_type = '-' if chat is None else 'private' if chat.type == 'private' else 'group'
     update_id = getattr(update, 'update_id', '-')
@@ -97,7 +122,14 @@ def _update_line(update, attempts, outcome, ms):
 
 
 def outcome_of(error):
-    """'lost' when the network gave up (the reply did not arrive), 'error' for any other exception."""
+    """How an exception ended an update.
+
+    Args:
+        error (Exception): what was raised.
+
+    Returns:
+        str: 'lost' when the network gave up (the reply did not arrive), 'error' for any other exception.
+    """
     return 'lost' if isinstance(error, NetworkError) and not isinstance(error, BadRequest) else 'error'
 
 
@@ -106,6 +138,9 @@ def update_log():
     """Time what runs inside and count its requests to Telegram; then log the line of info['update'], when set.
 
     The webhook wraps the whole request with it, so the getMe of the first update after a start is counted too.
+
+    Yields:
+        dict: info with 'attempts', 'outcome' and 'update'; the caller sets 'update' to get the line.
     """
     info = {'attempts': 0, 'outcome': 'ok', 'update': None}
     token = CURRENT_UPDATE.set(info)
@@ -126,7 +161,14 @@ class _LoggingApplication(Application):
     """Application that writes one line per update when its processing ends (see _update_line)."""
 
     async def process_update(self, update):
-        """Process the update as usual, timing it and counting its requests to Telegram (polling mode)."""
+        """Process the update as usual, timing it and counting its requests to Telegram (polling mode).
+
+        Args:
+            update (Update): the incoming update.
+
+        Returns:
+            The result of the usual processing.
+        """
         if CURRENT_UPDATE.get() is not None:  # the webhook already times the whole request
             return await super().process_update(update)
         with update_log() as info:
@@ -134,9 +176,13 @@ class _LoggingApplication(Application):
             await super().process_update(update)
 
 
-# Error handler
 async def _error(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for logging errors; marks the update as lost (network gave up) or failed."""
+    """Log an error of a handler; the update is marked as lost (network gave up) or failed.
+
+    Args:
+        update (Update): the update being handled, or None.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.error`, what was raised.
+    """
     info = CURRENT_UPDATE.get()
     if info is not None:
         info['outcome'] = outcome_of(context.error)
@@ -156,7 +202,15 @@ class _CachedMeBot(ExtBot):
     """
 
     async def get_me(self, *args, **kwargs):
-        """The bot user, asked to Telegram only when it is not cached yet."""
+        """The bot user, asked to Telegram only when it is not cached yet.
+
+        Args:
+            *args: passed to ExtBot.get_me.
+            **kwargs: passed to ExtBot.get_me.
+
+        Returns:
+            telegram.User: the bot user.
+        """
         if self._bot_user is not None:
             return self._bot_user
         return await super().get_me(*args, **kwargs)
@@ -173,7 +227,15 @@ class _RetryingRequest(HTTPXRequest):
     RETRY_DELAYS = (1, 2, 4, 8, 16)  # seconds between the 6 attempts: proxy 503 bursts can last more than 15 s
 
     async def do_request(self, *args, **kwargs):
-        """Send the request, retrying with RETRY_DELAYS when the connection or the proxy fails."""
+        """Send the request, retrying with RETRY_DELAYS when the connection or the proxy fails.
+
+        Args:
+            *args: passed to HTTPXRequest.do_request.
+            **kwargs: passed to HTTPXRequest.do_request.
+
+        Returns:
+            The response of HTTPXRequest.do_request.
+        """
         info = CURRENT_UPDATE.get()
         for delay in self.RETRY_DELAYS:
             if info is not None:
@@ -224,12 +286,14 @@ for english, italian, handler in COMMANDS:
 application.add_handler(MessageHandler(filters.StatusUpdate.MIGRATE, handle_migration))
 application.add_handler(MessageHandler(filters.ALL, handle_message))
 
-# Errors
 application.add_error_handler(_error)
 
 
 def main():
-    """Run the bot in polling mode (local development); in webhook mode the web server imports `app` (see wsgi.py)."""
+    """Run the bot in polling mode (local development).
+
+    In webhook mode the web server imports `app` (see wsgi.py).
+    """
     if RUN_MODE == 'POLLING':
         logger.info("Starting bot in POLLING mode...")
         # run_polling retries network errors by itself and stops on Ctrl+C: no restart loop needed

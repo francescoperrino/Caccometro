@@ -13,7 +13,12 @@ from caccometro.trophies import trophies_by_user
 
 
 async def records_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /records command."""
+    """/records: the records of the group, or of one person (io, @username or a reply).
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     sender = register_sender(update)
     if sender is None:
         return
@@ -48,7 +53,12 @@ async def records_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def trophies_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /trophies command: the trophies of the group, or of one person (io, @username or a reply)."""
+    """/trophies: the trophies of the group, or of one person (io, @username or a reply).
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     sender = register_sender(update)
     if sender is None:
         return

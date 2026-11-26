@@ -12,7 +12,14 @@ from caccometro.i18n import MONTHS, tr
 
 
 def _parse_username_arg(arg):
-    """'@mario' -> 'mario'; None if it does not start with @ or is empty."""
+    """The username in an argument like '@mario'.
+
+    Args:
+        arg (str): the argument.
+
+    Returns:
+        str: the username without the @; None if the argument does not start with @ or is just '@'.
+    """
     if not arg.startswith('@') or len(arg) < 2:
         return None
     return arg[1:]
@@ -32,12 +39,28 @@ DAYS_AGO = {'oggi': 0, 'today': 0, 'ieri': 1, 'yesterday': 1}
 
 
 def _year_of(text):
-    """'26' -> 2026, '2026' -> 2026."""
+    """A year of 2 or 4 digits as a number: '26' gives 2026, '2026' gives 2026.
+
+    Args:
+        text (str): the digits.
+
+    Returns:
+        int: the year.
+    """
     return 2000 + int(text) if len(text) == 2 else int(text)
 
 
 def _parse_month_arg(arg):
-    """'3-2024', '03/24', '03.2024', 'marzo 2024' or 'march 2024' -> '03-2024'; None if it is not a valid month (years 1970-2100)."""
+    """A month written in any accepted way.
+
+    Accepted: '3-2024', '03/24', '03.2024', 'marzo 2024' or 'march 2024'; years 1970 to 2100.
+
+    Args:
+        arg (str): the argument.
+
+    Returns:
+        str: the month as '03-2024'; None if it is not a valid month.
+    """
     arg = arg.strip().lower()
     match = MONTH_ARG.fullmatch(arg)
     if match is not None:
@@ -52,16 +75,30 @@ def _parse_month_arg(arg):
 
 
 def _parse_year_arg(arg):
-    """'2024' or '24' -> '2024'; None if it is not a valid year (2 or 4 digits, 1970-2100)."""
+    """A year of 2 or 4 digits, between 1970 and 2100.
+
+    Args:
+        arg (str): the argument, like '2024' or '24'.
+
+    Returns:
+        str: the year as '2024'; None if it is not a valid year.
+    """
     if re.fullmatch(r'([0-9]{2}|[0-9]{4})', arg) and MIN_YEAR <= _year_of(arg) <= MAX_YEAR:
         return str(_year_of(arg))
     return None
 
 
 def _parse_date_arg(arg):
-    """'5/3/26', '05.03.2026', '5.3', 'oggi', 'yesterday'... -> ('05-03-2026', '2026-03-05').
+    """A date written in any accepted way: '5/3/26', '05.03.2026', '5.3', 'oggi', 'yesterday'...
 
-    Raises ValueError, with the message for the user, if invalid, before 1970 or in the future.
+    Args:
+        arg (str): the argument.
+
+    Returns:
+        (display, storing): for instance ('05-03-2026', '2026-03-05').
+
+    Raises:
+        ValueError: the date is not valid, is before 1970 or is in the future; the message is for the user.
     """
     today = now_rome().date()
     word, match = arg.lower(), DATE_ARG.fullmatch(arg)
@@ -84,9 +121,17 @@ def _parse_date_arg(arg):
 def _resolve_target(update: Update, args, sender, usage):
     """Work out whose data a command refers to.
 
-    Order: an explicit '@username' as first argument (it must belong to a user the bot has already
-    seen), then the author of the message being replied to, then the sender.
-    Returns (target, remaining_args, error_message); target is None when there is an error.
+    Order: an explicit '@username' as first argument (it must belong to a user the bot has already seen), then the
+    author of the message being replied to, then the sender.
+
+    Args:
+        update (Update): the incoming message.
+        args (list): the arguments of the command.
+        sender (User): who wrote the command.
+        usage (str): how the command is used, for the error message.
+
+    Returns:
+        (target, remaining_args, error_message): target is None when there is an error.
     """
     chat_id = update.message.chat_id
     if args and args[0].startswith('@'):
@@ -105,15 +150,28 @@ def _resolve_target(update: Update, args, sender, usage):
 
 
 def invalid_format(usage):
-    """The reply to arguments that do not fit the command."""
+    """The reply to arguments that do not fit the command.
+
+    Args:
+        usage (str): how the command is used.
+
+    Returns:
+        str: the message.
+    """
     return tr("⚠️ Formato non valido. Usa: {usage}").format(usage=usage)
 
 
 def replied_person(update: Update):
-    """The Telegram user of the message being replied to, or None when the reply is not to a person.
+    """The Telegram user of the message being replied to.
 
     A bot is not a person. Inside a forum topic every message is a reply to the message that created
     the topic: that is not a reply to its author either.
+
+    Args:
+        update (Update): the incoming message.
+
+    Returns:
+        telegram.User: the author; None when the reply is not to a person.
     """
     replied = update.message.reply_to_message
     if replied is None or replied.forum_topic_created is not None or replied.from_user is None or replied.from_user.is_bot:
@@ -122,7 +180,17 @@ def replied_person(update: Update):
 
 
 def resolve_optional_target(update: Update, context: ContextTypes.DEFAULT_TYPE, sender, usage):
-    """Target of /records and /trophies: io, @username or a reply. Returns (target, error); no target and no error means the group."""
+    """Target of /records and /trophies: io, @username or a reply.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+        sender (User): who wrote the command.
+        usage (str): how the command is used, for the error message.
+
+    Returns:
+        (target, error): no target and no error means the group.
+    """
     if len(context.args) == 1 and context.args[0].lower() in ("io", "me"):
         return sender, None
     if not context.args and replied_person(update) is None:
@@ -134,9 +202,19 @@ def resolve_optional_target(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 
 
 async def target_from_args(update: Update, args, sender, usage, counts):
-    """The person of a command (see _resolve_target) and the arguments after it, whose number must be in `counts`.
+    """The person of a command and the arguments after it, whose number must be in `counts`.
 
-    Returns (target, remaining_args), or None after telling the user what is wrong.
+    Tells the user what is wrong when it is not.
+
+    Args:
+        update (Update): the incoming message.
+        args (list): the arguments of the command.
+        sender (User): who wrote the command.
+        usage (str): how the command is used, for the error message.
+        counts (tuple): how many arguments may remain after the person.
+
+    Returns:
+        (target, remaining_args): None after telling the user what is wrong.
     """
     target, args, error = _resolve_target(update, args, sender, usage)
     if error is None and len(args) not in counts:
@@ -148,7 +226,15 @@ async def target_from_args(update: Update, args, sender, usage, counts):
 
 
 async def date_from_arg(update: Update, arg):
-    """_parse_date_arg, or None after telling the user why the date is not valid."""
+    """Read a date argument, or tell the user why it is not valid.
+
+    Args:
+        update (Update): the incoming message.
+        arg (str): the argument.
+
+    Returns:
+        tuple: the result of _parse_date_arg; None after telling the user.
+    """
     try:
         return _parse_date_arg(arg)
     except ValueError as e:
@@ -164,9 +250,17 @@ PERIODS = {
 
 
 async def period_from_args(update: Update, args, time_period):
-    """The period asked for ('MM-YYYY' or 'YYYY'), the current one without arguments.
+    """The period asked for, the current one without arguments.
 
-    Returns None, after telling the user, when the argument is not a valid period.
+    Tells the user when the argument is not a valid period.
+
+    Args:
+        update (Update): the incoming message.
+        args (list): the arguments of the command.
+        time_period (str): 'month' or 'year'.
+
+    Returns:
+        str: 'MM-YYYY' or 'YYYY'; None when the argument is not valid.
     """
     period = PERIODS[time_period]
     if not args:

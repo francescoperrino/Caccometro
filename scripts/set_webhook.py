@@ -1,4 +1,7 @@
-"""Register the webhook URL and its secret token on Telegram. Run once on the hosting after the web app is up."""
+"""Register the webhook URL and its secret token on Telegram.
+
+Run once on the hosting after the web app is up.
+"""
 
 import os
 import asyncio

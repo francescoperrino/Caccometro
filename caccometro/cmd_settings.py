@@ -17,7 +17,12 @@ logger = logging.getLogger(__name__)
 
 # Command handlers
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /start command."""
+    """/start: say what the bot does and set up the database of the chat.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     sender = register_sender(update)
     if sender is None:
         return
@@ -31,9 +36,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def app_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /app command: a button that opens the Mini App on this chat.
+    """/app: a button that opens the Mini App on this chat.
 
     A plain URL button with the direct link: groups refuse web_app buttons.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
     """
     sender = register_sender(update)
     if sender is None:
@@ -44,7 +53,12 @@ async def app_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /language command: show the language of the chat or, for the admins, change it (/language en)."""
+    """/language: show the language of the chat or, for the admins, change it (/language en).
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     sender = register_sender(update)
     if sender is None:
         return
@@ -64,11 +78,15 @@ async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def link_history_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /link_history command: link the old username-based history to Telegram users.
+    """/link_history: link the old username-based history to Telegram users.
 
     /link_history               list the history that is still to be linked (everybody)
     /link_history auto          link every old username that matches a known user (admins)
-    /link_history <old username>as a reply to a message of the person: link that history to them (admins)
+    /link_history <old username> as a reply to a message of the person: link that history to them (admins)
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
     """
     sender = register_sender(update)
     if sender is None:

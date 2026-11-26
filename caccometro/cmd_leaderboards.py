@@ -15,7 +15,13 @@ from caccometro.i18n import tr
 
 
 async def _leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
-    """/leaderboard_month and /leaderboard_year: total 💩 per person in the period, with a chart."""
+    """Shared body of /leaderboard_month and /leaderboard_year: total 💩 per person in the period, with a chart.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+        time_period (str): 'month' or 'year'.
+    """
     sender = register_sender(update)
     if sender is None:
         return
@@ -59,7 +65,13 @@ async def _leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def _stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE, time_period):
-    """/stats_month and /stats_year: mean, median and variance per person, with a chart."""
+    """Shared body of /stats_month and /stats_year: mean, median and variance per person, with a chart.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+        time_period (str): 'month' or 'year'.
+    """
     sender = register_sender(update)
     if sender is None:
         return
@@ -100,20 +112,40 @@ async def _stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE, tim
 
 
 async def leaderboard_month_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /leaderboard_month command."""
+    """/leaderboard_month: the leaderboard of a month.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     await _leaderboard_command(update, context, 'month')
 
 
 async def leaderboard_year_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /leaderboard_year command."""
+    """/leaderboard_year: the leaderboard of a year.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     await _leaderboard_command(update, context, 'year')
 
 
 async def stats_month_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /stats_month command."""
+    """/stats_month: the statistics of a month.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     await _stats_command(update, context, 'month')
 
 
 async def stats_year_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /stats_year command."""
+    """/stats_year: the statistics of a year.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     await _stats_command(update, context, 'year')

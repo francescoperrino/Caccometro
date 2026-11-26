@@ -1,4 +1,4 @@
-"""Mini App (#79): who opened it (signed initData), which chats they may see, and the direct link from the groups."""
+"""Mini App: who opened it (signed initData), which chats they may see, the data of every view and the direct link from the groups."""
 import hashlib
 import hmac
 import json
@@ -25,15 +25,34 @@ _members = {}  # (user_id, chat_id) -> time of the last positive check
 
 
 def direct_link(bot_username, chat_id, view=None):
-    """Link that opens the Mini App already on a chat, and with `view` ('recap' or 'year', #195) on the recap of the month
-    or of the year; plain URL buttons can carry it, in groups too (web_app buttons only work in private chats)."""
+    """The link that opens the Mini App already on a chat.
+
+    With `view` it opens on the recap of the month or of the year. Plain URL buttons can carry it, in groups too
+    (web_app buttons only work in private chats).
+
+    Args:
+        bot_username (str): the username of the bot, without the @.
+        chat_id (int): the chat to open.
+        view (str): 'recap' or 'year' for a recap; None for the chat.
+
+    Returns:
+        str: the URL.
+    """
     return f"https://t.me/{bot_username}/{SHORT_NAME}?startapp={chat_id}" + (f'_{view}' if view else '')
 
 
 def user_of(init_data, token, now=None):
-    """The Telegram user (dict) who opened the Mini App, or None when initData is not signed by Telegram or too old.
+    """The Telegram user who opened the Mini App.
 
     Check from the Telegram docs: HMAC-SHA256 of the sorted "key=value" lines, with HMAC("WebAppData", token) as key.
+
+    Args:
+        init_data (str): the signed initData string sent by the page.
+        token (str): the token of the bot.
+        now (float): the current time as time.time(); None for now.
+
+    Returns:
+        dict: the Telegram user; None when initData is not signed by Telegram or too old.
     """
     fields = dict(parse_qsl(init_data or '', keep_blank_values=True))
     received = fields.pop('hash', '')
@@ -51,14 +70,29 @@ def user_of(init_data, token, now=None):
 
 
 def known_chats():
-    """IDs of every chat that has a database: the API never opens (and so never creates) the database of another one."""
+    """The IDs of every chat that has a database.
+
+    The API never opens (and so never creates) the database of another one.
+
+    Returns:
+        list: the chat IDs.
+    """
     suffix = '_bot_data.db'
     names = os.listdir(database.DB_FOLDER) if os.path.isdir(database.DB_FOLDER) else []
     return [int(name[:-len(suffix)]) for name in names if name.endswith(suffix) and name[:-len(suffix)].lstrip('-').isdigit()]
 
 
 async def is_member(bot, chat_id, user_id):
-    """Whether the user is still in the chat; the private chat with the bot is always theirs."""
+    """Tell whether the user is still in the chat; the private chat with the bot is always theirs.
+
+    Args:
+        bot (telegram.Bot): the bot, used to ask Telegram.
+        chat_id (int): the Telegram chat.
+        user_id (int): the user.
+
+    Returns:
+        bool: True for a member.
+    """
     if chat_id == user_id:
         return True
     checked = _members.get((user_id, chat_id))
@@ -75,11 +109,18 @@ LEVELS = range(7, 0, -1)  # h3 resolutions sent: the page picks one by zoom, 7 =
 
 
 def conquest_data(timed, users):
-    """The conquest map of a chat for the page (#189). timed: [(user_id, ts, cell)] in order; users: {user_id: User}.
+    """The conquest map of a chat for the page.
 
     One list of hexagons per resolution, like the maps of /conquests: each hexagon has its owner (who holds most
     tiles inside), how many tiles each member holds ('held') and ever conquered ('seen') inside, and its outline
     computed here; the saved locations never leave the server.
+
+    Args:
+        timed (list): [(user_id, ts, cell)] in order.
+        users (dict): {user_id: User}.
+
+    Returns:
+        dict: 'levels', 'names', 'king', 'seasons', 'ranking' and 'season', ready for JSON.
     """
     history = [(user_id, cell) for user_id, _, cell in timed]
     counts, king = holdings(history)
@@ -108,7 +149,14 @@ def conquest_data(timed, users):
 
 
 def _plain(value):
-    """Records and trophies ready for JSON: dates as 'YYYY-MM-DD', named tuples (Record, Period...) as objects."""
+    """Make records and trophies ready for JSON: dates as 'YYYY-MM-DD', named tuples (Record, Period...) as objects.
+
+    Args:
+        value: a date, a named tuple, a list or tuple, or any other value.
+
+    Returns:
+        The same data made of dictionaries, lists and plain values.
+    """
     if isinstance(value, date):
         return value.isoformat()
     if hasattr(value, '_asdict'):
@@ -119,7 +167,16 @@ def _plain(value):
 
 
 def records_data(rows_by_user, today, timed):
-    """Records of the group and of each person, and everyone's trophies (#190): what /records and /trophies show."""
+    """Records of the group and of each person, and everyone's trophies: what /records and /trophies show.
+
+    Args:
+        rows_by_user (dict): {user_id: [(date, count)]}.
+        today: the current date.
+        timed (list): [(user_id, ts, cell)] in order.
+
+    Returns:
+        dict: 'group', 'people' and 'trophies', ready for JSON.
+    """
     people = analyze_users(rows_by_user, today)
     return {'group': _plain(analyze_group(rows_by_user, today)),
             'people': {user_id: _plain(records) for user_id, records in people.items()},
@@ -128,9 +185,17 @@ def records_data(rows_by_user, today, timed):
 
 
 def period_data(chat_id, time_period, period, today):
-    """Leaderboard with the forecast and statistics of a month ('MM-YYYY') or year ('YYYY'), like the commands (#190).
+    """Leaderboard with the forecast and statistics of a month or a year, like the commands.
 
-    'daily' carries the counts of every day for the charts drawn by the page.
+    Args:
+        chat_id (int): the Telegram chat.
+        time_period (str): 'month' or 'year'.
+        period (str): 'MM-YYYY' or 'YYYY'.
+        today: the current date.
+
+    Returns:
+        dict: 'start', 'end', 'today', 'daily' (the counts of every day, for the charts drawn by the page),
+        'leaderboard' and 'statistics'.
     """
     start, end = period_bounds(time_period, period)
     rank = database.get_rank(chat_id, time_period, period)
@@ -152,8 +217,17 @@ def period_data(chat_id, time_period, period, today):
 
 
 def _season_boards(timed):
-    """Every season with a conquest, oldest first (#190): the conquests each member made in it, stolen tiles included
-    (the rule of the conqueror title), and the tiles each one held at its end (now, for the current season), with its king."""
+    """Every season with a conquest, oldest first.
+
+    For each: the conquests each member made in it, stolen tiles included (the rule of the conqueror title), and the
+    tiles each one held at its end (now, for the current season), with its king.
+
+    Args:
+        timed (list): [(user_id, ts, cell)] in order.
+
+    Returns:
+        list: one dict per season with 'year', 'quarter', 'conquests', 'held' and 'king'.
+    """
     conquered, last, owners = {}, {}, {}
     for i, (user_id, ts, cell) in enumerate(timed):
         season = season_of(datetime.fromtimestamp(ts, ROME_TZ).date())
@@ -170,8 +244,20 @@ def _season_boards(timed):
 
 
 def recap_data(chat_id, user_id, today, yearly=False):
-    """The recap (#195) of one person: of the month just ended from the 1st to the RECAP_DAYS-th of a month, or with
-    `yearly` of the year just ended from the 1st to the YEAR_RECAP_DAYS-th of January; None on other days or without 💩."""
+    """The recap of one person.
+
+    Of the month just ended from the 1st to the RECAP_DAYS-th of a month, or with `yearly` of the year just ended from
+    the 1st to the YEAR_RECAP_DAYS-th of January.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        user_id (int): the person.
+        today: the current date.
+        yearly (bool): True for the recap of the year.
+
+    Returns:
+        Recap: the facts; None on other days or without 💩.
+    """
     if yearly:
         if today.month != 1 or today.day > YEAR_RECAP_DAYS:
             return None
@@ -188,7 +274,16 @@ def recap_data(chat_id, user_id, today, yearly=False):
 
 
 def recaps(chat_id, user_id, today):
-    """The recaps to show today, the year first: none, one, or in early January the year and December."""
+    """The recaps to show today, the year first: none, one, or in early January the year and December.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        user_id (int): the person.
+        today: the current date.
+
+    Returns:
+        list: the recaps, ready for JSON.
+    """
     return [_plain(r) for r in (recap_data(chat_id, user_id, today, yearly=True), recap_data(chat_id, user_id, today)) if r]
 
 
@@ -196,18 +291,48 @@ LINK_SECONDS = 15 * 60  # how long the link of a recap picture works (#217)
 
 
 def _link_signature(payload, token):
+    """Sign the payload of a recap link with a key drawn from the bot token.
+
+    Args:
+        payload (str): the text to sign.
+        token (str): the token of the bot.
+
+    Returns:
+        str: the signature, in hexadecimal.
+    """
     return hmac.new(hashlib.sha256(b'RecapLink' + token.encode()).digest(), payload.encode(), hashlib.sha256).hexdigest()
 
 
 def recap_link(chat_id, user_id, yearly, token, now=None):
-    """The name of a short-lived link to a recap picture (#217), for the download of Telegram, which sends no initData:
-    "chat.user.yearly.expiry.signature", signed with a key drawn from the bot token, so nobody can forge one."""
+    """The name of a short-lived link to a recap picture, for the download of Telegram, which sends no initData.
+
+    The name is "chat.user.yearly.expiry.signature", signed with a key drawn from the bot token, so nobody can forge one.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        user_id (int): the person.
+        yearly (bool): True for the recap of the year.
+        token (str): the token of the bot.
+        now (float): the current time as time.time(); None for now.
+
+    Returns:
+        str: the name of the link.
+    """
     payload = f"{chat_id}.{user_id}.{int(yearly)}.{int(now or time.time()) + LINK_SECONDS}"
     return f"{payload}.{_link_signature(payload, token)}"
 
 
 def recap_of_link(name, token, now=None):
-    """(chat_id, user_id, yearly) of a link made by recap_link, or None when it is forged or expired."""
+    """The recap a link was made for.
+
+    Args:
+        name (str): the name made by recap_link.
+        token (str): the token of the bot.
+        now (float): the current time as time.time(); None for now.
+
+    Returns:
+        (chat_id, user_id, yearly): None when the link is forged or expired.
+    """
     payload, _, signature = name.rpartition('.')
     if not hmac.compare_digest(_link_signature(payload, token).encode(), signature.encode()):
         return None
@@ -216,6 +341,15 @@ def recap_of_link(name, token, now=None):
 
 
 def recap_image(chat_id, user_id, recap):
-    """The recap as the PNG to share, with the names the chat knows."""
+    """The recap as the PNG to share, with the names the chat knows.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        user_id (int): the person.
+        recap (Recap): the facts of the person.
+
+    Returns:
+        bytes: the PNG image.
+    """
     users = database.get_users(chat_id)
     return charts.generate_recap_image(recap, mention_of(users, user_id))

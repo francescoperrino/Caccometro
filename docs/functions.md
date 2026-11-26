@@ -30,7 +30,7 @@ Records and current status of the users' 💩 counts.
 
 ## announce.py
 
-Midnight announcement of the 💩 of the month (on January 1st also of the year, on a quarter's first day the season) in every chat.
+Midnight announcement of the 💩 of the month in every chat.
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
@@ -43,11 +43,11 @@ Arguments of the commands: periods, dates, the person a command refers to.
 | Function or class | What it does | Used by |
 | --- | --- | --- |
 | `invalid_format(usage)` | The reply to arguments that do not fit the command. | `cmd_settings` |
-| `replied_person(update)` | The Telegram user of the message being replied to, or None when the reply is not to a person. | `cmd_settings` |
-| `resolve_optional_target(update, context, sender, usage)` | Target of /records and /trophies: io, @username or a reply. Returns (target, error); no target and no error means the group. | `cmd_conquests`, `cmd_records` |
-| `async target_from_args(update, args, sender, usage, counts)` | The person of a command (see _resolve_target) and the arguments after it, whose number must be in `counts`. | `cmd_counts` |
-| `async date_from_arg(update, arg)` | _parse_date_arg, or None after telling the user why the date is not valid. | `cmd_counts` |
-| `async period_from_args(update, args, time_period)` | The period asked for ('MM-YYYY' or 'YYYY'), the current one without arguments. | `cmd_leaderboards` |
+| `replied_person(update)` | The Telegram user of the message being replied to. | `cmd_settings` |
+| `resolve_optional_target(update, context, sender, usage)` | Target of /records and /trophies: io, @username or a reply. | `cmd_conquests`, `cmd_records` |
+| `async target_from_args(update, args, sender, usage, counts)` | The person of a command and the arguments after it, whose number must be in `counts`. | `cmd_counts` |
+| `async date_from_arg(update, arg)` | Read a date argument, or tell the user why it is not valid. | `cmd_counts` |
+| `async period_from_args(update, args, time_period)` | The period asked for, the current one without arguments. | `cmd_leaderboards` |
 
 ## bot.py
 
@@ -55,9 +55,9 @@ The Telegram application: logging, requests with retries, error handler and hand
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `outcome_of(error)` | 'lost' when the network gave up (the reply did not arrive), 'error' for any other exception. | `webhook` |
+| `outcome_of(error)` | How an exception ended an update. | `webhook` |
 | `update_log()` | Time what runs inside and count its requests to Telegram; then log the line of info['update'], when set. | `webhook` |
-| `main()` | Run the bot in polling mode (local development); in webhook mode the web server imports `app` (see wsgi.py). | `__main__` |
+| `main()` | Run the bot in polling mode (local development). | `__main__` |
 
 ## charts.py
 
@@ -80,13 +80,13 @@ Helpers shared by the commands and the message handler: users, replies, permissi
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `register_user(chat_id, tg_user)` | Store the current username/name of a Telegram user and return it as a model.User. | `arguments`, `cmd_settings` |
-| `register_sender(update)` | Record the sender of the message in the users table and return it; the replies follow the language of the chat. | `cmd_conquests`, `cmd_counts`, `cmd_leaderboards`, `cmd_records`, `cmd_settings`, `messages` |
-| `where(update)` | 'PVT - &lt;chat name>' or 'GROUP - &lt;chat name>', for the log lines. | `cmd_counts`, `cmd_settings` |
+| `register_user(chat_id, tg_user)` | Store the current username and name of a Telegram user. | `arguments`, `cmd_settings` |
+| `register_sender(update)` | Record the sender of the message in the users table; the replies follow the language of the chat. | `cmd_conquests`, `cmd_counts`, `cmd_leaderboards`, `cmd_records`, `cmd_settings`, `messages` |
+| `where(update)` | Say where an update comes from, for the log lines. | `cmd_counts`, `cmd_settings` |
 | `escape_md(name)` | Escape a name for Telegram (legacy) Markdown. | `announce`, `cmd_conquests`, `cmd_leaderboards`, `cmd_records`, `messages` |
 | `async reply_chart(update, chart, message)` | Send a chart with the message as its caption: one request instead of two, when it fits. | `cmd_leaderboards` |
-| `async reply_charts(update, charts, message)` | Send the charts that could be drawn (None ones are skipped) with the message: an album when there are several, the text alone when there are none. | `cmd_conquests`, `messages` |
-| `async is_chat_admin(update, context)` | True if the sender is an administrator (or the owner) of the chat; always True in private chats. | `cmd_counts`, `cmd_settings` |
+| `async reply_charts(update, charts, message)` | Send the charts that could be drawn with the message: an album when there are several, the text alone when there are none. | `cmd_conquests`, `messages` |
+| `async is_chat_admin(update, context)` | Tell whether the sender is an administrator (or the owner) of the chat. | `cmd_counts`, `cmd_settings` |
 | `legacy_hint(chat_id)` | Suffix for 'no data' replies when old username-based history is still waiting to be linked. | `cmd_leaderboards`, `cmd_records` |
 
 ## cmd_conquests.py
@@ -95,7 +95,7 @@ Helpers shared by the commands and the message handler: users, replies, permissi
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `async conquests_command(update, context)` | Handler for the /conquests command: tiles held by each member, king first; or one person (io, @username or a reply). | `bot` |
+| `async conquests_command(update, context)` | /conquests: the tiles held by each member, king first; or by one person (io, @username or a reply). | `bot` |
 
 ## cmd_counts.py
 
@@ -103,10 +103,10 @@ Helpers shared by the commands and the message handler: users, replies, permissi
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `async add_poop_command(update, context)` | Handler for the /add_poop command. | `bot` |
-| `async remove_poop_command(update, context)` | Handler for the /remove_poop command. | `bot` |
-| `async day_count_command(update, context)` | Handler for the /day_count command. | `bot` |
-| `async last_poop_command(update, context)` | Handler for the /last_poop command. | `bot` |
+| `async add_poop_command(update, context)` | /add_poop: add 1 💩 on a day. | `bot` |
+| `async remove_poop_command(update, context)` | /remove_poop: remove 1 💩 on a day. | `bot` |
+| `async day_count_command(update, context)` | /day_count: the 💩 of a person on a day (today without a date). | `bot` |
+| `async last_poop_command(update, context)` | /last_poop: the days since the last 💩 of a person. | `bot` |
 
 ## cmd_leaderboards.py
 
@@ -114,10 +114,10 @@ Helpers shared by the commands and the message handler: users, replies, permissi
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `async leaderboard_month_command(update, context)` | Handler for the /leaderboard_month command. | `bot` |
-| `async leaderboard_year_command(update, context)` | Handler for the /leaderboard_year command. | `bot` |
-| `async stats_month_command(update, context)` | Handler for the /stats_month command. | `bot` |
-| `async stats_year_command(update, context)` | Handler for the /stats_year command. | `bot` |
+| `async leaderboard_month_command(update, context)` | /leaderboard_month: the leaderboard of a month. | `bot` |
+| `async leaderboard_year_command(update, context)` | /leaderboard_year: the leaderboard of a year. | `bot` |
+| `async stats_month_command(update, context)` | /stats_month: the statistics of a month. | `bot` |
+| `async stats_year_command(update, context)` | /stats_year: the statistics of a year. | `bot` |
 
 ## cmd_records.py
 
@@ -125,8 +125,8 @@ Helpers shared by the commands and the message handler: users, replies, permissi
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `async records_command(update, context)` | Handler for the /records command. | `bot` |
-| `async trophies_command(update, context)` | Handler for the /trophies command: the trophies of the group, or of one person (io, @username or a reply). | `bot` |
+| `async records_command(update, context)` | /records: the records of the group, or of one person (io, @username or a reply). | `bot` |
+| `async trophies_command(update, context)` | /trophies: the trophies of the group, or of one person (io, @username or a reply). | `bot` |
 
 ## cmd_settings.py
 
@@ -134,10 +134,10 @@ Helpers shared by the commands and the message handler: users, replies, permissi
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `async start_command(update, context)` | Handler for the /start command. | `bot` |
-| `async app_command(update, context)` | Handler for the /app command: a button that opens the Mini App on this chat. | `bot` |
-| `async language_command(update, context)` | Handler for the /language command: show the language of the chat or, for the admins, change it (/language en). | `bot` |
-| `async link_history_command(update, context)` | Handler for the /link_history command: link the old username-based history to Telegram users. | `bot` |
+| `async start_command(update, context)` | /start: say what the bot does and set up the database of the chat. | `bot` |
+| `async app_command(update, context)` | /app: a button that opens the Mini App on this chat. | `bot` |
+| `async language_command(update, context)` | /language: show the language of the chat or, for the admins, change it (/language en). | `bot` |
+| `async link_history_command(update, context)` | /link_history: link the old username-based history to Telegram users. | `bot` |
 
 ## config.py
 
@@ -254,25 +254,25 @@ Handler of plain messages: counts the 💩 and 🚽 sent as text or sticker.
 | Function or class | What it does | Used by |
 | --- | --- | --- |
 | `async handle_migration(update, context)` | A basic group became a supergroup: Telegram gave it a new chat ID, so the database follows it. | `bot` |
-| `async handle_message(update, context)` | Handler for processing messages. | `bot` |
+| `async handle_message(update, context)` | Handle a plain message: count the 💩 and 🚽 sent as text or sticker, and conquer with a location. | `bot` |
 
 ## miniapp.py
 
-Mini App (#79): who opened it (signed initData), which chats they may see, and the direct link from the groups.
+Mini App: who opened it (signed initData), which chats they may see, the data of every view and the direct link from the groups.
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `direct_link(bot_username, chat_id, view)` | Link that opens the Mini App already on a chat, and with `view` ('recap' or 'year', #195) on the recap of the month or of the year; plain URL buttons can carry it, in groups too (web_app buttons only work in private chats). | `announce`, `cmd_settings` |
-| `user_of(init_data, token, now)` | The Telegram user (dict) who opened the Mini App, or None when initData is not signed by Telegram or too old. | `webhook` |
-| `known_chats()` | IDs of every chat that has a database: the API never opens (and so never creates) the database of another one. | `webhook` |
-| `async is_member(bot, chat_id, user_id)` | Whether the user is still in the chat; the private chat with the bot is always theirs. | `webhook` |
-| `conquest_data(timed, users)` | The conquest map of a chat for the page (#189). timed: [(user_id, ts, cell)] in order; users: {user_id: User}. | `webhook` |
-| `records_data(rows_by_user, today, timed)` | Records of the group and of each person, and everyone's trophies (#190): what /records and /trophies show. | `webhook` |
-| `period_data(chat_id, time_period, period, today)` | Leaderboard with the forecast and statistics of a month ('MM-YYYY') or year ('YYYY'), like the commands (#190). | `webhook` |
-| `recap_data(chat_id, user_id, today, yearly)` | The recap (#195) of one person: of the month just ended from the 1st to the RECAP_DAYS-th of a month, or with `yearly` of the year just ended from the 1st to the YEAR_RECAP_DAYS-th of January; None on other days or without 💩. | `webhook` |
+| `direct_link(bot_username, chat_id, view)` | The link that opens the Mini App already on a chat. | `announce`, `cmd_settings` |
+| `user_of(init_data, token, now)` | The Telegram user who opened the Mini App. | `webhook` |
+| `known_chats()` | The IDs of every chat that has a database. | `webhook` |
+| `async is_member(bot, chat_id, user_id)` | Tell whether the user is still in the chat; the private chat with the bot is always theirs. | `webhook` |
+| `conquest_data(timed, users)` | The conquest map of a chat for the page. | `webhook` |
+| `records_data(rows_by_user, today, timed)` | Records of the group and of each person, and everyone's trophies: what /records and /trophies show. | `webhook` |
+| `period_data(chat_id, time_period, period, today)` | Leaderboard with the forecast and statistics of a month or a year, like the commands. | `webhook` |
+| `recap_data(chat_id, user_id, today, yearly)` | The recap of one person. | `webhook` |
 | `recaps(chat_id, user_id, today)` | The recaps to show today, the year first: none, one, or in early January the year and December. | `webhook` |
-| `recap_link(chat_id, user_id, yearly, token, now)` | The name of a short-lived link to a recap picture (#217), for the download of Telegram, which sends no initData: "chat.user.yearly.expiry.signature", signed with a key drawn from the bot token, so nobody can forge one. | `webhook` |
-| `recap_of_link(name, token, now)` | (chat_id, user_id, yearly) of a link made by recap_link, or None when it is forged or expired. | `webhook` |
+| `recap_link(chat_id, user_id, yearly, token, now)` | The name of a short-lived link to a recap picture, for the download of Telegram, which sends no initData. | `webhook` |
+| `recap_of_link(name, token, now)` | The recap a link was made for. | `webhook` |
 | `recap_image(chat_id, user_id, recap)` | The recap as the PNG to share, with the names the chat knows. | `webhook` |
 
 ## model.py
@@ -308,11 +308,11 @@ Webhook: the Flask app the web server runs; Telegram posts every update to /webh
 
 | Function or class | What it does | Used by |
 | --- | --- | --- |
-| `async webhook()` | This function receives the update from Telegram and passes it to the library. | `@app.route('/webhook', methods=['POST'])` |
-| `mini_app()` | The Mini App page (#79): static, it asks /api for the data with the initData Telegram gives it. | `@app.route('/app')` |
-| `story_background(name)` | The drawn background of a month or of the year, behind the screens of the recap in the Mini App (#195). | `@app.route('/app/recap/<name>.jpg')` |
+| `async webhook()` | Receive an update from Telegram and pass it to the library. | `@app.route('/webhook', methods=['POST'])` |
+| `mini_app()` | The Mini App page: static, it asks /api for the data with the initData Telegram gives it. | `@app.route('/app')` |
+| `story_background(name)` | The drawn background of a month or of the year, behind the screens of the recap in the Mini App. | `@app.route('/app/recap/<name>.jpg')` |
 | `async api_chat()` | Data of one chat, only for its members (left or kicked users get 403). | `@app.route('/api/chat')` |
 | `async api_period()` | Leaderboard and statistics of ?year= (and ?month=) in one chat, only for its members. | `@app.route('/api/period')` |
-| `async api_recap()` | The picture of the recap (#195) of the signed user: GET gives it to the Mini App, which shows it on its last screen; POST sends the same picture in the chat (the group, or the private chat with the bot), and POST with to=link gives a short-lived link to it for the download of Telegram (#217). | `@app.route('/api/recap', methods=['GET', 'POST'])` |
-| `recap_download(name)` | The recap picture behind a link of recap_link (#217): Telegram downloads it to the phone, without initData. | `@app.route('/api/recap/<name>.png')` |
+| `async api_recap()` | The picture of the recap of the signed user. | `@app.route('/api/recap', methods=['GET', 'POST'])` |
+| `recap_download(name)` | The recap picture behind a link of recap_link: Telegram downloads it to the phone, without initData. | `@app.route('/api/recap/<name>.png')` |
 | `index()` | Welcome page, useful for testing if the web app works; the deploy reads the version here. | `@app.route('/')` |

@@ -14,7 +14,14 @@ from caccometro.trophies import season_of, season_results
 
 
 async def conquests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /conquests command: tiles held by each member, king first; or one person (io, @username or a reply)."""
+    """/conquests: the tiles held by each member, king first; or by one person (io, @username or a reply).
+
+    Replies with up to four maps, from the closest view to the widest, or with the text alone when none can be drawn.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     sender = register_sender(update)
     if sender is None:
         return

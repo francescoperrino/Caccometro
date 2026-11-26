@@ -22,11 +22,19 @@ logger = logging.getLogger(__name__)
 
 
 def _record_poop(sender, chat_id, sent_at=None):
-    """Add one 💩 to the day the message was sent (Italian time) and return the message to reply with.
+    """Add one 💩 to the day the message was sent (Italian time) and build the reply.
 
     sent_at is the aware datetime of the Telegram message, so a late-processed update still counts on its own day.
     The first 💩 of a day that completes a multiple of STREAK_STEP consecutive days also announces a trophy.
     The 💩 also opens the conquest window of the sender, and the reply reminds to send a location.
+
+    Args:
+        sender (User): who sent the message.
+        chat_id (int): the Telegram chat.
+        sent_at (datetime): when Telegram says the message was sent; None for now.
+
+    Returns:
+        str: the message to reply with, in Markdown.
     """
     sent = now_rome() if sent_at is None else sent_at.astimezone(ROME_TZ)
     today = sent.date()
@@ -43,8 +51,15 @@ def _record_poop(sender, chat_id, sent_at=None):
 def _record_conquest(sender, chat_id, location, sent_at):
     """Conquer the tile of a location sent within the window of the sender's last 💩.
 
-    Returns the reply and, for the zoom image, the conquest history and the users of the chat
-    (None, None without an open window).
+    Args:
+        sender (User): who sent the location.
+        chat_id (int): the Telegram chat.
+        location (telegram.Location): the location.
+        sent_at (datetime): when Telegram says the location was sent.
+
+    Returns:
+        (response, history, users): the reply, and for the zoom image the conquest history and the users of the chat;
+        the last two are None without an open window.
     """
     result = conquer(chat_id, sender.user_id, int(sent_at.timestamp()), location.latitude, location.longitude,
                      cell_of(location.latitude, location.longitude), WINDOW_SECONDS)
@@ -68,7 +83,12 @@ def _record_conquest(sender, chat_id, location, sent_at):
 
 
 async def handle_migration(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """A basic group became a supergroup: Telegram gave it a new chat ID, so the database follows it."""
+    """A basic group became a supergroup: Telegram gave it a new chat ID, so the database follows it.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     old_chat_id = update.message.migrate_from_chat_id
     new_chat_id = update.message.chat_id
     if old_chat_id is None:  # the twin message sent in the old chat: a second chance if the first one failed
@@ -88,7 +108,14 @@ async def handle_migration(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Messages handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for processing messages."""
+    """Handle a plain message: count the 💩 and 🚽 sent as text or sticker, and conquer with a location.
+
+    Also answers when the bot is mentioned, and to a 'run' written as if it were a command.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     if not update.message:
         logger.info("Update type not managed")
         return

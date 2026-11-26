@@ -24,7 +24,10 @@ SEEN_UPDATE_IDS = deque(maxlen=500)
 
 @app.route('/webhook', methods=['POST'])
 async def webhook():
-    """This function receives the update from Telegram and passes it to the library."""
+    """Receive an update from Telegram and pass it to the library.
+
+    Refused with 403 without the secret token; an update already processed is ignored; any failure answers 500.
+    """
     # Only Telegram knows the secret: without it anybody could send fake updates (compared as bytes: str raises on non-ASCII)
     received_secret = request.headers.get('X-Telegram-Bot-Api-Secret-Token', '')
     if not WEBHOOK_SECRET or not hmac.compare_digest(received_secret.encode(), WEBHOOK_SECRET.encode()):
@@ -66,7 +69,7 @@ MINI_APP_PAGE = PROJECT_DIR / 'assets' / 'webapp' / 'index.html'
 
 @app.route('/app')
 def mini_app():
-    """The Mini App page (#79): static, it asks /api for the data with the initData Telegram gives it."""
+    """The Mini App page: static, it asks /api for the data with the initData Telegram gives it."""
     return send_file(MINI_APP_PAGE)
 
 
@@ -77,7 +80,14 @@ STORY_BACKGROUNDS = {name: PROJECT_DIR / 'assets' / 'recap' / 'code' / f'{name}.
 
 @app.route('/app/recap/<name>.jpg')
 def story_background(name):
-    """The drawn background of a month or of the year, behind the screens of the recap in the Mini App (#195)."""
+    """The drawn background of a month or of the year, behind the screens of the recap in the Mini App.
+
+    Args:
+        name (str): '01' to '12', or 'year'.
+
+    Returns:
+        flask.Response: the image, or 404 for another name.
+    """
     path = STORY_BACKGROUNDS.get(name)
     if path is None:
         return Response('not found', status=404)
@@ -85,12 +95,20 @@ def story_background(name):
 
 
 def _mini_app_user():
-    """The user who opened the Mini App, from the 'Authorization: tma <initData>' header; None if not signed."""
+    """The user who opened the Mini App, from the 'Authorization: tma <initData>' header.
+
+    Returns:
+        dict: the Telegram user; None if the data is not signed.
+    """
     return miniapp.user_of(request.headers.get('Authorization', '').removeprefix('tma '), BOT_TOKEN)
 
 
 async def _member_chat():
-    """The chat of ?chat= when the signed user is one of its members: (chat_id, user_id, None), or (None, None, the error Response)."""
+    """The chat of ?chat= when the signed user is one of its members.
+
+    Returns:
+        (chat_id, user_id, error): error is a Response (401, 400, 404 or 403) and the first two are None when the chat is refused.
+    """
     user = _mini_app_user()
     if user is None:
         return None, None, Response('unauthorized', status=401)
@@ -150,9 +168,12 @@ _shared = {}        # user_id -> time of the last recap image sent
 
 @app.route('/api/recap', methods=['GET', 'POST'])
 async def api_recap():
-    """The picture of the recap (#195) of the signed user: GET gives it to the Mini App, which shows it on its last screen;
-    POST sends the same picture in the chat (the group, or the private chat with the bot), and POST with to=link gives
-    a short-lived link to it for the download of Telegram (#217)."""
+    """The picture of the recap of the signed user.
+
+    GET gives it to the Mini App, which shows it on its last screen; POST sends the same picture in the chat (the
+    group, or the private chat with the bot), and POST with to=link gives a short-lived link to it for the download
+    of Telegram.
+    """
     chat_id, user_id, error = await _member_chat()
     if error:
         return error
@@ -180,7 +201,14 @@ async def api_recap():
 
 @app.route('/api/recap/<name>.png')
 def recap_download(name):
-    """The recap picture behind a link of recap_link (#217): Telegram downloads it to the phone, without initData."""
+    """The recap picture behind a link of recap_link: Telegram downloads it to the phone, without initData.
+
+    Args:
+        name (str): the name of the link.
+
+    Returns:
+        flask.Response: the image as an attachment, or 404 when the link is forged, expired or has no recap.
+    """
     try:
         signed = miniapp.recap_of_link(name, BOT_TOKEN)
     except ValueError:

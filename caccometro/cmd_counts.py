@@ -15,7 +15,19 @@ logger = logging.getLogger(__name__)
 
 
 async def _may_change_counts_of(update: Update, context: ContextTypes.DEFAULT_TYPE, sender, target):
-    """Everybody can change their own counts; only the group admins can change the counts of others."""
+    """Tell whether the sender may change the counts of a person; everybody can change their own, only the group admins those of others.
+
+    Replies to the sender when not allowed.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+        sender (User): who wrote the command.
+        target (User): whose counts are changed.
+
+    Returns:
+        bool: True if allowed.
+    """
     if target.user_id == sender.user_id or await is_chat_admin(update, context):
         return True
     await update.message.reply_text(tr("🔒 Solo gli admin del gruppo possono modificare i conteggi degli altri."))
@@ -23,7 +35,14 @@ async def _may_change_counts_of(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def _change_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE, command, delta):
-    """Shared body of /add_poop (delta +1) and /remove_poop (delta -1)."""
+    """Shared body of /add_poop and /remove_poop.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+        command (str): the English name of the command, for the log line.
+        delta (int): +1 to add a 💩, -1 to remove one.
+    """
     sender = register_sender(update)
     if sender is None:
         return
@@ -51,17 +70,32 @@ async def _change_count_command(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def add_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /add_poop command."""
+    """/add_poop: add 1 💩 on a day.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     await _change_count_command(update, context, 'add_poop', 1)
 
 
 async def remove_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /remove_poop command."""
+    """/remove_poop: remove 1 💩 on a day.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     await _change_count_command(update, context, 'remove_poop', -1)
 
 
 async def day_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /day_count command."""
+    """/day_count: the 💩 of a person on a day (today without a date).
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     sender = register_sender(update)
     if sender is None:
         return
@@ -85,7 +119,12 @@ async def day_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def last_poop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /last_poop command."""
+    """/last_poop: the days since the last 💩 of a person.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): holds `context.args`, the arguments of the command.
+    """
     sender = register_sender(update)
     if sender is None:
         return
