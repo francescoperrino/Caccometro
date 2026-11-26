@@ -1,6 +1,157 @@
 # Architecture
 
-How the bot is built: the modules, the path of a message, the database and the translations. For running it, see [CONTRIBUTING.md](../CONTRIBUTING.md) and [deployment.md](deployment.md).
+How the bot is built: what it talks to, its programs and modules, the path of a message, the database and the translations. For running it, see [CONTRIBUTING.md](../CONTRIBUTING.md) and [deployment.md](deployment.md).
+
+## Views
+
+Each view answers one question for one reader. The ones written by a script in `tools/` follow the code and a test fails when they are stale; the others are written by hand and change in the same pull request as the code they describe. Why these views and this style: [research/diagrams.md](research/diagrams.md).
+
+| View | Question | Reader | Where |
+| --- | --- | --- | --- |
+| Context | Who and what does Caccometro talk to? | everybody | [below](#context) |
+| Containers | Which programs and files make it up? | contributor, maintainer | [below](#containers) |
+| Modules | What is in each file of the package? | contributor | [Modules](#modules) |
+| Dependencies | Which module uses which? (generated) | contributor | [Dependencies between modules](#dependencies-between-modules) |
+| Functions | What does each function do, who calls it? (generated) | contributor | [functions.md](functions.md) |
+| Path of a message | What happens to an update? | contributor | [Path of a message](#path-of-a-message) |
+| A 💩 and its conquest | How do two updates work together? | contributor | [A 💩 and its conquest](#a--and-its-conquest) |
+| Use cases | Which calls and data does each command need? (generated) | contributor | [use_cases.md](use_cases.md) |
+| Mini App | How does the page get its data safely? | contributor | [Mini App](#mini-app) |
+| Database | What is stored, and how is it linked? | contributor, maintainer | [Database](#database) |
+| Deployment | Where does it run? | maintainer | [deployment.md](deployment.md#production) |
+| Operations | Deploy, backups, logs, releases | maintainer | [operations.md](operations.md) |
+| How it works | What does a user do? | user | [README](../README.md#-how-to-use-it) |
+
+## Context
+
+The people of a group use Caccometro only through Telegram. The bot itself reaches Telegram and the OpenStreetMap tiles; the Mini App page also loads its libraries from a CDN. The maintainer works through GitHub and the HTTP API of the hosting.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
+flowchart LR
+    accTitle: System context of Caccometro
+    accDescr: The people of a group use Telegram, Telegram talks to Caccometro, Caccometro fetches map tiles, the Mini App loads libraries, the maintainer works through GitHub and the hosting
+    people("👥 <b>People in a group</b><br/>Telegram app")
+    maintainer("🧑‍💻 <b>Maintainer</b>")
+    bot("💩 <b>Caccometro</b><br/>counts the 💩, replies,<br/>Mini App, conquest maps")
+    telegram("✈️ <b>Telegram</b><br/>Bot API and the app<br/>that opens the Mini App")
+    osm("🗺️ <b>OpenStreetMap</b><br/>map tiles")
+    cdn("📦 <b>unpkg CDN</b><br/>Leaflet, Chart.js")
+    github("🐙 <b>GitHub</b><br/>code, tests, releases")
+    hosting("☁️ <b>Hosting</b><br/>web app, scheduled task,<br/>HTTP API")
+    people -->|"💩, commands, locations"| telegram
+    telegram -->|"updates, HTTPS webhook"| bot
+    bot -->|"replies, photos, menus, Bot API"| telegram
+    people -->|"Mini App page and API, HTTPS"| bot
+    people -->|"Mini App libraries"| cdn
+    people -->|"Mini App map tiles"| osm
+    bot -->|"tiles of the images, HTTPS"| osm
+    maintainer -->|"pull requests, releases"| github
+    maintainer -->|"deploy, backups, logs: tools/"| hosting
+    hosting -->|"runs"| bot
+    classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
+    classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
+    classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
+    class bot main
+    class people,maintainer person
+    class telegram,osm,cdn,github,hosting step
+```
+
+## Containers
+
+One web app answers both Telegram and the Mini App; a scheduled task writes the midnight announcement with the same code. Each chat has its own SQLite file. Locally `python -m caccometro` replaces the webhook app with polling.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
+flowchart TD
+    accTitle: Containers of Caccometro
+    accDescr: Inside Caccometro the webhook app, the midnight task and the Mini App page, with one SQLite file per chat, the tile cache and the log
+    telegram("✈️ <b>Telegram</b>")
+    osm("🗺️ <b>OpenStreetMap</b>")
+    subgraph system["💩 Caccometro"]
+        web("🐍 <b>Webhook app</b><br/>Flask + caccometro, Python 3.10,<br/>one uWSGI process<br/>/webhook, /app, /api")
+        task("🕛 <b>Midnight task</b><br/>python -m caccometro.announce<br/>every day at 22:00 UTC")
+        page("📱 <b>Mini App page</b><br/>assets/webapp/index.html<br/>HTML and JavaScript in Telegram")
+        db[("🗄️ <b>SQLite</b><br/>db/&lt;chat_id&gt;_bot_data.db<br/>one file per chat")]
+        tiles[("🧩 <b>tile_cache/</b><br/>map tiles, 7 days")]
+        log[("📜 <b>caccometro.log</b><br/>one line per update")]
+    end
+    telegram -->|"updates"| web
+    web -->|"replies"| telegram
+    telegram -->|"opens"| page
+    page -->|"/api/chat, /api/period with initData"| web
+    web -->|"counts, conquests, settings"| db
+    task -->|"reads the counts"| db
+    task -->|"announcement"| telegram
+    web -->|"tiles"| tiles
+    tiles -.->|"missing tiles"| osm
+    web -->|"writes"| log
+    task --> log
+    classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
+    classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
+    classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
+    classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
+    class telegram,osm person
+    class web main
+    class task,page step
+    class db,tiles,log detail
+```
 
 ## Modules
 
