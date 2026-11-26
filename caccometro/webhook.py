@@ -71,15 +71,18 @@ def mini_app():
     return send_file(MINI_APP_PAGE)
 
 
-STORY_BACKGROUNDS = {f'{month:02d}' for month in range(1, 13)} | {'year'}
+# name in the URL -> file: the path is built here, never from the request
+STORY_BACKGROUNDS = {name: PROJECT_DIR / 'assets' / 'recap' / 'code' / f'{name}.jpg'
+                     for name in [f'{month:02d}' for month in range(1, 13)] + ['year']}
 
 
 @app.route('/app/recap/<name>.jpg')
 def story_background(name):
     """The drawn background of a month or of the year, behind the screens of the recap in the Mini App (#195)."""
-    if name not in STORY_BACKGROUNDS:  # only the known names: the path never comes from the request
+    path = STORY_BACKGROUNDS.get(name)
+    if path is None:
         return Response('not found', status=404)
-    return send_file(PROJECT_DIR / 'assets' / 'recap' / 'code' / f'{name}.jpg', max_age=86400)
+    return send_file(path, max_age=86400)
 
 
 def mini_app_user():
