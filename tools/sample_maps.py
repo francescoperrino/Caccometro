@@ -25,6 +25,7 @@ CONQUESTS = [  # (latitude, longitude, user_id), in order: the last one is the c
 
 
 def main():
+    """Draw the four conquest maps of the README, in Italian and English, from fake conquests."""
     history = [(user_id, cell_of(lat, lon)) for lat, lon, user_id in CONQUESTS]
     for language in ("it", "en"):
         i18n.use(language)

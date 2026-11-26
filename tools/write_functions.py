@@ -18,7 +18,17 @@ Every public function and class of the `caccometro` package, one table per modul
 
 
 def signature(node, prefix=""):
-    """`name(arg, ...)` of a function, `name` of a property, `class Name` of a class; `self` and `cls` left out."""
+    """The signature of a function or class as shown in the page.
+
+    Shown as `name(arg, ...)` for a function, `name` for a property, `class Name` for a class; `self` and `cls` are left out.
+
+    Args:
+        node (ast.AST): the definition.
+        prefix (str): text written before the name of a property, the name of its class.
+
+    Returns:
+        str: the text.
+    """
     if isinstance(node, ast.ClassDef):
         return f"class {node.name}"
     if any(isinstance(item, ast.Name) and item.id == "property" for item in node.decorator_list):
@@ -37,20 +47,40 @@ def signature(node, prefix=""):
 
 
 def summary(node):
-    """The first paragraph of the docstring of `node`, on one line."""
+    """The first paragraph of the docstring of a node, on one line.
+
+    Args:
+        node (ast.AST): the definition.
+
+    Returns:
+        str: the text; '(no docstring)' when there is none.
+    """
     docstring = ast.get_docstring(node)
     return " ".join(docstring.strip().split("\n\n")[0].split()) if docstring else "(no docstring)"
 
 
 def decorators(node):
-    """The decorators of a function, as written (`@app.route('/app')`)."""
+    """The decorators of a function, as written (`@app.route('/app')`).
+
+    Args:
+        node (ast.AST): the definition.
+
+    Returns:
+        list: the decorators as Markdown code.
+    """
     return [f"`@{ast.unparse(item)}`" for item in getattr(node, "decorator_list", [])]
 
 
 def units(tree):
-    """[(name, signature, summary, decorators)] of the public functions, classes and methods of a module, in source order.
+    """The public functions, classes and methods of a module, in source order.
 
     A method has no name of its own: other modules reach it through its class.
+
+    Args:
+        tree (ast.Module): the module.
+
+    Returns:
+        list: [(name, signature, summary, decorators)].
     """
     found = []
     for node in tree.body:
@@ -64,7 +94,14 @@ def units(tree):
 
 
 def users(trees):
-    """{(module, name): set of the other modules that import `name` from `module` or use `module.name`}."""
+    """Which modules use each unit of the package.
+
+    Args:
+        trees (dict): {module: ast.Module}.
+
+    Returns:
+        dict: {(module, name): set of the other modules that import `name` from `module` or use `module.name`}.
+    """
     used = {}
     for user, tree in trees.items():
         aliases = {}   # local name -> module of the package
@@ -82,10 +119,23 @@ def users(trees):
 
 
 def cell(text):
+    """A text that stays in one cell of a Markdown table.
+
+    Args:
+        text (str): the text.
+
+    Returns:
+        str: the text with the characters of the table escaped.
+    """
     return text.replace("|", "\\|").replace("<", "&lt;")
 
 
 def render():
+    """The Markdown of docs/functions.md.
+
+    Returns:
+        str: the page.
+    """
     trees = {path.stem: ast.parse(path.read_text(encoding="utf-8")) for path in sorted(PACKAGE.glob("*.py"))}
     used = users(trees)
     # names each module reads besides defining them: a unit used only where it is defined

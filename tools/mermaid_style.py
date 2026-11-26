@@ -50,6 +50,14 @@ SEQUENCE_GROUND = "rect rgb(255, 250, 243)"   # the cream ground under the messa
 
 
 def accessible(title, description):
-    """The accTitle and accDescr lines that follow the diagram type, for screen readers."""
+    """The accTitle and accDescr lines that follow the diagram type, for screen readers.
+
+    Args:
+        title (str): the short title.
+        description (str): the longer description.
+
+    Returns:
+        list: the two lines, indented.
+    """
     clean = [" ".join(text.replace(":", ",").split()) for text in (title, description)]
     return [f"    accTitle: {clean[0]}", f"    accDescr: {clean[1]}"]

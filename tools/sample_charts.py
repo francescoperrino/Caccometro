@@ -24,7 +24,11 @@ RATES = [1.6, 1.3, 1.1, 0.8, 0.5]   # mean 💩 per day of each person
 
 
 def fake_counts():
-    """{user_id: {'YYYY-MM-DD': count}} from 30 days before the month to TODAY, the same on every run."""
+    """Fake counts for the sample charts, the same on every run.
+
+    Returns:
+        dict: {user_id: {'YYYY-MM-DD': count}} from 30 days before the month to TODAY.
+    """
     rng = random.Random(143)
     first = date.fromisoformat(START) - timedelta(days=FORECAST_WINDOW_DAYS)
     days = [first + timedelta(days=n) for n in range((TODAY - first).days + 1)]
@@ -36,6 +40,7 @@ def fake_counts():
 
 
 def main():
+    """Draw the leaderboard and statistics charts of the README, in every language, from fake data."""
     charts.now_rome = lambda: datetime(TODAY.year, TODAY.month, TODAY.day, 12)  # fixed "today", naive like now_rome
     counts = fake_counts()
     month = {uid: {d: c for d, c in days.items() if d >= START} for uid, days in counts.items()}

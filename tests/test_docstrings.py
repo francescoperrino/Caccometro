@@ -6,7 +6,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-MODULES = sorted(path for path in [*(ROOT / "caccometro").glob("*.py"), *(ROOT / "scripts").glob("*.py")]
+MODULES = sorted(path for path in [*(ROOT / "caccometro").glob("*.py"), *(ROOT / "scripts").glob("*.py"),
+                      *(ROOT / "tools").glob("*.py")]
                  if path.stem != "__init__")
 
 

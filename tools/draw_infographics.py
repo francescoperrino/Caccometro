@@ -47,22 +47,66 @@ ICONS = {
 
 
 def icon(name, x, y, r, colour):
+    """An icon as SVG: a coloured circle with a white glyph.
+
+    Args:
+        name (str): the glyph, a key of ICONS.
+        x (float): the x of the centre.
+        y (float): the y of the centre.
+        r (float): the radius of the circle.
+        colour (str): the colour of the circle.
+
+    Returns:
+        str: the SVG elements.
+    """
     return (f'<circle cx="{x}" cy="{y}" r="{r}" fill="{colour}"/>'
             f'<g transform="translate({x},{y}) scale({r / 46:.3f})">{ICONS[name]}</g>')
 
 
 def text(x, y, value, size, colour=INK, weight=400, anchor="start"):
+    """A line of text as an SVG element.
+
+    Args:
+        x (float): where the text starts (or ends, or is centred, by `anchor`).
+        y (float): the baseline.
+        value (str): the text.
+        size (float): the font size.
+        colour (str): the colour of the text.
+        weight (int): the font weight.
+        anchor (str): 'start', 'middle' or 'end'.
+
+    Returns:
+        str: the SVG element.
+    """
     return (f'<text x="{x}" y="{y}" font-size="{size}" font-weight="{weight}" fill="{colour}" '
             f'text-anchor="{anchor}">{escape(value)}</text>')
 
 
 def fits(value, size, room, where, bold=False):
-    """Warn when a line may overflow: about 0.58 em a character (DejaVu, the widest fallback)."""
+    """Warn when a line may overflow: about 0.58 em a character (DejaVu, the widest fallback).
+
+    Args:
+        value (str): the line.
+        size (float): the font size.
+        room (float): the width available in pixels.
+        where (str): the picture, for the warning.
+        bold (bool): True for a bold line, which is wider.
+    """
     if len(value) * size * (0.62 if bold else 0.58) > room:
         print(f"  {where}: '{value}' may not fit in {room} px")
 
 
 def draw(name, title, sentence, highlights, steps, closing=None):
+    """Draw one infographic and write it in docs/images/.
+
+    Args:
+        name (str): the file name without the extension.
+        title (str): the title.
+        sentence (list): the lines of the sentence under the title.
+        highlights (list): [(icon, title, text)], three of them.
+        steps (list): one dict per step with 'title', 'icon', 'lines' and optionally 'colour'.
+        closing (str): the line shown when the flow repeats; None for none.
+    """
     room = WIDTH - LEFT - TEXT_X - 20
     out, y = [text(LEFT, 70, title, 38, INK, 800)], 70
     fits(title, 38, WIDTH - 2 * LEFT, name, bold=True)

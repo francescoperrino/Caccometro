@@ -28,7 +28,11 @@ Every sentence the bot can send, in English and Italian, from `caccometro/i18n.p
 
 
 def sections():
-    """[(comment, [Italian sentence, ...])] in the order of i18n.py; a repeated comment joins its first section."""
+    """The sentences of i18n.py grouped by the comment above them.
+
+    Returns:
+        list: [(comment, [Italian sentence, ...])] in the order of the file; a repeated comment joins its first section.
+    """
     text = SOURCE.read_text(encoding="utf-8")
     lines = text.splitlines()
     comments = [(number, line.strip()[2:]) for number, line in enumerate(lines, 1)
@@ -44,8 +48,23 @@ def sections():
 
 
 def title(comment):
-    """The comment with each English command followed by its Italian name."""
+    """A section title with each English command followed by its Italian name.
+
+    Args:
+        comment (str): the comment.
+
+    Returns:
+        str: the title.
+    """
     def names(match):
+        """The text for one command found in a comment: the English name and, if different, the Italian one.
+
+        Args:
+            match (re.Match): the match of COMMAND.
+
+        Returns:
+            str: the text.
+        """
         english = match.group(1)
         if english not in ITALIAN:
             return match.group(0)
@@ -55,17 +74,36 @@ def title(comment):
 
 
 def rank(item):
-    """Commands in menu order, then the other sections in the order of i18n.py."""
+    """The order of a section: commands in menu order, then the other sections in the order of i18n.py.
+
+    Args:
+        item (tuple): (comment, sentences).
+
+    Returns:
+        int: the sort key.
+    """
     commands = [name for name in COMMAND.findall(item[0]) if name in ITALIAN]
     return ORDER.index(commands[0]) if commands and item[0].startswith("/") else len(ORDER)
 
 
 def cell(sentence):
-    """A sentence that stays on one row of a Markdown table and shows its symbols as they are."""
+    """A sentence that stays on one row of a Markdown table and shows its symbols as they are.
+
+    Args:
+        sentence (str): the sentence.
+
+    Returns:
+        str: the text with the characters of the table escaped.
+    """
     return sentence.replace("|", "\\|").replace("<", "&lt;").replace("\n", "<br>").strip() or "(space)"
 
 
 def render():
+    """The Markdown of docs/replies.md.
+
+    Returns:
+        str: the page.
+    """
     parts = [INTRO]
     for comment, sentences in sorted(sections(), key=rank):
         parts.append(f"\n## {title(comment)}\n\n| English | Italian |\n| --- | --- |\n")

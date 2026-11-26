@@ -7,21 +7,17 @@ import re
 
 import httpx
 
-from deploy import FILES, REPO, local_version, token
+from deploy import REPO, bot_token, local_version, server_env
 
 
 VERSION_LINE = {'': "Versione", 'en': "Version"}   # language_code of the description ('' = default, Italian) -> word
 
 
-def bot_token(env):
-    return re.search(r"BOT_TOKEN\s*=\s*['\"]?([^'\"\s]+)", env).group(1)
-
-
 def main():
-    prod_env = httpx.get(f"{FILES}/.env", headers={"Authorization": f"Token {token()}"}, timeout=60)
-    prod_env.raise_for_status()
+    """Write the local version at the end of the description of both bots, in Italian and English."""
+    prod_env = server_env()
     version = local_version()
-    for tk in (bot_token(prod_env.text), bot_token((REPO / ".env").read_text(encoding="utf-8"))):
+    for tk in (bot_token(prod_env), bot_token((REPO / ".env").read_text(encoding="utf-8"))):
         api = f"https://api.telegram.org/bot{tk}/"
         name = httpx.post(api + "getMe").json()["result"]["username"]
         for language, word in VERSION_LINE.items():

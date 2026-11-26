@@ -41,11 +41,26 @@ ASSET_FOLDERS = ("assets/fonts", "assets/emoji", "assets/brand", "assets/recap/g
 
 
 def url(remote):
-    """Absolute remote paths (the WSGI file) start at /, the others at the home folder."""
+    """The URL of a remote file in the hosting API.
+
+    Args:
+        remote (str): an absolute path (the WSGI file) starts at /, any other at the home folder.
+
+    Returns:
+        str: the URL.
+    """
     return f"{ROOT}{remote}" if remote.startswith("/") else f"{FILES}/{remote}"
 
 
 def allowed(remote):
+    """Tell whether a deploy may write a remote file.
+
+    Args:
+        remote (str): the remote path.
+
+    Returns:
+        bool: True for the assets folders, the WSGI file, top-level .py files and .py files of `caccometro/` and `scripts/`.
+    """
     if remote.rsplit("/", 1)[0] in ASSET_FOLDERS:
         return True
     parts = remote.split("/")
@@ -53,6 +68,11 @@ def allowed(remote):
 
 
 def token():
+    """The API token of the hosting, from the environment (on Windows also from the user variables).
+
+    Returns:
+        str: the token; never print it.
+    """
     names = ("HOSTING_API_TOKEN", "PYTHONANYWHERE_TOKEN")  # the second is the old name, kept for existing setups
     value = next((os.environ[n] for n in names if os.environ.get(n)), None)
     if not value and sys.platform == "win32":
@@ -69,8 +89,47 @@ def token():
     return value
 
 
+def hosting_client(timeout):
+    """An httpx client that talks to the hosting API with the token, for use in a `with` block.
+
+    Args:
+        timeout (float): seconds before a request gives up.
+
+    Returns:
+        httpx.Client: the client.
+    """
+    return httpx.Client(headers={"Authorization": f"Token {token()}"}, timeout=timeout)
+
+
+def server_env():
+    """The text of the .env of the server, read through the hosting API.
+
+    Returns:
+        str: the file; it holds secrets, never print it.
+    """
+    response = httpx.get(f"{FILES}/.env", headers={"Authorization": f"Token {token()}"}, timeout=60)
+    response.raise_for_status()
+    return response.text
+
+
+def bot_token(env):
+    """The BOT_TOKEN in the text of a .env file.
+
+    Args:
+        env (str): the text of the file.
+
+    Returns:
+        str: the token; never print it.
+    """
+    return re.search(r"BOT_TOKEN\s*=\s*['\"]?([^'\"\s]+)", env).group(1)
+
+
 def expiry_warning(client):
-    """Print how many days the free web app has left (the hosting API cannot extend it)."""
+    """Print how many days the free web app has left (the hosting API cannot extend it).
+
+    Args:
+        client (httpx.Client): a client of the hosting API.
+    """
     expiry = client.get(f"{HOST}/api/v0/user/{USER}/webapps/{DOMAIN}/").json().get("expiry")
     if expiry:
         days = (date.fromisoformat(expiry) - date.today()).days
@@ -79,6 +138,16 @@ def expiry_warning(client):
 
 
 def download(client, remote, local):
+    """Download a remote file.
+
+    Args:
+        client (httpx.Client): a client of the hosting API.
+        remote (str): the remote path.
+        local (pathlib.Path): where to save it; its folders are created.
+
+    Returns:
+        bool: False when the file is not on the server.
+    """
     r = client.get(url(remote))
     if r.status_code == 404:
         return False
@@ -89,6 +158,15 @@ def download(client, remote, local):
 
 
 def backup(client, names):
+    """Copy what a deploy is going to replace, and every database, into a new folder of backups/.
+
+    Args:
+        client (httpx.Client): a client of the hosting API.
+        names (list): the remote paths that will be written.
+
+    Returns:
+        pathlib.Path: the folder of the backup.
+    """
     folder = REPO / "backups" / datetime.now().strftime("%Y%m%d_%H%M%S")
     for name in names:
         found = download(client, name, folder / name.lstrip("/"))
@@ -103,6 +181,13 @@ def backup(client, names):
 
 
 def upload(client, local, remote):
+    """Upload a file to the server; exit with an error message when the server refuses it.
+
+    Args:
+        client (httpx.Client): a client of the hosting API.
+        local (pathlib.Path): the file.
+        remote (str): the remote path.
+    """
     r = client.post(url(remote), files={"content": (Path(remote).name, local.read_bytes())})
     if r.status_code not in (200, 201):
         sys.exit(f"Upload of {remote} failed: {r.status_code} {r.text[:200]}")
@@ -110,12 +195,23 @@ def upload(client, local, remote):
 
 
 def local_version():
+    """The version of the local code.
+
+    Returns:
+        str: __version__ of the caccometro package.
+    """
     text = (REPO / "caccometro" / "__init__.py").read_text(encoding="utf-8")
     return re.search(r'__version__ = "([^"]+)"', text).group(1)
 
 
 def record(folder, version, names):
-    """Append the deploy to backups/deploys.log: which version and commit run on the server."""
+    """Append the deploy to backups/deploys.log: which version and commit run on the server.
+
+    Args:
+        folder (pathlib.Path): the folder of the backup of this deploy.
+        version (str): the version the server reports.
+        names (list): the remote paths that were written.
+    """
     commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=REPO, capture_output=True, text=True).stdout.strip()
     dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"],
                            cwd=REPO, capture_output=True, text=True).stdout.strip()
@@ -126,7 +222,16 @@ def record(folder, version, names):
 
 
 def reload_and_check(client):
-    """Reload, then return the version the home page reports."""
+    """Reload the web app, then read the version its home page reports.
+
+    Exits with an error message when the reload fails or the home page does not answer.
+
+    Args:
+        client (httpx.Client): a client of the hosting API.
+
+    Returns:
+        str: the version reported by the server.
+    """
     r = client.post(f"{HOST}/api/v0/user/{USER}/webapps/{DOMAIN}/reload/")
     if r.status_code != 200:
         sys.exit(f"Reload failed: {r.status_code} {r.text[:200]}")
@@ -146,6 +251,11 @@ def reload_and_check(client):
 
 
 def main(argv):
+    """Run a deploy, a dry run or a rollback.
+
+    Args:
+        argv (list): the command line arguments (see the module docstring).
+    """
     real = "--yes" in argv
     argv = [a for a in argv if a != "--yes"]
     rollback = argv[:1] == ["--rollback"]
@@ -174,7 +284,7 @@ def main(argv):
     if not real:
         print("Nothing changed. Add --yes to deploy.")
         return
-    with httpx.Client(headers={"Authorization": f"Token {token()}"}, timeout=60) as client:
+    with hosting_client(60) as client:
         folder = backup(client, [r for _, r in pairs])
         print(f"  backup saved in {folder}")
         for local, remote in pairs:
