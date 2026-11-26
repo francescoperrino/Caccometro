@@ -417,7 +417,8 @@ MASCOT = ASSETS / 'brand' / 'mascot.png'
 RECAP_STYLE = 'generated'  # backgrounds of the recap: 'generated' (made with an image generator) or 'code' (drawn shapes)
 
 # Everything the recap picture is made of (#195), as tuned in the design editor. Lengths in inches (the picture is
-# 6 x 7.5, 180 px each), font sizes in points; margin, padding and panel_radius are multiples of 'unit'.
+# 6 x 7.5, 180 px each), font sizes in points; margin, padding and panel_radius are multiples of 'unit'. The picture is
+# full bleed: 'margin' is only the room between its edge and the texts.
 RECAP = {
     'background': BACKGROUND, 'card': SURFACE, 'text': TEXT, 'up': '#2f9e55', 'down': '#d8573f', 'even': TEXT_MUTED,
     'unit': 0.2, 'margin': 1, 'padding': 2, 'panel_radius': 2.5,
@@ -506,13 +507,13 @@ def generate_recap_image(recap, name):
                     path_effects=outline if stroke else None, **more)
 
         # the panel: the gradient of the month, its picture, darker at the top and bottom so the white texts stay readable
-        panel = _rounded(ax, m, m, pw, ph, radius, facecolor='none', edgecolor='none')
-        _fade(ax, m, m, pw, ph, [top_colour, bottom_colour], panel)
+        panel = _rounded(ax, 0, 0, width, height, 0, facecolor='none', edgecolor='none')  # full bleed: no frame around the picture (#214)
+        _fade(ax, 0, 0, width, height, [top_colour, bottom_colour], panel)
         background = ASSETS / 'recap' / RECAP_STYLE / ('year.jpg' if year_recap else f'{recap.month:02d}.jpg')
-        _picture(ax, plt.imread(background), m, m, pw, ph, clip=panel)
+        _picture(ax, plt.imread(background), 0, 0, width, height, clip=panel)
         if RECAP_STYLE == 'generated':  # the drawn backgrounds are calm enough without
-            _fade(ax, m, m, pw, 1.5, [(0, 0, 0, .4), (0, 0, 0, 0)], panel, zorder=3)
-            _fade(ax, m, m + ph - 2.3, pw, 2.3, [(0, 0, 0, 0), (0, 0, 0, .42)], panel, zorder=3)
+            _fade(ax, 0, 0, width, m + 1.5, [(0, 0, 0, .4), (0, 0, 0, 0)], panel, zorder=3)
+            _fade(ax, 0, height - m - 2.3, width, m + 2.3, [(0, 0, 0, 0), (0, 0, 0, .42)], panel, zorder=3)
         # the header: the bot on the left, the period on the right
         y = m + 0.55
         emoji(ax, ICONS['poop'], (ix + 0.17, y), 56 / (128 * PX / 72), coords='data')
