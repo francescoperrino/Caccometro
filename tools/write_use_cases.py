@@ -121,6 +121,25 @@ TELEGRAM_CALLS = {"reply_text", "reply_photo", "reply_media_group", "send_messag
 LABEL = 40   # longest label of an argument list or a condition
 
 
+def source(node):
+    """ast.unparse of `node`, the same on every Python version: 3.10 writes `for (a, b) in`, 3.11 `for a, b in`."""
+    text = ast.unparse(node)
+    start = text.find("for (")
+    while start != -1:
+        depth, end = 0, start + 4
+        for end in range(start + 4, len(text)):   # the parenthesis that closes the one after "for "
+            depth += {"(": 1, ")": -1}.get(text[end], 0)
+            if depth == 0:
+                break
+        if text.startswith(" in ", end + 1):
+            text = text[:start + 4] + text[start + 5:end] + text[end + 1:]
+        start = text.find("for (", start + 4)
+    return text
+
+
+assert source(ast.parse("[t for (a, (b, c)) in x]")) == source(ast.parse("[t for a, (b, c) in x]")) == "[t for a, (b, c) in x]"
+
+
 def short(text):
     """`text` on one line, at most LABEL characters, without the characters Mermaid reads as syntax."""
     text = " ".join(text.split()).replace(";", ",").replace("#", "#35;")
@@ -170,15 +189,15 @@ class Sequence:
             lines = self.expression(node.test, module, depth)
             body = self.block(node.body, module, depth + 1, branch=True)
             other = self.block(node.orelse, module, depth + 1, branch=True)
-            condition = short(ast.unparse(node.test))
+            condition = short(source(node.test))
             if body and other:
                 return lines + [f"{pad}alt {condition}", *body, f"{pad}else", *other, f"{pad}end"]
             if body or other:
-                return lines + [f"{pad}opt {condition if body else short('not (' + ast.unparse(node.test) + ')')}", *(body or other), f"{pad}end"]
+                return lines + [f"{pad}opt {condition if body else short('not (' + source(node.test) + ')')}", *(body or other), f"{pad}end"]
             return lines
         if isinstance(node, (ast.For, ast.AsyncFor, ast.While)):
-            head = (f"for {ast.unparse(node.target)} in {ast.unparse(node.iter)}" if not isinstance(node, ast.While)
-                    else f"while {ast.unparse(node.test)}")
+            head = (f"for {source(node.target)} in {source(node.iter)}" if not isinstance(node, ast.While)
+                    else f"while {source(node.test)}")
             lines = self.expression(node.iter if not isinstance(node, ast.While) else node.test, module, depth)
             body = self.block(node.body, module, depth + 1)
             return lines + ([f"{pad}loop {short(head)}", *body, f"{pad}end"] if body else [])
@@ -189,12 +208,12 @@ class Sequence:
             lines = self.block(node.body, module, depth)
             for handler in node.handlers:
                 body = self.block(handler.body, module, depth + 1)
-                kind = ast.unparse(handler.type) if handler.type else "any error"
+                kind = source(handler.type) if handler.type else "any error"
                 lines += [f"{pad}opt on {short(kind)}", *body, f"{pad}end"] if body else []
             return lines + self.block(node.orelse + node.finalbody, module, depth)
         if isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)) and node.value is not None:
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            return self.expression(node.value, module, depth, ", ".join(ast.unparse(t) for t in targets))
+            return self.expression(node.value, module, depth, ", ".join(source(t) for t in targets))
         if isinstance(node, (ast.Expr, ast.Return)) and node.value is not None:
             return self.expression(node.value, module, depth)
         return []
@@ -222,7 +241,7 @@ class Sequence:
 
     def call(self, node, module, depth, result):
         pad = "    " * depth
-        arguments = short(", ".join(ast.unparse(a) for a in node.args + node.keywords))
+        arguments = short(", ".join(source(a) for a in node.args + node.keywords))
         target = self.resolve(module, node.func)
         if target is None:
             if isinstance(node.func, ast.Attribute) and node.func.attr in TELEGRAM_CALLS:
