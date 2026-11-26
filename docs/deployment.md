@@ -10,45 +10,27 @@ How to set up a bot on Telegram and run Caccometro in production. For the day-to
 
 ### Command menus
 
-Italian menu (`/setcommands` on BotFather, or `setMyCommands`; the texts come from `caccometro/menus.py`):
+The commands in menu order, as `caccometro/menus.py` defines them. The Italian menu is the default; the English one is registered with `language_code=en`.
 
-```
-start - Avvia il bot e spiega come contare le 💩.
-classifica_mese - Classifica del mese, corrente o [MM-YYYY, anche marzo 2026].
-classifica_anno - Classifica dell'anno, corrente o [YYYY o YY].
-statistiche_mese - Media, mediana e varianza del mese, corrente o [MM-YYYY, anche marzo 2026].
-statistiche_anno - Media, mediana e varianza dell'anno, corrente o [YYYY o YY].
-record - Record del gruppo; con io o @username quelli di una persona.
-trofei - Trofei del gruppo; con io o @username quelli di una persona.
-conquiste - Zone conquistate con una posizione dopo la 💩; con io o @username quelle di una persona.
-app - Apre la Mini App: classifiche, statistiche e mappa delle conquiste.
-conto_giorno - 💩 di un giorno: [@username] [DD-MM-YYYY, oggi, ieri].
-ultima_cacca - Giorni dall'ultima 💩: [@username].
-aggiungi_cacca - Aggiunge 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
-togli_cacca - Toglie 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin).
-lingua - Lingua del bot in questa chat: it o en (nei gruppi solo admin).
-```
+| English | English description | Italian | Italian description |
+| --- | --- | --- | --- |
+| `/start` | Start the bot and explain how to count 💩. | `/start` | Avvia il bot e spiega come contare le 💩. |
+| `/leaderboard_month` | Leaderboard of the month, current or [MM-YYYY, also march 2026]. | `/classifica_mese` | Classifica del mese, corrente o [MM-YYYY, anche marzo 2026]. |
+| `/leaderboard_year` | Leaderboard of the year, current or [YYYY or YY]. | `/classifica_anno` | Classifica dell'anno, corrente o [YYYY o YY]. |
+| `/stats_month` | Mean, median and variance of the month, current or [MM-YYYY, also march 2026]. | `/statistiche_mese` | Media, mediana e varianza del mese, corrente o [MM-YYYY, anche marzo 2026]. |
+| `/stats_year` | Mean, median and variance of the year, current or [YYYY or YY]. | `/statistiche_anno` | Media, mediana e varianza dell'anno, corrente o [YYYY o YY]. |
+| `/records` | Group records; with me or @username those of one person. | `/record` | Record del gruppo; con io o @username quelli di una persona. |
+| `/trophies` | Group trophies; with me or @username those of one person. | `/trofei` | Trofei del gruppo; con io o @username quelli di una persona. |
+| `/conquests` | Tiles conquered with a location after the 💩; with me or @username those of one person. | `/conquiste` | Zone conquistate con una posizione dopo la 💩; con io o @username quelle di una persona. |
+| `/app` | Open the Mini App: leaderboards, statistics and conquest map. | `/app` | Apre la Mini App: classifiche, statistiche e mappa delle conquiste. |
+| `/day_count` | 💩 of a day: [@username] [DD-MM-YYYY, today, yesterday]. | `/conto_giorno` | 💩 di un giorno: [@username] [DD-MM-YYYY, oggi, ieri]. |
+| `/last_poop` | Days since the last 💩: [@username]. | `/ultima_cacca` | Giorni dall'ultima 💩: [@username]. |
+| `/add_poop` | Add 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only). | `/aggiungi_cacca` | Aggiunge 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin). |
+| `/remove_poop` | Remove 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only). | `/togli_cacca` | Toglie 1 💩 in un giorno: [@username] DD-MM-YYYY, oggi o ieri (altri: solo admin). |
+| `/language` | Language of the bot in this chat: it or en (in groups admins only). | `/lingua` | Lingua del bot in questa chat: it o en (nei gruppi solo admin). |
+| `/link_history` (admins) | Link the history of the old usernames to the users (admins only). | `/collega_storico` (admins) | Collega lo storico dei vecchi username agli utenti (solo admin). |
 
-English menu (`setMyCommands` with `language_code=en`):
-
-```
-start - Start the bot and explain how to count 💩.
-leaderboard_month - Leaderboard of the month, current or [MM-YYYY, also march 2026].
-leaderboard_year - Leaderboard of the year, current or [YYYY or YY].
-stats_month - Mean, median and variance of the month, current or [MM-YYYY, also march 2026].
-stats_year - Mean, median and variance of the year, current or [YYYY or YY].
-records - Group records; with me or @username those of one person.
-trophies - Group trophies; with me or @username those of one person.
-conquests - Tiles conquered with a location after the 💩; with me or @username those of one person.
-app - Open the Mini App: leaderboards, statistics and conquest map.
-day_count - 💩 of a day: [@username] [DD-MM-YYYY, today, yesterday].
-last_poop - Days since the last 💩: [@username].
-add_poop - Add 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
-remove_poop - Remove 1 💩 on a day: [@username] DD-MM-YYYY, today or yesterday (others: admins only).
-language - Language of the bot in this chat: it or en (in groups admins only).
-```
-
-`/link_history` (`/collega_storico`) is for admins only: it goes in the administrators' list (`setMyCommands` with scope `all_chat_administrators`), together with the other commands, in both languages. The menus are set for four scopes: default, private chats, groups, group administrators. `python tools/register_menus.py dev|prod` registers them all from the code and reads them back with `getMyCommands`.
+The commands marked (admins) go only in the administrators' list (scope `all_chat_administrators`), together with the other commands, in both languages. The menus are set for four scopes: default, private chats, groups, group administrators. `python tools/register_menus.py dev|prod` registers them all from the code and reads them back with `getMyCommands`.
 
 **Menu of a chat.** `/language it|en` also sets the menu of that chat in the chosen language, without `language_code`, so it wins over the menus above whatever the app language: scope `chat` in private chats; in groups scope `chat` and scope `chat_administrators` (with `/link_history`: for the admins Telegram looks at the chat scope before `all_chat_administrators`). A group that becomes a supergroup gets it again. Chats that never chose a language keep the menus above. If Telegram refuses the menu, the language is kept anyway and the log has a warning: sending `/language` again repairs it.
 
@@ -80,7 +62,38 @@ After every release `tools/bot_version.py` adds a "Versione X.Y.Z" / "Version X.
 In production the bot runs as a Flask web app on a WSGI hosting (we use [PythonAnywhere](https://www.pythonanywhere.com/), free plan, Python 3.10): Telegram calls `/webhook` on every message.
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 flowchart TD
+    accTitle: Production
+    accDescr: Telegram calls the webhook app on the hosting, which keeps one SQLite file per chat, the log and a scheduled task, and goes out through a proxy
     person("👤 <b>People in the group</b><br/>Telegram app")
     subgraph telegram["Telegram"]
         api("✈️ <b>Bot API</b><br/>receives and delivers the messages")
@@ -106,7 +119,7 @@ flowchart TD
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
     classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
-    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#3b2a1e
     classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
     class person person
     class api,task,db,log step
@@ -163,7 +176,38 @@ cd /home/<your-username> && python3.10 -m caccometro.announce
 At 22:00 UTC it is 23:00 in Italy (winter time) or midnight (summer time), so the script works out which day is starting:
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 flowchart TD
+    accTitle: Midnight announcement
+    accDescr: The daily task waits for midnight in Italy and on the first day of a month announces the poop of the month, of the year and the season
     task("🕛 <b>1. Scheduled task</b><br/>every day at 22:00 UTC")
     close{"Midnight in Italy<br/>less than 2 hours away?"}
     wait("😴 <b>2. Sleep until midnight</b>")
@@ -185,7 +229,7 @@ flowchart TD
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
     classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
-    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#3b2a1e
     classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
     class task,wait,chats step
     class send main

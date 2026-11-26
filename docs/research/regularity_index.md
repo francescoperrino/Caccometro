@@ -36,7 +36,38 @@ The study proposed D < 0.5 and D > 1.5 from simulations. On the November 2026 ba
 Months of one person by D (November 2026 backups, 282 months); the bars left of 0.3 are "very regular", those from 0.6 on "up and down":
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 xychart-beta
+    accTitle: Months by index of dispersion
+    accDescr: How many months of the real groups fall in each band of the index of dispersion
     title "Months of one person by index of dispersion D"
     x-axis ["0-0.1", "0.1-0.2", "0.2-0.3", "0.3-0.4", "0.4-0.5", "0.5-0.6", "0.6-0.7", "0.7-0.8", "0.8-0.9", "0.9-1", "1-1.5", "over 1.5"]
     y-axis "Months" 0 --> 90
@@ -51,7 +82,38 @@ xychart-beta
 ## What we chose and why
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Nunito, Segoe UI, Roboto, sans-serif"
+    primaryColor: "#fffaf3"
+    primaryTextColor: "#3b2a1e"
+    primaryBorderColor: "#eadccb"
+    secondaryColor: "#f7ecdc"
+    tertiaryColor: "#f3e4d0"
+    lineColor: "#7a6a5c"
+    textColor: "#3b2a1e"
+    edgeLabelBackground: "#fffaf3"
+    clusterBkg: "#f3e4d0"
+    clusterBorder: "#cbbca9"
+    titleColor: "#5c4f42"
+    noteBkgColor: "#f7ecdc"
+    noteTextColor: "#3b2a1e"
+    actorBkg: "#fffaf3"
+    actorBorder: "#5c4f42"
+    actorTextColor: "#3b2a1e"
+    signalColor: "#7a6a5c"
+    signalTextColor: "#3b2a1e"
+    labelBoxBkgColor: "#f3e4d0"
+    loopTextColor: "#3b2a1e"
+    sequenceNumberColor: "#fffaf3"
+    xyChart:
+      plotColorPalette: "#2f4f8f"
+---
 flowchart TD
+    accTitle: How regularity is computed
+    accDescr: The days of the period are taken, too little data gives no label, otherwise the index of dispersion sets the label
     start("👤 <b>1. Opens Statistics</b><br/>for a month or a year")
     days("📅 <b>2. Days used</b><br/>from the later of the period start<br/>and the person's first 💩, to yesterday;<br/>a day without counts is 0")
     enough{"At least 14 days<br/>and 5 💩?"}
@@ -74,7 +136,7 @@ flowchart TD
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     classDef check fill:#f7ecdc,stroke:#e0902b,stroke-width:2px,color:#3b2a1e
     classDef detail fill:#f7ecdc,stroke:#eadccb,color:#3b2a1e
-    classDef alert fill:#e0902b,stroke:#e0902b,color:#fffaf3
+    classDef alert fill:#e0902b,stroke:#e0902b,color:#3b2a1e
     classDef stop fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:4 3,color:#7a6a5c
     class start person
     class days,very,fair,waves step

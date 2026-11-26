@@ -33,11 +33,13 @@ def architecture():
     return read("docs/architecture.md")
 
 
-def code_block_after(readme, marker):
-    """The fenced block that follows the first line containing `marker`."""
-    start = readme.index(marker)
-    start = readme.index("```", start) + 3
-    return readme[start:readme.index("```", start)]
+def tool(name):
+    """The script tools/<name>.py as a module (tools/ is not a package)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(name, ROOT / "tools" / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def code_block_containing(readme, marker):
@@ -52,7 +54,6 @@ def handled_commands(language):
     return {names[0 if language == "en" else 1] for names in COMMANDS}
 
 
-MENUS = {"it": "Italian menu", "en": "English menu"}   # the line before the menu block of each language
 
 
 def test_every_italian_command_is_in_the_italian_readme_table():
@@ -62,16 +63,19 @@ def test_every_italian_command_is_in_the_italian_readme_table():
 
 
 def test_every_command_is_in_the_readme_table(readme):
-    # The Italian names are in the Italian menu of docs/deployment.md (/collega_storico in the sentence under it)
+    # The Italian names are in the menu table of docs/deployment.md
     for english in handled_commands("en"):
         assert re.search(rf"^\| `/{english}[ `]", readme, re.MULTILINE), f"/{english} is not in the commands table"
 
 
-@pytest.mark.parametrize("language", MENUS)
-def test_the_menu_in_the_docs_is_the_menu_of_the_code(deployment, language):
-    from caccometro.menus import menu
-    block = code_block_after(deployment, MENUS[language]).strip().splitlines()
-    assert block == [f"{name} - {description}" for name, description in menu(language)]
+def test_the_menu_table_in_the_docs_is_the_menu_of_the_code(deployment):
+    from caccometro.menus import ADMIN_ONLY, MENU
+    rows = re.findall(r"^\| `/.*\|$", deployment, re.MULTILINE)
+    expected = []
+    for en, it, en_text, it_text in MENU:
+        mark = " (admins)" if en in ADMIN_ONLY else ""
+        expected.append(f"| `/{en}`{mark} | {en_text} | `/{it}`{mark} | {it_text} |")
+    assert [row.rstrip("\r") for row in rows] == expected
 
 
 def test_every_module_is_in_the_architecture_tree(architecture):
@@ -112,6 +116,34 @@ def test_every_service_script_is_named_in_the_documentation():
 def test_the_relative_links_point_to_existing_files(doc):
     for target in re.findall(r"\]\((?!https?:|#)([^)#\s]+)", doc.read_text(encoding="utf-8")):
         assert (doc.parent / target).exists(), f"{doc.name} links to {target}, which does not exist"
+
+
+def test_the_page_of_the_replies_is_up_to_date():
+    assert read("docs/replies.md") == tool("write_replies").render(), "docs/replies.md is stale: run python tools/write_replies.py"
+
+
+def test_the_page_of_the_functions_is_up_to_date():
+    assert read("docs/functions.md") == tool("write_functions").render(), "docs/functions.md is stale: run python tools/write_functions.py"
+
+
+def test_the_page_of_the_use_cases_is_up_to_date():
+    assert read("docs/use_cases.md") == tool("write_use_cases").render(), "docs/use_cases.md is stale: run python tools/write_use_cases.py"
+
+
+def test_every_mermaid_diagram_has_the_style_of_the_docs():
+    style = tool("mermaid_style")
+    opening = style.FRONTMATTER[:-len("---\n")]   # the generators may add their own settings before the closing ---
+    for doc in [ROOT / "README.md", ROOT / "README.it.md", ROOT / "CONTRIBUTING.md", *(ROOT / "docs").rglob("*.md")]:
+        for block in re.findall(r"```mermaid\n(.*?)```", doc.read_text(encoding="utf-8"), re.S):
+            where = f"{doc.name}: {block.splitlines()[0]}..."
+            assert block.startswith(opening), f"{where} does not start with tools/mermaid_style.FRONTMATTER"
+            assert "accTitle:" in block and "accDescr:" in block, f"{where} has no accTitle or accDescr"
+            for line in re.findall(r"^\s*(classDef .*)$", block, re.MULTILINE):
+                assert line in style.CLASSDEFS, f"{where} has a classDef outside tools/mermaid_style.CLASSDEFS: {line}"
+
+
+def test_the_dependency_diagram_matches_the_imports(architecture):
+    assert tool("draw_dependencies").updated(architecture) == architecture, "the diagram is stale: run python tools/draw_dependencies.py"
 
 
 @pytest.mark.parametrize("name", ["README.md", "README.it.md"])
