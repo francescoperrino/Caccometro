@@ -243,12 +243,15 @@ def test_send_failures_do_not_stop_the_other_chats(seed, chat_id, monkeypatch, i
         async def __aexit__(self, *exc):
             return False
 
-        async def send_message(self, chat, text, parse_mode=None):
+        async def send_message(self, chat, text, parse_mode=None, reply_markup=None):
             sent.append(chat)
+            buttons.append(reply_markup.inline_keyboard[0][0].url)
 
+    buttons = []
     monkeypatch.setattr(announce, "application", type("App", (), {"bot": FakeBot()})())
     run(announce.announce(date(2026, 11, 1)))
     assert sent == [chat_id]
+    assert buttons[0].endswith(f"/app?startapp={chat_id}_recap")   # the button opens the recap of the month (#195)
 
 
 # ---------------------------------------------------------------- conquest seasons (#129)

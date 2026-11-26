@@ -77,7 +77,7 @@ python tools/deploy.py caccometro/*.py --yes     # real deploy
 python tools/deploy.py --rollback backups/<stamp> --yes
 ```
 
-With `--yes` it saves the old files and the databases in `backups/<stamp>/`, uploads the new files (fonts and emoji first, the WSGI file given with `--wsgi` last), reloads the web app, checks that the home page shows the new version and writes a line in `backups/deploys.log`. The rollback restores the saved `.py` files; it does not delete the files the deploy created.
+With `--yes` it saves the old files and the databases in `backups/<stamp>/`, uploads the new files (fonts, emoji, brand images and recap backgrounds first, the WSGI file given with `--wsgi` last), reloads the web app, checks that the home page shows the new version and writes a line in `backups/deploys.log`. The rollback restores the saved `.py` files; it does not delete the files the deploy created.
 
 ## Nightly backup and log summary
 

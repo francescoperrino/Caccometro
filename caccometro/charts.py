@@ -10,7 +10,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from matplotlib import font_manager
+from matplotlib import font_manager, patheffects
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 from matplotlib.patches import FancyBboxPatch
 from matplotlib.ticker import MaxNLocator
@@ -409,3 +409,150 @@ def generate_statistics_chart(statistics, daily_counts, time_period, date):
 
         add_cards(fig, [ax_curves, ax_box])
         return png_bytes(fig)
+
+
+ASSETS = Path(__file__).resolve().parent.parent / 'assets'
+ICONS = {name: plt.imread(EMOJI_DIR / f'{name}.png') for name in ('poop', 'trophy', 'fire')}
+MASCOT = ASSETS / 'brand' / 'mascot.png'
+RECAP_STYLE = 'generated'  # backgrounds of the recap: 'generated' (made with an image generator) or 'code' (drawn shapes)
+
+# Everything the recap picture is made of (#195), as tuned in the design editor. Lengths in inches (the picture is
+# 6 x 7.5, 180 px each), font sizes in points; margin, padding and panel_radius are multiples of 'unit'.
+RECAP = {
+    'background': BACKGROUND, 'card': SURFACE, 'text': TEXT, 'up': '#2f9e55', 'down': '#d8573f', 'even': TEXT_MUTED,
+    'unit': 0.2, 'margin': 1, 'padding': 2, 'panel_radius': 2.5,
+    'avatar': 2.0, 'total': 0.8, 'fact': 0.66, 'tile_alpha': 0.55, 'gap': 0.1,
+    'brand_size': 18, 'month_size': 11, 'name_size': 30, 'line_size': 20, 'total_size': 40, 'detail_size': 12,
+    'badge_size': 12, 'value_size': 22, 'label_size': 11, 'version_size': 10, 'name_max': 18,
+}
+# Gradient behind the background picture, top to bottom; the facts take the bottom colour
+RECAP_THEMES = {
+    1: ('#5b86c0', '#1d3566'), 2: ('#7a78c4', '#2b2f6e'), 3: ('#58b8a2', '#26636f'), 4: ('#e07fae', '#6e4a9e'),
+    5: ('#62bb78', '#27705a'), 6: ('#3bb8dc', '#1a64ad'), 7: ('#2cc3bd', '#10648f'), 8: ('#f0925a', '#9a3f7e'),
+    9: ('#cf8230', '#6e3418'), 10: ('#cf6a2a', '#5e2418'), 11: ('#b8613e', '#3b2430'), 12: ('#3a64b4', '#13224f'),
+    None: ('#8a5ce6', '#1f1b6e'),  # the year
+}
+PX = 180  # pixels per inch of the recap picture
+
+
+def _rounded(ax, x, y, w, h, radius, **style):
+    patch = FancyBboxPatch((x, y), w, h, boxstyle=f'round,pad=0,rounding_size={radius}', **style)
+    ax.add_patch(patch)
+    return patch
+
+
+def _picture(ax, image, x, y, w, h, clip=None, zorder=2):
+    """An image filling the box (x, y, w, h), cropped to its proportions like CSS cover."""
+    rows, cols = image.shape[:2]
+    if cols / rows > w / h:
+        keep = round(rows * w / h)
+        image = image[:, (cols - keep) // 2:(cols - keep) // 2 + keep]
+    else:
+        keep = round(cols * h / w)
+        image = image[(rows - keep) // 2:(rows - keep) // 2 + keep]
+    shown = ax.imshow(image, extent=(x, x + w, y + h, y), zorder=zorder, interpolation='antialiased')
+    if clip is not None:
+        shown.set_clip_path(clip)
+    return shown
+
+
+def _fade(ax, x, y, w, h, colours, clip, zorder=1):
+    """A vertical gradient through `colours` (RGBA tuples, top to bottom) on the box, clipped."""
+    ramp = mcolors.LinearSegmentedColormap.from_list('ramp', colours)(np.linspace(0, 1, 256))[:, None, :]
+    ax.imshow(ramp, extent=(x, x + w, y + h, y), aspect='auto', zorder=zorder, interpolation='bilinear').set_clip_path(clip)
+
+
+def generate_recap_image(recap, name):
+    """The picture of the recap (#195) to share: 1080x1350 (4:5, what Telegram shows whole), PNG bytes.
+
+    A panel with the picture of the month (or of the year) holds the mascot, the total, the name, the place and the change
+    from the period before, then two boxes with the best day and the longest streak. The look is set by RECAP.
+    """
+    r = RECAP
+    year_recap = recap.month is None
+    width, height = 6, 7.5
+    m, pad, gap = r['margin'] * r['unit'], r['padding'] * r['unit'], r['gap']
+    radius = r['panel_radius'] * r['unit']
+    pw, ph = width - 2 * m, height - 2 * m
+    inner, ix, cx = pw - 2 * pad, m + pad, width / 2
+    half = (inner - gap) / 2
+    top_colour, bottom_colour = RECAP_THEMES[recap.month]
+    period = str(recap.year) if year_recap else f'{month_name(recap.month)} {recap.year}'
+    delta = recap.total - recap.previous_total
+    if year_recap:
+        before = tr("sul {year}").format(year=recap.year - 1)
+    else:
+        before = tr("su {month}").format(month=month_name(12 if recap.month == 1 else recap.month - 1))
+    badge = (f'▲ +{delta}' if delta > 0 else f'▼ −{-delta}' if delta < 0 else '= 0') + ' ' + before
+    if recap.people > 1:
+        line = tr("{place}° posto su {total}!").format(place=recap.place, total=recap.people)
+    else:
+        line = tr("che anno!") if year_recap else tr("che mese!")
+    detail = ' · '.join([tr("{value} al giorno").format(value=decimal(recap.total / recap.days)[:-1].removesuffix(',0').removesuffix('.0'))]
+                        + ([tr(recap.regularity)] if recap.regularity else []))
+    facts = [(ICONS['trophy'], str(recap.best_count),
+              tr("il {day} {month}").format(day=recap.best_day.day, month=month_name(recap.best_day.month))),
+             (ICONS['fire'], str(recap.streak_days), tr("giorno di fila") if recap.streak_days == 1 else tr("giorni di fila"))]
+    outline = [patheffects.withStroke(linewidth=1.2, foreground=(0, 0, 0, .35))]
+    with plt.rc_context(STYLE):
+        fig = plt.figure(figsize=(width, height), facecolor=r['background'])
+        ax = fig.add_axes((0, 0, 1, 1))
+        ax.axis('off')
+        ax.set_xlim(0, width)
+        ax.set_ylim(height, 0)
+
+        def text(x, y, value, size, colour=r['card'], weight='normal', alpha=1, ha='left', stroke=False, **more):
+            ax.text(x, y, value, fontsize=size, color=colour, fontweight=weight, alpha=alpha, ha=ha, va='center', zorder=5,
+                    path_effects=outline if stroke else None, **more)
+
+        # the panel: the gradient of the month, its picture, darker at the top and bottom so the white texts stay readable
+        panel = _rounded(ax, m, m, pw, ph, radius, facecolor='none', edgecolor='none')
+        _fade(ax, m, m, pw, ph, [top_colour, bottom_colour], panel)
+        background = ASSETS / 'recap' / RECAP_STYLE / ('year.jpg' if year_recap else f'{recap.month:02d}.jpg')
+        _picture(ax, plt.imread(background), m, m, pw, ph, clip=panel)
+        if RECAP_STYLE == 'generated':  # the drawn backgrounds are calm enough without
+            _fade(ax, m, m, pw, 1.5, [(0, 0, 0, .4), (0, 0, 0, 0)], panel, zorder=3)
+            _fade(ax, m, m + ph - 2.3, pw, 2.3, [(0, 0, 0, 0), (0, 0, 0, .42)], panel, zorder=3)
+        # the header: the bot on the left, the period on the right
+        y = m + 0.55
+        emoji(ax, ICONS['poop'], (ix + 0.17, y), 56 / (128 * PX / 72), coords='data')
+        text(ix + 0.5, y, 'Caccometro', r['brand_size'], weight=800, stroke=True)
+        text(ix + inner, y, tr("RIEPILOGO {period}").format(period=period.upper()), r['month_size'], weight='bold', alpha=.9,
+             ha='right', stroke=True)
+        # the mascot on a light plate with a soft shadow, and the total on a pill across its bottom edge
+        side, avatar_top = r['avatar'], m + 0.9
+        corner = side * 0.2
+        for dy, colour in ((0.06, (0, 0, 0, .2)), (0, r['card'])):
+            _rounded(ax, cx - side / 2 - 0.07, avatar_top - 0.07 + dy, side + 0.14, side + 0.14, corner + 0.07, facecolor=colour,
+                     edgecolor='none', zorder=4)
+        frame = _rounded(ax, cx - side / 2, avatar_top, side, side, corner, facecolor='none', edgecolor='none', zorder=4)
+        _picture(ax, plt.imread(MASCOT), cx - side / 2, avatar_top, side, side, clip=frame, zorder=4)
+        pill_h, pill_y = r['total'], avatar_top + side - r['total'] * 0.25
+        for dy, colour in ((0.06, (0, 0, 0, .2)), (0, r['card'])):
+            _rounded(ax, cx - 1.25, pill_y + dy, 2.5, pill_h, pill_h / 2, facecolor=colour, edgecolor='none', zorder=4)
+        emoji(ax, ICONS['poop'], (cx - 0.75, pill_y + pill_h / 2), pill_h * PX * 0.62 / (128 * PX / 72), coords='data')
+        text(cx + 0.28, pill_y + pill_h / 2, str(recap.total), r['total_size'], colour=r['text'], weight=800, ha='center')
+        # who, how it went and the change from the period before
+        y = avatar_top + side + r['total'] * 0.75 + 0.38
+        text(cx, y, name if len(name) <= r['name_max'] else name[:r['name_max'] - 1] + '…', r['name_size'], weight=800, ha='center')
+        text(cx, y + 0.38, line, r['line_size'], weight='bold', alpha=.9, ha='center')
+        text(cx, y + 0.76, badge, r['badge_size'], colour='white', weight='bold', ha='center',
+             bbox=dict(boxstyle='round,pad=0.45,rounding_size=0.95', edgecolor='none',
+                       facecolor=r['up'] if delta > 0 else r['down'] if delta < 0 else r['even']))
+        text(cx, y + 1.08, detail, r['detail_size'], alpha=.75, ha='center')
+        # the facts, side by side at the bottom of the panel
+        tile_h = r['fact']
+        tile_y = m + ph - 0.35 - (2 * tile_h + gap) + (tile_h + gap) / 2
+        for i, (icon, value, label) in enumerate(facts):
+            x = ix + i * (half + gap)
+            _rounded(ax, x, tile_y, half, tile_h, min(radius * 0.45, tile_h / 2), facecolor=mcolors.to_rgba(bottom_colour, r['tile_alpha']),
+                     edgecolor=(1, 1, 1, .3), linewidth=0.8, zorder=4)
+            ax.add_patch(plt.Circle((x + 0.4, tile_y + tile_h / 2), tile_h * 0.38, facecolor=(1, 1, 1, .2), edgecolor='none', zorder=4))
+            emoji(ax, icon, (x + 0.4, tile_y + tile_h / 2), tile_h * PX * 0.5 / (128 * PX / 72), coords='data')
+            text(x + 0.85, tile_y + tile_h * 0.35, value, r['value_size'], weight=800)
+            text(x + 0.85, tile_y + tile_h * 0.73, label, r['label_size'], alpha=.8)
+        text(ix + inner, m + ph - 0.2, f'Caccometro v{__version__}', r['version_size'], alpha=.75, ha='right', stroke=True)
+        buffer = io.BytesIO()
+        fig.savefig(buffer, format='png', dpi=PX, facecolor=r['background'])
+        plt.close(fig)
+        return buffer.getvalue()

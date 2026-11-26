@@ -3174,7 +3174,7 @@ flowchart LR
     trophies("<b>trophies.py</b>")
     analysis("<b>analysis.py</b>")
     miniapp_page -->|"1.#nbsp;api_chat"| webhook
-    webhook -->|"2.#nbsp;user_of<br/>3.#nbsp;known_chats<br/>4.#nbsp;is_member<br/>12.#nbsp;conquest_data<br/>28.#nbsp;records_data"| miniapp
+    webhook -->|"2.#nbsp;user_of<br/>3.#nbsp;known_chats<br/>4.#nbsp;is_member<br/>12.#nbsp;conquest_data<br/>28.#nbsp;records_data<br/>36.#nbsp;recaps"| miniapp
     miniapp -->|"5.#nbsp;get_chat_member"| telegram
     miniapp -.->|"6.#nbsp;member"| webhook
     webhook -->|"7.#nbsp;get_all_user_rows<br/>9.#nbsp;get_timed_conquests<br/>11.#nbsp;get_language"| database
@@ -3186,10 +3186,12 @@ flowchart LR
     miniapp -->|"20, 24.#nbsp;season_of<br/>22.#nbsp;season_results<br/>31.#nbsp;trophies_by_user"| trophies
     trophies -.->|"21, 25.#nbsp;season"| miniapp
     trophies -->|"23.#nbsp;holdings"| conquest
-    miniapp -->|"29.#nbsp;analyze_user<br/>30.#nbsp;analyze_group"| analysis
+    miniapp -->|"29.#nbsp;analyze_user<br/>30.#nbsp;analyze_group<br/>40.#nbsp;recap"| analysis
     trophies -->|"32, 33.#nbsp;_parse<br/>35.#nbsp;_runs"| analysis
     analysis -.->|"34.#nbsp;counts"| trophies
-    webhook -.->|"36.#nbsp;HTTP response"| miniapp_page
+    miniapp -->|"37.#nbsp;get_daily_counts_between<br/>39.#nbsp;get_first_days"| database
+    database -.->|"38.#nbsp;daily"| miniapp
+    webhook -.->|"41.#nbsp;HTTP response"| miniapp_page
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     class webhook,miniapp,database,conquest,maps,trophies,analysis step
@@ -3288,6 +3290,12 @@ sequenceDiagram
             analysis-->>trophies: counts
             trophies->>analysis: _runs(sorted(counts), counts)
         end
+        webhook->>miniapp: recaps(chat_id, user_id, today)
+        miniapp->>database: get_daily_counts_between(chat_id, start.isoformat(), end.isofo...)
+        database-->>miniapp: daily
+        miniapp->>database: get_first_days(chat_id)
+        miniapp->>analysis: recap(daily, user_id, year, month, database...)
+        Note over miniapp: recap_data() as above
         webhook-->>miniapp_page: HTTP response
     end
 ```
@@ -3329,6 +3337,16 @@ sequenceDiagram
     - `trophies.season_results` (see above)
     - `trophies.season_of` (see above)
     - `trophies.streak_runs`
+- `miniapp.recaps`
+  - `miniapp.plain` (see above)
+  - `miniapp.recap_data`
+    - `database.get_daily_counts_between`
+      - `conquest.cell_of` (see above)
+    - `analysis.recap`
+      - `analysis.period_regularity`
+        - `analysis.regularity`
+    - `database.get_first_days`
+      - `conquest.cell_of` (see above)
 
 </details>
 
@@ -3534,6 +3552,7 @@ flowchart LR
     chat("<b>chat.py</b>")
     conquest("<b>conquest.py</b>")
     formatting("<b>formatting.py</b>")
+    miniapp("<b>miniapp.py</b>")
     task -->|"1.#nbsp;main"| announce
     announce -->|"2.#nbsp;get_language<br/>3.#nbsp;get_all_user_rows<br/>11.#nbsp;get_timed_conquests"| database
     database -.->|"4.#nbsp;(rows_by_user, users)"| announce
@@ -3543,10 +3562,11 @@ flowchart LR
     trophies -.->|"10.#nbsp;key"| announce
     trophies -->|"13.#nbsp;holdings"| conquest
     announce -->|"14.#nbsp;format_new_period"| formatting
-    announce -->|"15.#nbsp;send_message"| telegram
+    announce -->|"15, 16.#nbsp;direct_link"| miniapp
+    announce -->|"17.#nbsp;send_message"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class announce,database,trophies,analysis,chat,conquest,formatting step
+    class announce,database,trophies,analysis,chat,conquest,formatting,miniapp step
     class task,telegram person
 ```
 
@@ -3593,6 +3613,7 @@ sequenceDiagram
     participant chat as chat.py
     participant conquest as conquest.py
     participant formatting as formatting.py
+    participant miniapp as miniapp.py
     rect rgb(255, 250, 243)
         task->>announce: main(argv)
         loop for chat_id in chat_ids()
@@ -3616,9 +3637,15 @@ sequenceDiagram
                 end
             end
             announce->>formatting: format_new_period(today, month, year, names, season)
+            opt text is not None
+                announce->>miniapp: direct_link(BOT_USERNAME, chat_id, 'recap')
+                opt today.month == 1
+                    announce->>miniapp: direct_link(BOT_USERNAME, chat_id, 'year')
+                end
+            end
         end
-        loop for (chat_id, text) in messages
-            announce->>telegram: send_message(chat_id, text, parse_mode='Markdown')
+        loop for (chat_id, text, button) in messages
+            announce->>telegram: send_message(chat_id, text, parse_mode='Markdown',...)
         end
     end
 ```
@@ -3645,5 +3672,7 @@ sequenceDiagram
       - `conquest.cell_of` (see above)
     - `formatting.format_new_period`
       - `formatting.bold`
+  - `announce.recap_button`
+    - `miniapp.direct_link`
 
 </details>
