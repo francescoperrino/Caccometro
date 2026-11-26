@@ -21,12 +21,20 @@ from caccometro.trophies import new_streak_trophy
 logger = logging.getLogger(__name__)
 
 
-def record_poop(sender, chat_id, sent_at=None):
-    """Add one 💩 to the day the message was sent (Italian time) and return the message to reply with.
+def _record_poop(sender, chat_id, sent_at=None):
+    """Add one 💩 to the day the message was sent (Italian time) and build the reply.
 
     sent_at is the aware datetime of the Telegram message, so a late-processed update still counts on its own day.
     The first 💩 of a day that completes a multiple of STREAK_STEP consecutive days also announces a trophy.
     The 💩 also opens the conquest window of the sender, and the reply reminds to send a location.
+
+    Args:
+        sender (User): who sent the message.
+        chat_id (int): the Telegram chat.
+        sent_at (datetime): when Telegram says the message was sent; None for now.
+
+    Returns:
+        str: the message to reply with, in Markdown.
     """
     sent = now_rome() if sent_at is None else sent_at.astimezone(ROME_TZ)
     today = sent.date()
@@ -40,11 +48,18 @@ def record_poop(sender, chat_id, sent_at=None):
     return response + "\n\n" + tr("📍 Manda la posizione entro 15 minuti per conquistare la zona!")
 
 
-def record_conquest(sender, chat_id, location, sent_at):
+def _record_conquest(sender, chat_id, location, sent_at):
     """Conquer the tile of a location sent within the window of the sender's last 💩.
 
-    Returns the reply and, for the zoom image, the conquest history and the users of the chat
-    (None, None without an open window).
+    Args:
+        sender (User): who sent the location.
+        chat_id (int): the Telegram chat.
+        location (telegram.Location): the location.
+        sent_at (datetime): when Telegram says the location was sent.
+
+    Returns:
+        (response, history, users): the reply, and for the zoom image the conquest history and the users of the chat;
+        the last two are None without an open window.
     """
     result = conquer(chat_id, sender.user_id, int(sent_at.timestamp()), location.latitude, location.longitude,
                      cell_of(location.latitude, location.longitude), WINDOW_SECONDS)
@@ -68,7 +83,12 @@ def record_conquest(sender, chat_id, location, sent_at):
 
 
 async def handle_migration(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """A basic group became a supergroup: Telegram gave it a new chat ID, so the database follows it."""
+    """A basic group became a supergroup: Telegram gave it a new chat ID, so the database follows it.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): the handler context, which gives access to the bot.
+    """
     old_chat_id = update.message.migrate_from_chat_id
     new_chat_id = update.message.chat_id
     if old_chat_id is None:  # the twin message sent in the old chat: a second chance if the first one failed
@@ -88,7 +108,14 @@ async def handle_migration(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Messages handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for processing messages."""
+    """Handle a plain message: count the 💩 and 🚽 sent as text or sticker, and conquer with a location.
+
+    Also answers when the bot is mentioned, and to a 'run' written as if it were a command.
+
+    Args:
+        update (Update): the incoming message.
+        context (ContextTypes.DEFAULT_TYPE): the handler context, which gives access to the bot.
+    """
     if not update.message:
         logger.info("Update type not managed")
         return
@@ -103,7 +130,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if config.BOT_USERNAME and config.BOT_USERNAME.lower() in text:
             response = tr("💬 Cosa vuoi dirmi?")
         elif "💩" in text or "🚽" in text:
-            response = record_poop(sender, chat_id, update.message.date)
+            response = _record_poop(sender, chat_id, update.message.date)
         elif re.search(r'\brun\b', text):
             response = "🙄 " + random.choice([
                 tr("{name} cazzo scrivi *Run*, funziono solo con i comandi specifici e non quelli che ti inventi tu."),
@@ -115,10 +142,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.message.sticker:
         emoji = update.message.sticker.emoji # Get the emoji from sticker
         if emoji == "💩" or emoji == "🚽":
-            response = record_poop(sender, chat_id, update.message.date)
+            response = _record_poop(sender, chat_id, update.message.date)
             await update.message.reply_text(response, parse_mode='Markdown')
     elif update.message.location:
-        response, history, users = record_conquest(sender, chat_id, update.message.location, update.message.date)
+        response, history, users = _record_conquest(sender, chat_id, update.message.location, update.message.date)
         await reply_charts(update, [history and maps.render(maps.zoom_map, history, users)], response)
     else:
         logger.info("Update type not managed")

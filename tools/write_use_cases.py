@@ -45,7 +45,11 @@ The views come from the code, not from a run: every branch appears, whether or n
 
 
 def parse():
-    """{module: (functions {name: node}, names {local name: (module, name)}, modules {alias: module})}."""
+    """Read the functions and the imports of every module of the package.
+
+    Returns:
+        dict: {module: (functions {name: node}, names {local name: (module, name)}, modules {alias: module})}.
+    """
     found = {}
     for path in sorted(PACKAGE.glob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -61,9 +65,17 @@ def parse():
 
 
 def calls(code, module, function):
-    """The functions of the package that `module.function` calls, in the order they are written, each once.
+    """The functions of the package that a function calls, in the order they are written, each once.
 
     A function passed to a call (maps.render(maps.zoom_map, ...)) counts as called too.
+
+    Args:
+        code (dict): the result of parse().
+        module (str): the module of the function.
+        function (str): the name of the function.
+
+    Returns:
+        list: [(module, name)].
     """
     functions, names, modules = code[module]
     seen = []
@@ -85,7 +97,17 @@ def calls(code, module, function):
 
 
 def public_calls(code, module, function, through=None):
-    """calls() with the private functions (leading underscore) replaced by the public functions they call."""
+    """calls() with the private functions (leading underscore) replaced by the public functions they call.
+
+    Args:
+        code (dict): the result of parse().
+        module (str): the module of the function.
+        function (str): the name of the function.
+        through (set): the private functions already followed, to stop at a cycle.
+
+    Returns:
+        list: [(module, name)].
+    """
     through = set() if through is None else through
     found = []
     for target in calls(code, module, function):
@@ -98,7 +120,18 @@ def public_calls(code, module, function, through=None):
 
 
 def tree(code, module, function, depth=0, expanded=None):
-    """Markdown list lines of the calls of `module.function`, indented by depth."""
+    """The call tree of a function as Markdown list lines.
+
+    Args:
+        code (dict): the result of parse().
+        module (str): the module of the function.
+        function (str): the name of the function.
+        depth (int): how deep the lines are indented.
+        expanded (set): the functions already shown; a second time they get '(see above)'.
+
+    Returns:
+        list: the lines.
+    """
     expanded = set() if expanded is None else expanded
     expanded.add((module, function))
     lines = []
@@ -122,7 +155,14 @@ LABEL = 40   # longest label of an argument list or a condition
 
 
 def source(node):
-    """ast.unparse of `node`, the same on every Python version: 3.10 writes `for (a, b) in`, 3.11 `for a, b in`."""
+    """ast.unparse of a node, the same on every Python version: 3.10 writes `for (a, b) in`, 3.11 `for a, b in`.
+
+    Args:
+        node (ast.AST): the node.
+
+    Returns:
+        str: the code.
+    """
     text = ast.unparse(node)
     start = text.find("for (")
     while start != -1:
@@ -141,26 +181,47 @@ assert source(ast.parse("[t for (a, (b, c)) in x]")) == source(ast.parse("[t for
 
 
 def short(text):
-    """`text` on one line, at most LABEL characters, without the characters Mermaid reads as syntax."""
+    """A text on one line, at most LABEL characters, without the characters Mermaid reads as syntax.
+
+    Args:
+        text (str): the text.
+
+    Returns:
+        str: the label.
+    """
     text = " ".join(text.split()).replace(";", ",").replace("#", "#35;")
     return text if len(text) <= LABEL else text[:LABEL - 3] + "..."
 
 
 class Sequence:
-    """Mermaid sequenceDiagram lines of one use case, read from the code (UML combined fragments for if/for)."""
+    """The Mermaid sequenceDiagram lines of one use case, read from the code (UML combined fragments for if/for)."""
 
     def __init__(self, code):
+        """Start with no lines drawn, from the code of the package."""
         self.code = code
         self.expanded = set()
         self.drawn = {}   # same-module function -> it drew arrows when it was expanded
         self.participants = []
 
     def meet(self, name):
+        """Add a participant to the diagram, once.
+
+        Args:
+            name (str): the participant.
+        """
         if name not in self.participants:
             self.participants.append(name)
 
     def resolve(self, module, func):
-        """(module, name) of a function of the package called as `func` from `module`, or None."""
+        """The function of the package that a call refers to.
+
+        Args:
+            module (str): the module the call is in.
+            func (ast.AST): what is called.
+
+        Returns:
+            (module, name): None when it is not a function of the package.
+        """
         functions, names, modules = self.code[module]
         target = None
         if isinstance(func, ast.Name):
@@ -172,10 +233,31 @@ class Sequence:
         return None
 
     def function(self, module, name, depth):
+        """The lines of the body of a function, marking it as drawn.
+
+        Args:
+            module (str): the module of the function.
+            name (str): the function.
+            depth (int): the indentation level.
+
+        Returns:
+            list: the lines.
+        """
         self.expanded.add((module, name))
         return self.block(self.code[module][0][name].body, module, depth)
 
     def block(self, statements, module, depth, branch=False):
+        """The lines of a list of statements.
+
+        Args:
+            statements (list): the statements.
+            module (str): the module they are in.
+            depth (int): the indentation level.
+            branch (bool): True for the body of an if, which gets a note when it ends the function.
+
+        Returns:
+            list: the lines.
+        """
         lines = []
         for statement in statements:
             lines += self.statement(statement, module, depth)
@@ -184,6 +266,16 @@ class Sequence:
         return lines
 
     def statement(self, node, module, depth):
+        """The lines of one statement: an if, a loop, a with, a try, an assignment or a call.
+
+        Args:
+            node (ast.stmt): the statement.
+            module (str): the module it is in.
+            depth (int): the indentation level.
+
+        Returns:
+            list: the lines.
+        """
         pad = "    " * depth
         if isinstance(node, ast.If):
             lines = self.expression(node.test, module, depth)
@@ -219,11 +311,22 @@ class Sequence:
         return []
 
     def expression(self, node, module, depth, result=None):
-        """Arrows of the calls in an expression, inner calls first; `result` names what the outer call returns into."""
+        """The arrows of the calls in an expression, inner calls first.
+
+        Args:
+            node (ast.expr): the expression.
+            module (str): the module it is in.
+            depth (int): the indentation level.
+            result (str): what the outer call returns into.
+
+        Returns:
+            list: the lines.
+        """
         top = node.value if isinstance(node, ast.Await) else node
         lines = []
 
         def visit(item):
+            """Collect the arrows of an expression; the calls inside a function or a lambda are left out."""
             if isinstance(item, (ast.Lambda, ast.FunctionDef, ast.AsyncFunctionDef)):
                 return
             if isinstance(item, ast.Call):
@@ -240,6 +343,17 @@ class Sequence:
         return lines
 
     def call(self, node, module, depth, result):
+        """The arrows of one call, and of the function it calls when that is not drawn yet.
+
+        Args:
+            node (ast.Call): the call.
+            module (str): the module it is in.
+            depth (int): the indentation level.
+            result (str): what the call returns into; None when the result is not kept.
+
+        Returns:
+            list: the lines.
+        """
         pad = "    " * depth
         arguments = short(", ".join(source(a) for a in node.args + node.keywords))
         target = self.resolve(module, node.func)
@@ -265,7 +379,18 @@ class Sequence:
 
 
 def sequence(code, actor, module, function, title):
-    """Mermaid source of the sequence diagram of a use case that starts with `actor` calling `module.function`."""
+    """The Mermaid source of the sequence diagram of a use case.
+
+    Args:
+        code (dict): the result of parse().
+        actor (str): who starts it: 'telegram', 'miniapp_page' or 'task'.
+        module (str): the module of the entry point.
+        function (str): the entry point.
+        title (str): the title of the use case.
+
+    Returns:
+        str: the diagram.
+    """
     diagram = Sequence(code)
     node = code[module][0][function]
     arguments = ", ".join(a.arg for a in node.args.args)
@@ -284,8 +409,17 @@ def sequence(code, actor, module, function, title):
 
 
 def communication(source, title):
-    """Mermaid flowchart of a sequence diagram (UML communication diagram): the same participants, one arrow per
-    pair of them with its calls, one dashed arrow back with what they return, each with its number in the sequence."""
+    """The communication diagram of a sequence diagram (UML): the same participants, one arrow per pair of them.
+
+    Each arrow carries its calls, with one dashed arrow back with what they return, each with its number in the sequence.
+
+    Args:
+        source (str): the Mermaid source of the sequence diagram.
+        title (str): the title of the use case.
+
+    Returns:
+        str: the diagram.
+    """
     names, edges, step = {}, {}, 0
     for line in source.splitlines():
         line = line.strip()
@@ -313,7 +447,11 @@ def communication(source, title):
 
 
 def handlers():
-    """[(title, who starts it, module, function)] of the commands, in menu order."""
+    """The use cases that are commands, in menu order.
+
+    Returns:
+        list: [(title, who starts it, module, function)].
+    """
     from caccometro.bot import HANDLERS
     cases = []
     for english, italian, _, _ in MENU:
@@ -324,6 +462,11 @@ def handlers():
 
 
 def render():
+    """The Markdown of docs/use_cases.md.
+
+    Returns:
+        str: the page.
+    """
     code = parse()
     parts = [INTRO]
     for title, actor, module, function in handlers() + OTHERS:

@@ -7,6 +7,15 @@ from conftest import make_context, make_update
 
 
 def handle(text, caplog):
+    """Handle a message and return what was logged.
+
+    Args:
+        text (str): the text of the message.
+        caplog (pytest.LogCaptureFixture): pytest's fixture.
+
+    Returns:
+        str: the log text.
+    """
     with caplog.at_level(logging.INFO, logger="caccometro"):
         asyncio.run(messages.handle_message(make_update(text=text), make_context()))
     return caplog.text

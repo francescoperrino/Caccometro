@@ -38,6 +38,14 @@ ERRORS = ["2026-11-17 09:00:00,123: Something the bot printed", "  continuation 
 
 
 def summary(**kwargs):
+    """Summarize the sample logs.
+
+    Args:
+        **kwargs: more arguments for summarize().
+
+    Returns:
+        tuple: what summarize() returns.
+    """
     return ls.summarize(BOT, ACCESS, SINCE, UNTIL, error_lines=ERRORS, server_lines=SERVER, **kwargs)
 
 

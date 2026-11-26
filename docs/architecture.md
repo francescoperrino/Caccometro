@@ -156,36 +156,42 @@ flowchart TD
 ## Modules
 
 ```
-caccometro/          the bot, as a Python package
-  __init__.py        version (__version__)
-  __main__.py        python -m caccometro: start in polling mode
-  config.py          environment variables, date formats, Italian time
-  bot.py             python-telegram-bot Application, logging, send retries, command registration
-  webhook.py         Flask app that receives the updates from Telegram (production)
-  commands.py        the commands (/leaderboard_month, /records, ...) and the permission checks
-  messages.py        counting the 💩 in messages and stickers, conquests from locations
-  chat.py            shared helpers on Telegram users and messages
-  i18n.py            translations: the Italian sentences are the keys, one dictionary per language
-  menus.py           command names and menu descriptions in both languages, menu of a chat
-  database.py        SQLite database: schema, migration, queries
-  analysis.py        records, streaks, statistics and forecasts (pure functions, no database)
-  conquest.py        conquest game: h3 tiles, 15 minute window, ownership and king of the hill (pure functions)
-  trophies.py        trophies: 15-day streaks, 💩 of the month and of the year, conquest seasons (pure functions)
-  formatting.py      texts of /records, /trophies and the midnight announcement
-  announce.py        midnight announcement of the 💩 of the month (scheduled task)
-  charts.py          ranking and statistics charts (PNG in memory)
-  maps.py            conquest maps over OpenStreetMap tiles (JPEG in memory, tile cache in tile_cache/)
-  miniapp.py         Mini App: signed initData, membership checks, direct link, data of the map, seasons, records and periods
-assets/webapp/       the Mini App page (static HTML and JavaScript, libraries from a CDN)
-scripts/set_webhook.py   registers the webhook on Telegram (once)
-tools/               service scripts: deploy, database backups, log download and summary, bot version, command menus, README charts and maps, page of the replies, module diagram, pages of the functions and of the use cases
-.githooks/           git hooks (pre-commit, commit-msg), enabled with core.hooksPath
-.gitattributes       line endings of the .py files (CRLF) and of the hooks (LF)
-tests/               pytest tests
-.github/workflows/tests.yml   CI: pytest on Python 3.10 on every pull request and every push to main
-requirements.txt     bot dependencies (requirements-dev.txt: the test ones too)
-wsgi.py              template of the WSGI file for the hosting
-assets/              avatar, animation, fonts, medal images of the charts, README charts (screenshots/)
+caccometro/           the bot, as a Python package
+  __init__.py         version (__version__)
+  __main__.py         python -m caccometro: start in polling mode
+  config.py           environment variables, date formats, Italian time
+  bot.py              python-telegram-bot Application, logging, send retries, command registration
+  webhook.py          Flask app that receives the updates from Telegram (production)
+  arguments.py        arguments of the commands: months, years, dates, the person a command refers to
+  cmd_leaderboards.py /leaderboard_month, /leaderboard_year, /stats_month, /stats_year
+  cmd_records.py      /records and /trophies
+  cmd_counts.py       /add_poop, /remove_poop, /day_count, /last_poop and who may change a count
+  cmd_conquests.py    /conquests
+  cmd_settings.py     /start, /app, /language, /link_history
+  messages.py         counting the 💩 in messages and stickers, conquests from locations
+  chat.py             shared helpers on Telegram users and messages
+  i18n.py             translations: the Italian sentences are the keys, one dictionary per language
+  menus.py            command names and menu descriptions in both languages, menu of a chat
+  database.py         SQLite database: schema, migration, queries
+  model.py            data types shared by every layer: User
+  analysis.py         records, streaks, statistics and forecasts (pure functions, no database)
+  conquest.py         conquest game: h3 tiles, 15 minute window, ownership and king of the hill (pure functions)
+  trophies.py         trophies: 15-day streaks, 💩 of the month and of the year, conquest seasons (pure functions)
+  formatting.py       texts of /records, /trophies and the midnight announcement
+  announce.py         midnight announcement of the 💩 of the month (scheduled task)
+  charts.py           ranking and statistics charts (PNG in memory)
+  maps.py             conquest maps over OpenStreetMap tiles (JPEG in memory, tile cache in tile_cache/)
+  miniapp.py          Mini App: signed initData, membership checks, direct link, data of the map, seasons, records and periods
+assets/webapp/        the Mini App page (static HTML and JavaScript, libraries from a CDN)
+scripts/set_webhook.py registers the webhook on Telegram (once)
+tools/                service scripts: deploy, database backups, log download and summary, bot version, command menus, README charts and maps, page of the replies, module diagram, pages of the functions and of the use cases
+.githooks/            git hooks (pre-commit, commit-msg), enabled with core.hooksPath
+.gitattributes        line endings of the .py files (CRLF) and of the hooks (LF)
+tests/                pytest tests
+.github/workflows/tests.yml CI: pytest on Python 3.10 on every pull request and every push to main
+requirements.txt      bot dependencies (requirements-dev.txt: the test ones too)
+wsgi.py               template of the WSGI file for the hosting
+assets/               avatar, animation, fonts, medal images of the charts, README charts (screenshots/)
 ```
 
 Every public function and class, with what it does and which modules use it, is in [functions.md](functions.md), written from the code by `tools/write_functions.py`; which of them each use case calls is in [use_cases.md](use_cases.md), written by `tools/write_use_cases.py`.
@@ -196,7 +202,7 @@ Every public function and class, with what it does and which modules use it, is 
 
 ## Dependencies between modules
 
-Which module imports which, drawn from the code by `tools/draw_dependencies.py` (a test fails when it no longer matches). The arrows mostly go down: the Telegram code uses the replies, the replies use the rules, and the rules and the storage know nothing of Telegram. Two arrows cross between rules and storage: `analysis.py` takes only the `User` type from `database.py`, never a query, and `database.py` uses `conquest.cell_of` to recalculate the saved conquests when the schema changes (#174).
+Which module imports which, drawn from the code by `tools/draw_dependencies.py` (a test fails when it no longer matches). The arrows mostly go down: the Telegram code uses the replies, the replies use the rules, and the rules and the storage know nothing of Telegram. The `User` type lives in `model.py`, below the storage, so that the rules can use it without depending on the storage. A test fails when a module imports from a layer above its own.
 
 <!-- drawn by tools/draw_dependencies.py: start -->
 ```mermaid
@@ -239,7 +245,12 @@ flowchart TD
     end
     subgraph telegram["✈️ Telegram: updates, commands, Mini App"]
         bot("<b>bot.py</b>")
-        commands("<b>commands.py</b>")
+        cmd_leaderboards("<b>cmd_leaderboards.py</b>")
+        cmd_records("<b>cmd_records.py</b>")
+        cmd_counts("<b>cmd_counts.py</b>")
+        cmd_conquests("<b>cmd_conquests.py</b>")
+        cmd_settings("<b>cmd_settings.py</b>")
+        arguments("<b>arguments.py</b>")
         messages("<b>messages.py</b>")
         chat("<b>chat.py</b>")
         menus("<b>menus.py</b>")
@@ -258,29 +269,57 @@ flowchart TD
     subgraph storage["🗄️ Storage"]
         database("<b>database.py</b>")
     end
+    subgraph types["🧱 Shared types"]
+        model("<b>model.py</b>")
+    end
     __main__ -->|"1"| bot
-    analysis -->|"1"| database
+    analysis -->|"1"| model
     announce -->|"1"| bot
     announce -->|"1"| chat
     announce -->|"4"| database
     announce -->|"1"| formatting
     announce -->|"1"| miniapp
     announce -->|"4"| trophies
-    bot -->|"15"| commands
+    arguments -->|"1"| chat
+    arguments -->|"1"| database
+    bot -->|"1"| cmd_conquests
+    bot -->|"4"| cmd_counts
+    bot -->|"4"| cmd_leaderboards
+    bot -->|"2"| cmd_records
+    bot -->|"4"| cmd_settings
     bot -->|"1"| menus
     bot -->|"2"| messages
     chat -->|"3"| database
-    commands -->|"7"| analysis
-    commands -->|"2"| charts
-    commands -->|"7"| chat
-    commands -->|"3"| conquest
-    commands -->|"18"| database
-    commands -->|"12"| formatting
-    commands -->|"6"| maps
-    commands -->|"1"| menus
-    commands -->|"1"| miniapp
-    commands -->|"3"| trophies
-    database -->|"1"| conquest
+    chat -->|"1"| model
+    cmd_conquests -->|"1"| arguments
+    cmd_conquests -->|"3"| chat
+    cmd_conquests -->|"3"| conquest
+    cmd_conquests -->|"2"| database
+    cmd_conquests -->|"3"| formatting
+    cmd_conquests -->|"6"| maps
+    cmd_conquests -->|"2"| trophies
+    cmd_counts -->|"2"| arguments
+    cmd_counts -->|"3"| chat
+    cmd_counts -->|"3"| database
+    cmd_counts -->|"3"| formatting
+    cmd_leaderboards -->|"5"| analysis
+    cmd_leaderboards -->|"1"| arguments
+    cmd_leaderboards -->|"2"| charts
+    cmd_leaderboards -->|"4"| chat
+    cmd_leaderboards -->|"6"| database
+    cmd_leaderboards -->|"4"| formatting
+    cmd_records -->|"4"| analysis
+    cmd_records -->|"1"| arguments
+    cmd_records -->|"3"| chat
+    cmd_records -->|"3"| database
+    cmd_records -->|"4"| formatting
+    cmd_records -->|"1"| trophies
+    cmd_settings -->|"2"| arguments
+    cmd_settings -->|"4"| chat
+    cmd_settings -->|"7"| database
+    cmd_settings -->|"1"| menus
+    cmd_settings -->|"1"| miniapp
+    database -->|"1"| model
     formatting -->|"4"| analysis
     formatting -->|"1"| trophies
     maps -->|"8"| charts
@@ -300,16 +339,16 @@ flowchart TD
     miniapp -->|"3"| trophies
     trophies -->|"3"| analysis
     trophies -->|"1"| conquest
+    webhook -->|"2"| arguments
     webhook -->|"3"| bot
     webhook -->|"1"| chat
-    webhook -->|"2"| commands
     webhook -->|"3"| database
     webhook -->|"11"| miniapp
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef main fill:#2f4f8f,stroke:#2f4f8f,color:#fffaf3
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     class __main__,webhook,announce person
-    class bot,commands,messages,chat,menus,miniapp,formatting,charts,maps,analysis,trophies,conquest,database step
+    class bot,cmd_leaderboards,cmd_records,cmd_counts,cmd_conquests,cmd_settings,arguments,messages,chat,menus,miniapp,formatting,charts,maps,analysis,trophies,conquest,database,model step
     class analysis,trophies,conquest main
 ```
 
@@ -361,9 +400,9 @@ flowchart TD
     seen{"update_id new?<br/>(the last 500 are kept)"}
     kind{"What is it?"}
     poop("💩 <b>3. Count</b><br/>+1 on the day it was sent,<br/>Italian time; opens the<br/>15-minute window")
-    cmd("📊 <b>3. Command</b><br/>commands.py reads the database,<br/>computes with analysis.py<br/>and trophies.py")
+    cmd("📊 <b>3. Command</b><br/>a cmd_*.py module reads the database,<br/>computes with analysis.py<br/>and trophies.py")
     loc("📍 <b>3. Location</b><br/>messages.py conquers the tile<br/>if a 💩 came in the last 15 min,<br/>zoom map from maps.py")
-    reply("💬 <b>4. Reply</b><br/>text or chart in the chat language;<br/>RetryingRequest: up to 6 attempts")
+    reply("💬 <b>4. Reply</b><br/>text or chart in the chat language;<br/>retrying request: up to 6 attempts")
     r403["403, dropped"]
     r200["200, ignored<br/>(Telegram sent it again)"]
     silent["no reply"]
@@ -395,10 +434,10 @@ flowchart TD
     class r403,r200,silent stop
 ```
 
-- When an update is done, `bot.py` (`LoggingApplication`) writes one line: `Update <id> done: command=<English command, or message, sticker, location> chat=<private|group> ms=<duration> attempts=<requests to Telegram, retries included> outcome=<ok|lost|error>`. `lost` means the network gave up after all the attempts, `error` any other exception. In webhook mode the line covers the whole request, also the start of the Application (its `getMe` after a reload, with the retries), and is written even when the start fails. No names, no text: the nightly summary is built on this line.
+- When an update is done, `bot.py` (the logging application class) writes one line: `Update <id> done: command=<English command, or message, sticker, location> chat=<private|group> ms=<duration> attempts=<requests to Telegram, retries included> outcome=<ok|lost|error>`. `lost` means the network gave up after all the attempts, `error` any other exception. In webhook mode the line covers the whole request, also the start of the Application (its `getMe` after a reload, with the retries), and is written even when the start fails. No names, no text: the nightly summary is built on this line.
 - An error inside a command or the counting goes to the error handler of `bot.py` (logged with the traceback and the command): the webhook still answers 200, so Telegram does not send the update again. A 💩 is counted before the reply is sent, so a lost reply never loses the count.
 - An error outside the handlers (for example the bot cannot start) makes the webhook answer 500. Telegram sends the update again later. The `update_id` is remembered once the Application has started, so a 💩 is never counted twice, and an update refused because the start failed is processed when it comes again.
-- `RetryingRequest` waits 1, 2, 4, 8 and 16 seconds between the attempts. It does not retry timeouts and read errors, because the message may have already arrived.
+- The retrying request class of `bot.py` waits 1, 2, 4, 8 and 16 seconds between the attempts. It does not retry timeouts and read errors, because the message may have already arrived.
 - The webhook starts and stops the Application at every request: each Flask request has its own event loop.
 
 ## A 💩 and its conquest
@@ -537,8 +576,8 @@ Seasons are not drawn: they are calendar quarters computed from the dates of the
 The Mini App (#79) is one static page, `assets/webapp/index.html`, served by Flask at `/app`, with its libraries from a CDN and no build step. It opens from the menu button of the private chat or from the button of `/app` in a chat (direct link `t.me/<bot>/app?startapp=<chat_id>`, already on that chat: groups accept only plain URL buttons). The page asks the JSON API of `webhook.py` for the data:
 
 - every call carries the signed `initData` in `Authorization: tma <initData>`; `miniapp.user_of` checks the signature with the bot token and refuses it after 24 hours (401);
-- `webhook.member_chat` checks the chat of every call: it must have a database (404 otherwise: the API never creates one) and the user must be a member: `getChatMember`, trusted for 5 minutes, refuses who left or was kicked (403); the private chat needs no check;
-- `/api/chat?chat=<id>` sends what does not depend on a period: the bot version (shown at the bottom of every tab), the language and today's date of the chat; the conquest map (`miniapp.conquest_data`: for each h3 resolution from 7, the tiles, to 1, the world, the hexagons with their owner, the tiles each member holds and ever conquered inside and the outline computed with `h3`, plus names, ranking, king, current season and `seasons`, the conquests and the tiles held of every season from `miniapp.season_boards`); and the records and trophies of the group and of each person (`miniapp.records_data`, the same functions as `/records` and `/trophies`); `recaps`, the month just ended of the user who opens it from the 1st to the 7th, and the year just ended from the 1st to the 14th of January (`miniapp.recaps`, `analysis.recap`; #195). The saved locations never leave the server;
+- The membership check of `webhook.py` runs on the chat of every call: it must have a database (404 otherwise: the API never creates one) and the user must be a member: `getChatMember`, trusted for 5 minutes, refuses who left or was kicked (403); the private chat needs no check;
+- `/api/chat?chat=<id>` sends what does not depend on a period: the bot version (shown at the bottom of every tab), the language and today's date of the chat; the conquest map (`miniapp.conquest_data`: for each h3 resolution from 7, the tiles, to 1, the world, the hexagons with their owner, the tiles each member holds and ever conquered inside and the outline computed with `h3`, plus names, ranking, king, current season and `seasons`, the conquests and the tiles held of every season from `miniapp._season_boards`); and the records and trophies of the group and of each person (`miniapp.records_data`, the same functions as `/records` and `/trophies`); `recaps`, the month just ended of the user who opens it from the 1st to the 7th, and the year just ended from the 1st to the 14th of January (`miniapp.recaps`, `analysis.recap`; #195). The saved locations never leave the server;
 - `/api/period?chat=<id>&year=<YYYY>[&month=<MM>]` sends a month or a year (`miniapp.period_data`): the leaderboard with the forecast like `/leaderboard_month`, the statistics like `/stats_month` with the regularity of each person (`analysis.regularity`, see [the study](research/regularity_index.md)), and the counts of every day for the charts drawn by the page;
 - `/api/recap?chat=<id>` draws the recap as a picture (`charts.generate_recap_image`, 1080x1350, on the background of the month or of the year in `assets/recap/`, `charts.RECAP_STYLE` picks the generated pictures or the drawn shapes): `GET` gives it to the page (`&year=1` for the year), which shows it as the last screen of the recap; with `POST` the bot sends it in that chat (the group, or the private chat with the bot), at most once every 30 seconds per person; 403 with `{"error": "start"}` when, in private, the user never started the bot, `{"error": "chat"}` when the bot cannot write in the group. `POST` with `&to=link` gives a link `/api/recap/<chat>.<user>.<yearly>.<expiry>.<signature>.png`, signed with a key drawn from the bot token and valid 15 minutes, that serves the picture without initData as an attachment: Telegram's download (`downloadFile`, Bot API 8.0) needs it where the web view has no share sheet (Android); elsewhere the page shares the picture it already has with `navigator.share`. The midnight announcement of a new month carries a button with the direct link `startapp=<chat_id>_recap`, which opens the recap; on the 1st of January a second button, `_year`, opens the year. `/app/recap/<month>.jpg` serves the drawn backgrounds behind the screens of the recap.
 
@@ -609,7 +648,7 @@ flowchart TD
 
 The page follows Telegram's light or dark mode and its back button; how it is organised and why is in [Mini App design](research/mini_app_design.md).
 
-Each call holds the single worker of the web app like an update, and its calls to Telegram go through `RetryingRequest`.
+Each call holds the single worker of the web app like an update, and its calls to Telegram go through the retrying request class of `bot.py`.
 
 ## Database
 

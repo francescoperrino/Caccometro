@@ -449,23 +449,53 @@ const EN = {
   'Re della stagione': 'Season king',
 };
 let language = 'it';
+/**
+ * Translate an Italian sentence into the language of the chat.
+ * @param {string} text The Italian sentence, which is also the key of EN.
+ * @returns {string} The translation, or the Italian text when there is none.
+ */
 const tr = text => (language === 'en' && EN[text]) || text;
 
 const main = document.getElementById('main');
+/**
+ * Replace the content of the page.
+ * @param {...Node} nodes What to show.
+ */
 function show(...nodes) { main.replaceChildren(...nodes); }
+/**
+ * Create an element.
+ * @param {string} tag The tag name.
+ * @param {Object} [props] Properties to set on the element (className, onclick...).
+ * @param {...(Node|string)} children What goes inside.
+ * @returns {HTMLElement} The element.
+ */
 function el(tag, props = {}, ...children) {
   const node = Object.assign(document.createElement(tag), props);
   node.append(...children);
   return node;
 }
 
-// Every call carries the signed initData: the server checks it and the membership before sending any data
+/**
+ * The header that carries the signed initData: the server checks it and the membership before sending any data.
+ * @returns {Object} The headers of a request.
+ */
+const authHeaders = () => ({ Authorization: 'tma ' + tg.initData });
+
+/**
+ * Ask the server for data.
+ * @param {string} path The path with its query.
+ * @returns {Promise<Object>} The JSON answer; rejects with the HTTP status when the answer is not ok.
+ */
 async function api(path) {
-  const response = await fetch(path, { headers: { Authorization: 'tma ' + tg.initData } });
+  const response = await fetch(path, { headers: authHeaders() });
   if (!response.ok) throw response.status;
   return response.json();
 }
 
+/**
+ * Show what went wrong with a request to the server.
+ * @param {number} status The HTTP status: 401 (not opened from the bot) and 403 (not a member) end here, anything else offers a retry.
+ */
 function failed(status) {
   show(el('div', { className: 'failed' }, el('p', {}, tr(status === 403 ? 'Non fai parte di questo gruppo.'
     : status === 401 ? 'Apri la Mini App dal bot.' : 'Qualcosa è andato storto, riprova.')),
@@ -475,6 +505,7 @@ function failed(status) {
 // charts.PALETTE: the colours of the avatar, given to the members sorted by name like in the images
 const PALETTE = ['#a0561e', '#e0902b', '#2aa3e0', '#4caf50', '#7d5ba6', '#c94f3d', '#2f4f8f', '#e0607e'];
 const MEDALS = ['🥇', '🥈', '🥉'];
+const NO_TILES = 'Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.';
 const ICONS = {
   map: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
   rank: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
@@ -486,6 +517,11 @@ const ICONS = {
   trophies: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"/>',
 };
 
+/**
+ * An icon of the tab bar and the buttons.
+ * @param {string} name A key of ICONS.
+ * @returns {HTMLElement} The SVG, in a span.
+ */
 function icon(name) {
   const svg = el('span');
   svg.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${ICONS[name]}</svg>`;  // fixed markup, no user text
@@ -494,21 +530,72 @@ function icon(name) {
 
 // Days as numbers (days since 1970, UTC) so that the charts and the dates never depend on the time zone of the phone
 const DAY_MS = 86400000;
+/**
+ * A date as the number of days since 1970, in UTC, so that charts and dates never depend on the time zone of the phone.
+ * @param {string} iso The date as 'YYYY-MM-DD'.
+ * @returns {number} The day number.
+ */
 const dayNumber = iso => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / DAY_MS;
+/**
+ * The date of a day number.
+ * @param {number} n The days since 1970.
+ * @returns {string} The date as 'YYYY-MM-DD'.
+ */
 const isoOf = n => new Date(n * DAY_MS).toISOString().slice(0, 10);
-const dateText = iso => new Date(dayNumber(iso) * DAY_MS).toLocaleDateString(language, { timeZone: 'UTC' });
-const monthText = (year, month, style = 'long') =>
-  new Date(Date.UTC(year, month - 1, 1)).toLocaleString(language, { month: style, year: 'numeric', timeZone: 'UTC' });
-// a record is reached on dates, months ([year, month]) or runs of days ({start, end})
+/**
+ * Write a moment in UTC in the language of the chat.
+ * @param {number} ms Milliseconds since 1970.
+ * @param {Object} [options] Intl.DateTimeFormat options (weekday, day, month, year).
+ * @returns {string} The text; the whole date when there are no options.
+ */
+const dayText = (ms, options = {}) => new Date(ms).toLocaleDateString(language, { ...options, timeZone: 'UTC' });
+/**
+ * A date in the language of the chat.
+ * @param {string} iso The date as 'YYYY-MM-DD'.
+ * @returns {string} The date in the language of the chat.
+ */
+const dateText = iso => dayText(dayNumber(iso) * DAY_MS);
+/**
+ * A month and its year in the language of the chat.
+ * @param {number} year The year.
+ * @param {number} month The month, 1 to 12.
+ * @param {string} [style] 'long' or 'short'.
+ * @returns {string} The month and the year in the language of the chat.
+ */
+const monthText = (year, month, style = 'long') => dayText(Date.UTC(year, month - 1, 1), { month: style, year: 'numeric' });
+/**
+ * Write when a record was reached: on a date, in a month ([year, month]) or on a run of days ({start, end}).
+ * @param {(string|Array|Object)} w The date, the month or the run.
+ * @returns {string} The text.
+ */
 const whenText = w => typeof w === 'string' ? dateText(w) : Array.isArray(w) ? monthText(w[0], w[1])
   : `${dateText(w.start)} – ${dateText(w.end)}`;
+/**
+ * A place as an ordinal.
+ * @param {number} n The place.
+ * @returns {string} '#2' in English, '2°' in Italian.
+ */
 const ordinal = n => language === 'en' ? `#${n}` : `${n}°`;
+/**
+ * A number of days with its word.
+ * @param {number} n A number of days.
+ * @returns {string} The number and 'day' or 'days' in the language of the chat.
+ */
 const days = n => `${n} ${tr(n === 1 ? 'giorno' : 'giorni')}`;
+/**
+ * A number written for the language of the chat.
+ * @param {number} n The number.
+ * @param {number} digits Decimals to show.
+ * @returns {string} The number written for the language of the chat.
+ */
 const number = (n, digits) => n.toLocaleString(language, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
 // Colours and grid of charts.py
 const INK = {};
-// Light or dark like Telegram; the chart colours are read from the CSS so the two themes stay in one place
+/**
+ * Follow the light or dark theme of Telegram.
+ * The chart colours are read from the CSS, so the two themes stay in one place; the header and the background of Telegram take the colour of the page.
+ */
 function applyTheme() {
   document.documentElement.classList.toggle('dark', tg.colorScheme === 'dark');
   const css = getComputedStyle(document.documentElement);
@@ -520,14 +607,30 @@ function applyTheme() {
 }
 applyTheme();
 
-// charts.layered_grid: the axis up to `top` rounded up to `roundTo`, a solid line at every power of ten step,
-// a dashed one halfway and, with `fine`, thin lines in between
+/**
+ * The grid of the charts of charts.py: the axis up to `top` rounded up to `roundTo`, a solid line at every power of ten step, a dashed one halfway and, with `fine`, thin lines in between.
+ * @param {number} top The highest value to show.
+ * @param {number} roundTo The axis ends at the multiple of this that is not below `top`.
+ * @param {number} [fine] Distance of the thin lines.
+ * @returns {{max: number, order: number, tick: number, fine: number}} The scale of the grid.
+ */
 function layered(top, roundTo, fine) {
   const max = Math.max(roundTo, Math.ceil(top / roundTo) * roundTo);
   const order = 10 ** Math.floor(Math.log10(max));
   return { max, order, tick: max / order <= 5 ? order / 2 : order, fine };
 }
 
+/**
+ * Draw a line on a canvas.
+ * @param {CanvasRenderingContext2D} ctx The canvas.
+ * @param {number} x1 Start x.
+ * @param {number} y1 Start y.
+ * @param {number} x2 End x.
+ * @param {number} y2 End y.
+ * @param {string} color The colour.
+ * @param {number} width The width in pixels.
+ * @param {number[]} [dash] The dash pattern.
+ */
 function stroke(ctx, x1, y1, x2, y2, color, width, dash = []) {
   ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
   ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
@@ -535,6 +638,12 @@ function stroke(ctx, x1, y1, x2, y2, color, width, dash = []) {
 
 Chart.register({
   id: 'layeredGrid',  // the grid of layered_grid and fine_vlines, behind the data
+  /**
+   * Draw the grid behind the data.
+   * @param {Chart} chart The chart.
+   * @param {*} _ Not used.
+   * @param {{grid: Object, xs: number[]}} opts The scale from layered() and the x positions of the thin vertical lines.
+   */
   beforeDatasetsDraw(chart, _, opts) {
     if (!opts.grid) return;
     const { ctx, chartArea: a, scales: { x, y } } = chart, g = opts.grid;
@@ -550,6 +659,12 @@ Chart.register({
 
 Chart.register({
   id: 'meanLabels',  // the mean in a rounded box above each curve, joined to the peak by a thin line
+  /**
+   * Draw the mean labels above the curves.
+   * @param {Chart} chart The chart.
+   * @param {*} _ Not used.
+   * @param {{labels: Object[]}} opts The labels: mean, peak, height of the label and colour.
+   */
   afterDatasetsDraw(chart, _, { labels }) {
     if (!labels) return;
     const { ctx, scales: { x, y } } = chart;
@@ -569,6 +684,12 @@ Chart.register({
 
 Chart.register({
   id: 'boxParts',  // whiskers, caps, median, mean and outliers on the floating bars of the box plot
+  /**
+   * Draw the whiskers, caps, median, mean and outliers on the bars of the box plot.
+   * @param {Chart} chart The chart.
+   * @param {*} _ Not used.
+   * @param {{boxes: Object[]}} opts One entry per bar.
+   */
   afterDatasetsDraw(chart, _, { boxes }) {
     if (!boxes) return;
     const { ctx, scales: { y } } = chart;
@@ -591,6 +712,11 @@ Chart.register({
   },
 });
 
+/**
+ * Load a chat and show it.
+ * @param {(string|number)} chatId The chat.
+ * @param {string} [openOn] 'recap' or 'year' to open the recap of the month or of the year.
+ */
 async function openChat(chatId, openOn) {
   try {
     const data = await api('/api/chat?chat=' + encodeURIComponent(chatId));
@@ -599,15 +725,45 @@ async function openChat(chatId, openOn) {
   } catch (status) { failed(status); }
 }
 
+/**
+ * Build the pages of the Mini App from the data of a chat and show them.
+ * @param {(string|number)} chatId The chat.
+ * @param {Object} data The answer of /api/chat.
+ * @param {string} [openOn] 'recap' or 'year' to open the recap of the month or of the year.
+ */
 function showApp(chatId, data, openOn) {
   const c = data.conquests, records = data.records;
+  /**
+   * The version of the bot, at the bottom of every page, as under the bot charts.
+   * @returns {HTMLElement} The line.
+   */
   const version = () => el('p', { className: 'version' }, `Caccometro v${data.version}`);  // as under the bot charts
   const me = tg.initDataUnsafe.user.id;
   const ids = Object.keys(c.names).map(Number)
     .sort((a, b) => c.names[a].replace('@', '').toLowerCase().localeCompare(c.names[b].replace('@', '').toLowerCase()) || a - b);
+  /**
+   * The colour of a member: the palette is given by name, like in the images of the bot.
+   * @param {number} id The user.
+   * @returns {string} The colour.
+   */
   const color = id => PALETTE[Math.max(ids.indexOf(id), 0) % PALETTE.length];
+  /**
+   * The name of a user.
+   * @param {number} id The user.
+   * @returns {string} The name, or the ID when the bot does not know the user.
+   */
   const plainName = id => c.names[id] || String(id);
+  /**
+   * The name of a user, with a crown for the king of the hill.
+   * @param {number} id The user.
+   * @returns {string} The name, with a crown for the king of the hill.
+   */
   const name = id => plainName(id) + (id === c.king ? ' 👑' : '');
+  /**
+   * A dot in the colour of a user.
+   * @param {number} id The user.
+   * @returns {HTMLElement} A dot in the colour of the user.
+   */
   const dot = id => el('span', { className: 'dot', style: 'background:' + color(id) });
   const tiles = c.levels[7];
 
@@ -624,6 +780,10 @@ function showApp(chatId, data, openOn) {
   nav.append(lens, ...tabButtons);
 
   let shownTab = 'map';
+  /**
+   * Show a tab.
+   * @param {string} tab 'map', 'rank', 'stats' or 'trophies'.
+   */
   function go(tab) {
     shownTab = tab;
     for (const [id, pane] of Object.entries(panes)) pane.hidden = id !== tab;
@@ -636,15 +796,20 @@ function showApp(chatId, data, openOn) {
     tick();
   }
 
-  // a light tick when the user changes tab, period, person or view (Telegram: selection changes only)
+  /** A light tick when the user changes tab, period, person or view (Telegram: selection changes only). */
   const tick = () => tg.HapticFeedback?.selectionChanged();
 
-  // A row of buttons with one selected: [[value, label]], the selected value, what to do on a tap
+  /**
+   * A row of buttons with one selected.
+   * @param {Array<[string, string]>} options [value, label] of each button.
+   * @param {string} selected The selected value.
+   * @param {function(string): void} onPick What to do with the value of a tapped button.
+   * @param {string} [className] The class of the row.
+   * @returns {HTMLElement} The row.
+   */
   function seg(options, selected, onPick, className = 'seg') {
-    const pickIt = onPick;
-    onPick = value => { tick(); pickIt(value); };
     return el('div', { className }, ...options.map(([value, label]) =>
-      el('button', { className: value === selected ? 'on' : '', onclick: () => onPick(value) }, label)));
+      el('button', { className: value === selected ? 'on' : '', onclick: () => { tick(); onPick(value); } }, label)));
   }
 
   // ---------------------------------------------------------------- map (#189)
@@ -654,7 +819,10 @@ function showApp(chatId, data, openOn) {
   const mapDiv = el('div', { id: 'map' });
   const mapPicker = el('div', { className: 'overmap' });
 
-  // Show one person (or null: everyone) on the map
+  /**
+   * Show one person (or everyone) on the map.
+   * @param {?number} id The user; null for the whole group.
+   */
   function pick(id) {
     owner = id;
     tick();
@@ -662,7 +830,10 @@ function showApp(chatId, data, openOn) {
     if (map) { fit(); draw(); }
   }
 
-  // The hexagons grow with the zoom out like the maps of /conquests: zoom 10 shows the tiles, each step out the next resolution
+  /**
+   * Draw the hexagons of the map.
+   * They grow with the zoom out like the maps of /conquests: zoom 10 shows the tiles, each step out the next resolution.
+   */
   function draw() {
     layer.clearLayers();
     const res = Math.max(1, Math.min(7, Math.round(map.getZoom()) - 3));
@@ -681,11 +852,13 @@ function showApp(chatId, data, openOn) {
     }
   }
 
+  /** Zoom the map on the hexagons it shows. */
   function fit() {
     const corners = tiles.filter(tile => !owner || tile.seen[owner]).flatMap(tile => tile.outline);
     if (corners.length) map.fitBounds(L.latLngBounds(corners), { maxZoom: 13, padding: [20, 20] });
   }
 
+  /** Create the map, with one copy of the world only: the hexagons are drawn once, so a repeated world would show them on one copy. */
   function startMap() {
     // one copy of the world only: the hexagons are drawn once, so a repeated world would show them on one copy
     map = L.map(mapDiv, { zoomControl: false, minZoom: 2, maxBounds: [[-85, -180], [85, 180]], maxBoundsViscosity: 1 });
@@ -698,7 +871,7 @@ function showApp(chatId, data, openOn) {
   }
 
   mapPane.append(el('h1', {}, tr('Mappa')), tiles.length ? el('div', { className: 'mapwrap' }, mapDiv, mapPicker)
-    : el('p', { className: 'hint' }, tr('Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.')));
+    : el('p', { className: 'hint' }, tr(NO_TILES)));
 
   // ---------------------------------------------------------------- leaderboard and statistics of a period (#190)
 
@@ -708,6 +881,10 @@ function showApp(chatId, data, openOn) {
   let period = { ...current }, board = 'poop', charts = [];
   const cache = {};
 
+  /**
+   * Go to the previous or the next period.
+   * @param {number} delta -1 or 1.
+   */
   function step(delta) {
     tick();
     if (period.month === null) period = { year: period.year + delta, month: null };
@@ -718,6 +895,10 @@ function showApp(chatId, data, openOn) {
     drawPeriod();
   }
 
+  /**
+   * The bar that picks month or year and moves between periods.
+   * @returns {HTMLElement} The bar.
+   */
   function periodBar() {
     const isCurrent = period.year === current.year && (period.month === null || period.month === current.month);
     return el('div', { className: 'period' }, seg([['month', tr('Mese')], ['year', tr('Anno')]], period.month === null ? 'year' : 'month', kind => {
@@ -731,6 +912,13 @@ function showApp(chatId, data, openOn) {
 
   // ---- charts drawn like the images of the commands (charts.py): same grid, lines, dots and box plot
 
+  /**
+   * A card with a chart drawn like the images of the commands (charts.py).
+   * @param {?string} title The title above the chart; null for none.
+   * @param {number} height The height in pixels.
+   * @param {Object} config The Chart.js configuration.
+   * @returns {HTMLElement} The card.
+   */
   function chartBox(title, height, config) {
     const canvas = el('canvas');
     charts.push(new Chart(canvas, config));
@@ -738,15 +926,40 @@ function showApp(chatId, data, openOn) {
       el('div', { className: 'chart', style: `height:${height}px` }, canvas));
   }
 
-  // the i-th member by name: colour of the palette, a dashed line from the 9th on (charts.user_style)
+  /**
+   * The i-th member by name has a colour of the palette, and a dashed line from the 9th on (charts.user_style).
+   * @param {number} id The user.
+   * @returns {number[]} The dash pattern.
+   */
   const dashOf = id => ids.indexOf(id) >= PALETTE.length ? [11, 5] : [];
+  /**
+   * The title of an axis.
+   * @param {string} text The Italian title of an axis.
+   * @returns {Object} The Chart.js title.
+   */
   const axisTitle = text => ({ display: true, text: tr(text), color: INK.muted, font: { size: 12 } });
+  /**
+   * charts.short_name: a name cut to 16 characters.
+   * @param {string} text The name.
+   * @returns {string} The name, or its beginning followed by '…'.
+   */
   const shortName = text => text.length <= 16 ? text : text.slice(0, 15) + '…';  // charts.short_name
+  /**
+   * A percentile, linear like numpy.percentile.
+   * @param {number[]} sorted The values, ascending.
+   * @param {number} q The fraction, 0 to 1.
+   * @returns {number} The value.
+   */
   const percentile = (sorted, q) => {  // linear, like numpy.percentile
     const at = (sorted.length - 1) * q, low = Math.floor(at);
     return sorted[low] + (sorted[Math.min(low + 1, sorted.length - 1)] - sorted[low]) * (at - low);
   };
 
+  /**
+   * The chart of the leaderboard: the running total of each member, and the forecast as a dotted line.
+   * @param {Object} p The answer of /api/period.
+   * @returns {HTMLElement} The card.
+   */
   function leaderboardChart(p) {
     const start = dayNumber(p.start), days = dayNumber(p.end) - start + 1;
     const shown = Math.min(dayNumber(p.today), dayNumber(p.end)) - start + 1;  // days drawn: up to today
@@ -773,7 +986,7 @@ function showApp(chatId, data, openOn) {
     for (let i = 0; i < days; i++) if (isoOf(start + i).endsWith('-01')) monthStarts.push(i + 1);
     const x = year
       ? { afterBuildTicks: axis => { axis.ticks = monthStarts.map((m, i) => ({ value: (m + (monthStarts[i + 1] || days + 1)) / 2 })); },
-          ticks: { maxRotation: 0, autoSkipPadding: 2, callback: v => new Date((start + v - 1) * DAY_MS).toLocaleString(language, { month: 'short', timeZone: 'UTC' }) } }
+          ticks: { maxRotation: 0, autoSkipPadding: 2, callback: v => dayText((start + v - 1) * DAY_MS, { month: 'short' }) } }
       : { ticks: { stepSize: 1, maxRotation: 0, autoSkipPadding: 6 }, title: axisTitle('Giorno') };
     return chartBox(tr('Come è andata giorno per giorno'), 320, { type: 'line', data: { datasets },
       options: { maintainAspectRatio: false, animation: false, interaction: { mode: 'nearest', intersect: false },
@@ -785,6 +998,11 @@ function showApp(chatId, data, openOn) {
                        ticks: { color: INK.muted, stepSize: grid.tick, callback: v => v % grid.tick ? '' : v }, title: axisTitle('Totale progressivo') } } } });
   }
 
+  /**
+   * The two charts of the statistics: a normal curve per member and a box plot of the daily counts.
+   * @param {Object} p The answer of /api/period.
+   * @returns {HTMLElement[]} The two cards.
+   */
   function statisticsCharts(p) {
     const start = dayNumber(p.start);
     const shown = Math.min(dayNumber(p.today), dayNumber(p.end)) - start + 1;
@@ -796,14 +1014,12 @@ function showApp(chatId, data, openOn) {
     // Normal curves scaled to the number of days, a dotted line and a label at each mean
     const curves = [], peaks = [];
     // the mean labels fit up to 5 people
-    const faded = () => false;
     const labelled = users.length <= 5;
     for (const id of users) {
       const { mean, variance } = stat(id);
       if (variance <= 0) continue;
       const pdf = x => Math.exp(-0.5 * (x - mean) ** 2 / variance) / Math.sqrt(2 * Math.PI * variance) * shown;
       const data = [...Array(200).keys()].map(i => ({ x: i * maxCount / 199, y: pdf(i * maxCount / 199) }));
-      if (faded(id)) { curves.push({ data, borderColor: INK.half, borderWidth: 1.5, pointRadius: 0 }); continue; }
       curves.push({ data, borderColor: color(id), backgroundColor: color(id) + '0d', fill: 'origin', borderWidth: labelled ? 3 : 2,
         borderDash: dashOf(id), pointRadius: 0 });
       curves.push({ data: [{ x: mean, y: 0 }, { x: mean, y: pdf(mean) }], borderColor: color(id), borderWidth: 1.5, borderDash: [1.5, 3], pointRadius: 0 });
@@ -834,11 +1050,11 @@ function showApp(chatId, data, openOn) {
       const q1 = percentile(sorted, 0.25), q3 = percentile(sorted, 0.75), reach = 1.5 * (q3 - q1);
       const inside = sorted.filter(v => v >= q1 - reach && v <= q3 + reach);
       return { q1, q3, median: percentile(sorted, 0.5), mean: stat(id).mean, low: inside[0], high: inside[inside.length - 1],
-               out: [...new Set(sorted.filter(v => v < q1 - reach || v > q3 + reach))], color: faded(id) ? INK.half : color(id) };
+               out: [...new Set(sorted.filter(v => v < q1 - reach || v > q3 + reach))], color: color(id) };
     });
     const boxChart = chartBox(tr('Distribuzione giornaliera  (◆ media, — mediana)'), 260, { type: 'bar',
       data: { labels: users.map(id => shortName(plainName(id))), datasets: [{ data: boxes.map(b => [b.q1, b.q3 === b.q1 ? b.q1 + 0.0001 : b.q3]),
-        backgroundColor: users.map(id => faded(id) ? INK.fine : color(id) + '59'), borderColor: boxes.map(b => b.color), borderWidth: 2, borderSkipped: false,
+        backgroundColor: users.map(id => color(id) + '59'), borderColor: boxes.map(b => b.color), borderWidth: 2, borderSkipped: false,
         barPercentage: 0.55, categoryPercentage: 1 }] },
       options: { maintainAspectRatio: false, animation: false, events: [],
         plugins: { legend: { display: false }, tooltip: { enabled: false }, boxParts: { boxes } },
@@ -852,8 +1068,11 @@ function showApp(chatId, data, openOn) {
 
   // ---- the main answer first: a podium for the first three, one number for everyone else, the rest on demand
 
-  // entries: [{ id, value, note, label }] best first, value = what the list ranks by; ties share the position
-  // The streak in progress next to a name, like the streaks of chat apps: from 3 days on, grey with ⏳ while today's 💩 is missing
+  /**
+   * The streak in progress next to a name, like the streaks of chat apps: from 3 days on, grey with ⏳ while today's 💩 is missing.
+   * @param {number} id The user.
+   * @returns {HTMLElement[]} The flame; empty when there is no streak to show.
+   */
   function flame(id) {
     const s = records.people[id]?.status;
     if (!s || s.streak_days < 3) return [];
@@ -862,6 +1081,11 @@ function showApp(chatId, data, openOn) {
       `${risk ? '⏳' : '🔥'}${s.streak_days}`)];
   }
 
+  /**
+   * The main answer first: a podium for the first three, one number for everyone else. Ties share the position.
+   * @param {Array<{id: number, value: number, note: string, label: string, text: string, king: boolean, streak: boolean}>} entries Best first; `value` is what the list ranks by.
+   * @returns {HTMLElement[]} The podium and the list of the rest.
+   */
   function podium(entries) {
     const positions = entries.map(e => entries.findIndex(o => o.value === e.value));
     const tied = i => positions.filter(x => x === positions[i]).length > 1;
@@ -881,14 +1105,32 @@ function showApp(chatId, data, openOn) {
     return [el('div', { className: 'podium' }, ...[top[1], top[0], top[2]].filter(Boolean)), ...(rest.length ? [el('div', { className: 'ranks' }, ...rest)] : [])];
   }
 
-  // A closed section; its content (charts need a visible box) is built the first time it opens
+  /**
+   * A tile with a big text and a small one under it.
+   * @param {string} value The big text.
+   * @param {string} label The small text under it.
+   * @returns {HTMLElement} A tile.
+   */
+  const tile = (value, label) => el('div', { className: 'tile' }, el('div', { className: 'value' }, value), el('div', { className: 'what' }, label));
+
+  /**
+   * A closed section; its content is built the first time it opens, because charts need a visible box.
+   * @param {string} label The title of the section.
+   * @param {function(): Node[]} build Makes the content.
+   * @returns {HTMLElement} The section.
+   */
   function more(label, build) {
     const box = el('details', { className: 'more' }, el('summary', {}, label));
     box.addEventListener('toggle', () => { if (box.open && box.children.length === 1) box.append(...build()); });
     return box;
   }
 
-  // The table of the chart images, for the details: a denim header band, every row in its person's colour
+  /**
+   * The table of the chart images, for the details: a denim header band, every row in its person's colour.
+   * @param {Array<[string, number]>} columns [label, width in pixels] of each column after the name.
+   * @param {Array<{id: number, cells: string[]}>} rows One row per person.
+   * @returns {HTMLElement} The table.
+   */
   function scoreboard(columns, rows) {
     const head = el('tr', {}, el('th', { className: 'who' }, tr('Persona')),
       ...columns.map(([label, width]) => el('th', { style: `width:${width || 64}px` }, label)));
@@ -899,8 +1141,12 @@ function showApp(chatId, data, openOn) {
 
   // Conquests of a season (who conquered most: the conqueror title) or in total (tiles held now: the map)
   let conquestView = 'season', seasonIndex = c.seasons.length - 1;
+  /**
+   * The conquests of a season (who conquered most: the conqueror title) or in total (tiles held now: the map).
+   * @returns {HTMLElement[]} The switch, the podium and a note.
+   */
   function conquestBoard() {
-    if (!c.ranking.length) return [el('p', { className: 'hint' }, tr('Nessuna zona conquistata. Dopo la 💩 manda una posizione entro 15 minuti.'))];
+    if (!c.ranking.length) return [el('p', { className: 'hint' }, tr(NO_TILES))];
     const switchView = seg([['season', tr('Stagione')], ['total', tr('Totale')]], conquestView, value => { conquestView = value; drawPeriod(); });
     if (conquestView === 'total') return [el('div', { className: 'period' }, switchView),
       ...podium(c.ranking.map(r => ({ id: r.user, value: r.held, label: plainName(r.user), king: r.user === c.king, note: tr('zone tenute ora') })))];
@@ -917,7 +1163,13 @@ function showApp(chatId, data, openOn) {
         : 'Conquiste della stagione, anche rubate: il primo è stato il conquistatore. 👑 chi teneva più zone a fine stagione, il re.'))];
   }
 
-  // "Who leads, where am I, how far from the one above", in one sentence
+  /**
+   * Who leads, where am I, how far from the one above: in one sentence.
+   * @param {Object[]} rows The members, best first.
+   * @param {function(Object): number} value The number a row is ranked by.
+   * @param {function(number): string} unit Writes a number with its unit.
+   * @returns {HTMLElement} The sentence.
+   */
   function answer(rows, value, unit) {
     const first = rows[0], mine = rows.findIndex(row => row.user === me);
     const bold = text => el('b', {}, text);
@@ -935,6 +1187,11 @@ function showApp(chatId, data, openOn) {
       ...(above ? [`, ${tr('a {n} da').replace('{n}', gap(value(above), value(rows[mine])))} `, bold(plainName(above.user))] : []), '.');
   }
 
+  /**
+   * The leaderboard of a period: the answer, the forecast, the podium and the chart.
+   * @param {Object} p The answer of /api/period.
+   * @returns {HTMLElement[]} The parts.
+   */
   function leaderboardBoard(p) {
     const mine = p.leaderboard.find(r => r.user === me);
     // where I would finish at this pace: my place among the forecasts
@@ -947,10 +1204,18 @@ function showApp(chatId, data, openOn) {
         ? [el('p', { className: 'hint detail' }, tr('Previsione: a fine periodo, al ritmo degli ultimi 30 giorni.'))] : [])])];
   }
 
-  // How steady someone is, computed by the server (analysis.regularity); null: still too few days
+  /**
+   * How steady a member is, computed by the server (analysis.regularity).
+   * @param {Object} s A row of the statistics.
+   * @returns {string} The label; 'ancora pochi dati' translated when there are too few days.
+   */
   const steadiness = s => tr(s.regularity || 'ancora pochi dati');
 
-  // My days of the period as squares, darker with more 💩, like a habit calendar: "how you go" at a glance
+  /**
+   * My days of the period as squares, darker with more 💩, like a habit calendar.
+   * @param {Object} p The answer of /api/period.
+   * @returns {HTMLElement[]} The calendar and its key.
+   */
   function calendar(p) {
     const start = dayNumber(p.start), end = dayNumber(p.end), today = dayNumber(p.today);
     const cell = (d, label) => {
@@ -958,7 +1223,7 @@ function showApp(chatId, data, openOn) {
       return el('span', { className: `day l${d > today ? 'x' : Math.min(n, 3)}${d === today ? ' today' : ''}`, title: `${dateText(isoOf(d))}: ${n} 💩` }, label);
     };
     const key = el('div', { className: 'calkey' }, tr('meno'), ...[0, 1, 2, 3].map(l => el('span', { className: `day l${l}` })), tr('più'));
-    const utc = (y, m, d, options) => new Date(Date.UTC(y, m, d)).toLocaleString(language, { ...options, timeZone: 'UTC' });
+    const utc = (y, m, d, options) => dayText(Date.UTC(y, m, d), options);
     if (period.month !== null) {  // a month: a calendar from Monday, with the day numbers
       const weekdays = [...Array(7).keys()].map(i => el('span', { className: 'wd' }, utc(2024, 0, 1 + i, { weekday: 'narrow' })));
       const blanks = [...Array((start + 3) % 7)].map(() => el('span'));  // day 0, 1 January 1970, was a Thursday
@@ -972,11 +1237,15 @@ function showApp(chatId, data, openOn) {
     })), key];
   }
 
+  /**
+   * The statistics of a period: the answer, my numbers, a bar per person and the details.
+   * @param {Object} p The answer of /api/period.
+   * @returns {HTMLElement[]} The parts.
+   */
   function statisticsBoard(p) {
     const mine = p.statistics.find(s => s.user === me);
     const place = mine ? p.statistics.findIndex(s => s.mean === mine.mean) + 1 : 0;
     const top = Math.max(...p.statistics.map(s => s.mean));
-    const tile = (value, label) => el('div', { className: 'tile' }, el('div', { className: 'value' }, value), el('div', { className: 'what' }, label));
     return [
       answer(p.statistics, row => row.mean, n => `${number(n, 2)} ${tr('al giorno')}`),
       ...(mine ? [el('div', { className: 'tiles' }, tile(number(mine.mean, 2), tr('al giorno, in media')), tile(ordinal(place), tr('nel gruppo')),
@@ -992,6 +1261,7 @@ function showApp(chatId, data, openOn) {
         ...statisticsCharts(p)])];
   }
 
+  /** Draw the leaderboard and the statistics of the period picked, asking the server the first time. */
   async function drawPeriod() {
     const key = `${period.year}-${period.month}`;
     const switchBoard = seg([['poop', '💩'], ['conquests', tr('Conquiste')]], board, value => { board = value; drawPeriod(); }, 'tabs');
@@ -1017,6 +1287,11 @@ function showApp(chatId, data, openOn) {
 
   // ---------------------------------------------------------------- trophies and records (#190)
 
+  /**
+   * A number of 💩 with the emoji.
+   * @param {number} n A number of 💩.
+   * @returns {string} The number with the 💩.
+   */
   const poops = n => `${n} 💩`;
   const METRICS = [['daily', '🥵', 'Più 💩 in un giorno', poops], ['best_month', '🤩', 'Più 💩 in un mese', poops],
     ['worst_month', '😭', 'Meno 💩 in un mese', poops], ['streak_days', '🥳', 'Serie più lunga', days],
@@ -1025,20 +1300,63 @@ function showApp(chatId, data, openOn) {
     ['active_gap', '🐢', 'Pausa in corso più lunga', days]];
   const TROPHIES = [['years', '👑', '💩 dell\'anno'], ['months', '🏅', '💩 del mese'], ['streak_trophies', '🔥', '15 giorni di fila'],
     ['conqueror', '🚩', 'Conquistatore della stagione'], ['king', '⛰️', 'Re della stagione']];
+  /**
+   * How many trophies of one kind a person has.
+   * @param {Object} t The trophies of a person.
+   * @param {string} key The kind of trophy.
+   * @returns {number} How many.
+   */
   const trophyCount = (t, key) => typeof t[key] === 'number' ? t[key] : t[key].length;
+  /**
+   * How many trophies of every kind a person has.
+   * @param {Object} t The trophies of a person.
+   * @returns {number} How many trophies of every kind.
+   */
   const trophyTotal = t => TROPHIES.reduce((sum, [key]) => sum + trophyCount(t, key), 0);
+  /**
+   * The trophies of a person as emojis with their count.
+   * @param {Object} t The trophies of a person.
+   * @returns {string} An emoji and the count for each kind that has some.
+   */
   const trophyIcons = t => TROPHIES.filter(([key]) => trophyCount(t, key)).map(([key, emoji]) => `${emoji}${trophyCount(t, key)}`).join('  ');
 
-  // One entry of a sheet: what it is (small), the value (big), the details (small)
+  /**
+   * One entry of a sheet.
+   * @param {string} emoji The emoji before the label.
+   * @param {string} label What it is (small).
+   * @param {string} value The value (big).
+   * @param {(Node|string|Array)} [detail] The details (small).
+   * @returns {HTMLElement} The entry.
+   */
   function item(emoji, label, value, detail) {
     return el('div', { className: 'item' }, el('div', { className: 'what' }, `${emoji} ${label}`), el('div', { className: 'value' }, value),
       ...(detail ? [el('div', { className: 'detail' }, ...[detail].flat())] : []));
   }
+  /**
+   * Items inside one sheet.
+   * @param {HTMLElement[]} items The entries.
+   * @returns {HTMLElement[]} A sheet with them; none when there are no entries.
+   */
   const sheet = items => items.length ? [el('div', { className: 'sheet' }, ...items)] : [];
+  /**
+   * The most recent dates, months or runs of a record.
+   * @param {Array} list Dates, months or runs, oldest first.
+   * @param {number} [limit] How many to show.
+   * @returns {string} The newest ones, with '…' when there are more.
+   */
   const whens = (list, limit = 3) => list.slice(-limit).reverse().map(whenText).join(', ') + (list.length > limit ? ', …' : '');
+  /**
+   * A list of seasons as text.
+   * @param {Array<[number, number]>} list [year, quarter] of each season.
+   * @returns {string} The seasons, newest first.
+   */
   const seasons = list => [...list].reverse().map(([year, quarter]) => `${year} Q${quarter}`).join(', ');
 
-  // A record of the group in one row: what, who (the first holder, +N on a tie) and the value; a tap opens the holder
+  /**
+   * A record of the group in one row: what, who (the first holder, +N on a tie) and the value; a tap opens the holder.
+   * @param {Array} metrics [key, emoji, label, unit] of each record.
+   * @returns {HTMLElement[]} The rows of the records that exist.
+   */
   function recordRows(metrics) {
     return metrics.filter(([key]) => records.group[key]).map(([key, emoji, label, unit]) => {
       const leaders = records.group[key], first = leaders.holders[0].key, others = leaders.holders.length - 1;
@@ -1049,6 +1367,11 @@ function showApp(chatId, data, openOn) {
     });
   }
 
+  /**
+   * The trophies of a person.
+   * @param {?Object} t The trophies; null for none.
+   * @returns {HTMLElement[]} The sheet.
+   */
   function personTrophies(t) {
     if (!t) return [el('p', { className: 'hint' }, tr('Ancora nessun trofeo.'))];
     const detail = {
@@ -1058,21 +1381,30 @@ function showApp(chatId, data, openOn) {
     return sheet(TROPHIES.filter(([key]) => trophyCount(t, key)).map(([key, emoji, label]) => item(emoji, tr(label), String(trophyCount(t, key)), detail[key]())));
   }
 
+  /**
+   * The status and the records of a person.
+   * @param {number} id The user.
+   * @returns {HTMLElement[]} The parts.
+   */
   function personRecords(id) {
     const r = records.people[id], s = r?.status;
     if (!r) return [el('p', { className: 'hint' }, tr('Nessun dato disponibile.'))];
-    const tile = (label, value) => el('div', { className: 'tile' }, el('div', { className: 'value' }, value), el('div', { className: 'what' }, tr(label)));
-    return [el('div', { className: 'tiles' }, tile('Oggi', poops(s.today_count)), tile('Questo mese', poops(s.month_count)),
-        tile('Serie in corso', days(s.streak_days)), tile('Giorni senza 💩', days(s.gap_days))),
+    return [el('div', { className: 'tiles' }, tile(poops(s.today_count), tr('Oggi')), tile(poops(s.month_count), tr('Questo mese')),
+        tile(days(s.streak_days), tr('Serie in corso')), tile(days(s.gap_days), tr('Giorni senza 💩'))),
       el('h2', {}, tr('Record')), el('p', { className: 'note' }, tr('Pallino pieno: il record. Cerchio: adesso. Grigi: gli altri.')),
       ...sheet(METRICS.filter(([key]) => r[key]).map(([key, emoji, label, unit]) =>
         item(emoji, tr(label), unit(r[key].value), [el('span', { className: 'when' }, whens(r[key].when)), ...strip(id, key, r[key].value, unit)])))];
   }
 
-  // A personal record against the person now and against the group record, on one scale (a bullet chart).
-  // Records where less is the record (fewest in a month, longest pause) get the group's value in words only.
-  // A personal record among the group's (like Strava's Local Legend): every member's record a grey dot on one line,
-  // this person's in colour, where they are now as a ring, and the place in words with the gap to the next one
+  /**
+   * A personal record among the group's, like Strava's Local Legend: every member's record a grey dot on one line, this person's in colour, where they are now as a ring, and the place in words with the gap to the next one.
+   * For the records where less is the record (fewest in a month), the comparison is turned around.
+   * @param {number} id The user.
+   * @param {string} key The record.
+   * @param {number} mine The value of the user.
+   * @param {function(number): string} unit Writes a number with its unit.
+   * @returns {HTMLElement[]} The line of dots and the place.
+   */
   function strip(id, key, mine, unit) {
     const fewest = key === 'worst_month', s = records.people[id].status;
     const all = Object.entries(records.people).map(([user, r]) => [Number(user), r[key]?.value]).filter(([, v]) => v != null);
@@ -1089,7 +1421,10 @@ function showApp(chatId, data, openOn) {
       el('div', { className: 'place' }, place)];
   }
 
-  // My trophies in progress: how far the next one is (streak, 💩 of the month, conqueror of the season)
+  /**
+   * My trophies in progress: how far the next one is (streak, 💩 of the month, conqueror of the season).
+   * @returns {HTMLElement[]} The sheet with its titles; empty when there is nothing in progress.
+   */
   function inProgress() {
     const items = [], s = records.people[me]?.status;
     if (s) {
@@ -1111,6 +1446,7 @@ function showApp(chatId, data, openOn) {
   }
 
   let section = 'trophies', recordsOf = null;  // recordsOf: whose records the Record section shows; null: the group
+  /** Draw the trophies tab: the trophies, or the records of the group or of a person. */
   function drawTrophies() {
     const switchSection = seg([['trophies', tr('Trofei')], ['records', tr('Record')]], section, value => { section = value; drawTrophies(); }, 'tabs');
     const winners = Object.keys(records.trophies).map(Number).sort((a, b) =>
@@ -1131,6 +1467,7 @@ function showApp(chatId, data, openOn) {
   // ---- one person, in a sheet that slides up from the bottom; Telegram's back button closes it
 
   const backdrop = el('div', { className: 'backdrop', hidden: true, onclick: event => { if (event.target === backdrop) closePerson(); } });
+  /** Close the sheet from the bottom. */
   function closePerson() {
     backdrop.hidden = true;
     tg.BackButton?.hide();
@@ -1138,6 +1475,10 @@ function showApp(chatId, data, openOn) {
   tg.BackButton?.onClick(closePerson);
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && !backdrop.hidden) closePerson(); });
 
+  /**
+   * Open the sheet of a person.
+   * @param {number} id The user.
+   */
   function openPerson(id) {
     const held = c.ranking.find(x => x.user === id)?.held || 0;
     openPanel(name(id), id, [
@@ -1146,7 +1487,12 @@ function showApp(chatId, data, openOn) {
       ...personRecords(id), el('h2', {}, tr('Trofei')), ...personTrophies(records.trophies[id])]);
   }
 
-  // A sheet from the bottom with a title (and the colour of a person), closed by ✕, a tap outside, Esc or Telegram's back button
+  /**
+   * A sheet from the bottom, closed by ✕, a tap outside, Esc or the back button of Telegram.
+   * @param {string} title The title.
+   * @param {?number} id The user whose colour marks the title; null for none.
+   * @param {Node[]} content What goes inside.
+   */
   function openPanel(title, id, content) {
     const panel = el('div', { className: 'panel', role: 'dialog', ariaModal: 'true', ariaLabel: title },
       el('div', { className: 'panelhead' }, ...(id === null ? [] : [dot(id)]), el('h2', {}, title),
@@ -1157,9 +1503,15 @@ function showApp(chatId, data, openOn) {
     panel.querySelector('.close').focus();
   }
 
-  // Who the map shows: a button with the chosen person, the list of people slides up from the bottom
-  // A button with the chosen person (null: everyone); the list of people slides up from the bottom.
-  // count(id) is the number shown next to each person, allLabel the name of the "everyone" choice
+  /**
+   * A button with the chosen person (null: everyone); the list of people slides up from the bottom.
+   * @param {?number} chosen The chosen user.
+   * @param {function(?number): void} onPick What to do with the choice.
+   * @param {function(?number): string} count The number shown next to each person.
+   * @param {string} allLabel The name of the 'everyone' choice.
+   * @param {string} question The title of the list.
+   * @returns {HTMLElement} The button.
+   */
   function picker(chosen, onPick, count, allLabel, question) {
     const label = id => id === null ? allLabel : id === me ? `${plainName(me)} (${tr('io')})` : plainName(id);
     const mark = id => id === null ? el('span', { className: 'all' }) : dot(id);
@@ -1174,11 +1526,17 @@ function showApp(chatId, data, openOn) {
       mark(chosen), el('span', { className: 'name' }, label(chosen)), el('span', { className: 'chev', ariaHidden: 'true' }, '▾'));
   }
 
-  // over the map: who it shows, and a shortcut to my zones (dragging is never the only way to get there)
+  /**
+   * The buttons over the map: who it shows, and a shortcut to my zones (dragging is never the only way to get there).
+   * @returns {HTMLElement[]} The buttons.
+   */
   const mapControls = () => [mapChooser(), ...(owner !== me && tiles.some(tile => tile.seen[me])
     ? [el('button', { className: 'chooser', onclick: () => pick(me) }, '📍 ', tr('Le mie zone'))] : [])];
 
-  // the menu over the map
+  /**
+   * The menu over the map.
+   * @returns {HTMLElement} The button.
+   */
   const mapChooser = () => picker(owner, pick, id => `${id === null ? tiles.length : c.ranking.find(x => x.user === id)?.held || 0} ${tr('zone')}`,
     tr('Tutti'), tr('Chi vuoi vedere sulla mappa?'));
 
@@ -1188,26 +1546,68 @@ function showApp(chatId, data, openOn) {
   const recaps = data.recaps || [];  // none, one, or in early January the year and December
   let recap = recaps[0] || null;     // the one open
   const story = el('div', { className: 'story', hidden: true, role: 'dialog', ariaModal: 'true' });
+  /**
+   * Translate a sentence and put values in its {holes}.
+   * @param {string} text The Italian sentence.
+   * @param {Object} values {name: value} for each hole.
+   * @returns {string} The sentence.
+   */
   const fill = (text, values) => Object.entries(values).reduce((t, [k, v]) => t.replaceAll(`{${k}}`, v), tr(text));
-  // the month in the middle of a sentence: lower case in Italian, as the bot writes it
-  const monthWord = (year, month) => new Date(Date.UTC(year, month - 1, 1)).toLocaleString(language, { month: 'long', timeZone: 'UTC' });
-  const longDate = iso => new Date(dayNumber(iso) * DAY_MS).toLocaleDateString(language, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
-  const shortDate = iso => new Date(dayNumber(iso) * DAY_MS).toLocaleDateString(language, { day: 'numeric', month: 'long', timeZone: 'UTC' });
-  // the recap of a month, or of a whole year in the first days of January
+  /**
+   * The month in the middle of a sentence: lower case in Italian, as the bot writes it.
+   * @param {number} year The year.
+   * @param {number} month The month, 1 to 12.
+   * @returns {string} The name.
+   */
+  const monthWord = (year, month) => dayText(Date.UTC(year, month - 1, 1), { month: 'long' });
+  /**
+   * A date with its weekday.
+   * @param {string} iso The date as 'YYYY-MM-DD'.
+   * @returns {string} The date with its weekday.
+   */
+  const longDate = iso => dayText(dayNumber(iso) * DAY_MS, { weekday: 'long', day: 'numeric', month: 'long' });
+  /**
+   * A date as day and month.
+   * @param {string} iso The date as 'YYYY-MM-DD'.
+   * @returns {string} The day and the month.
+   */
+  const shortDate = iso => dayText(dayNumber(iso) * DAY_MS, { day: 'numeric', month: 'long' });
+  /**
+   * Tell whether a recap is of a whole year, in the first days of January, or of a month.
+   * @param {Object} [r] The recap; the open one by default.
+   * @returns {boolean} True for a year.
+   */
   const yearly = (r = recap) => r.month === null;
+  /**
+   * The title of a recap.
+   * @param {Object} [r] The recap; the open one by default.
+   * @returns {string} The title.
+   */
   const recapTitle = (r = recap) => yearly(r) ? fill('Il tuo {year}', { year: r.year }) : fill('Il tuo mese di {month}', { month: monthWord(r.year, r.month) });
+  /**
+   * The address of the picture of the open recap.
+   * @returns {string} The address.
+   */
   const recapUrl = () => '/api/recap?chat=' + encodeURIComponent(chatId) + (yearly() ? '&year=1' : '');
   let screen = 0;
   const pictures = new Map();  // recap -> the URL of its picture, drawn by the server
 
+  /**
+   * Load the picture of a recap, drawn by the server, and show it when it arrives.
+   * @param {Object} r The recap.
+   */
   async function loadPicture(r) {
     pictures.set(r, null);
-    const response = await fetch(recapUrl(), { headers: { Authorization: 'tma ' + tg.initData } }).catch(() => null);
+    const response = await fetch(recapUrl(), { headers: authHeaders() }).catch(() => null);
     if (!response?.ok) return pictures.delete(r);
     pictures.set(r, URL.createObjectURL(await response.blob()));
     if (!story.hidden && recap === r) drawRecap();
   }
 
+  /**
+   * The cards in the leaderboard that open the recaps.
+   * @returns {HTMLElement[]} One card per recap.
+   */
   function recapCard() {
     return recaps.map(r => el('button', { className: 'recapcard' + (yearly(r) ? ' year' : ''), onclick: () => openRecap(0, r) },
       el('span', { className: 'big', ariaHidden: 'true' }, yearly(r) ? '🎉' : '✨'),
@@ -1215,6 +1615,10 @@ function showApp(chatId, data, openOn) {
       el('span', { className: 'go', ariaHidden: 'true' }, '›')));
   }
 
+  /**
+   * The screens of the open recap, one fact per screen; the last one holds the picture and the buttons that share it.
+   * @returns {Node[][]} The content of each screen.
+   */
   function recapScreens() {
     const r = recap, month = yearly() ? String(r.year) : monthWord(r.year, r.month);
     const before = yearly() ? String(r.year - 1) : r.month === 1 ? monthWord(r.year - 1, 12) : monthWord(r.year, r.month - 1);
@@ -1223,23 +1627,23 @@ function showApp(chatId, data, openOn) {
     const div = (className, ...children) => el('div', { className }, ...children);
     const run = r.streak;
     const screens = [
-      ['#2f4f8f', '#1d3366', [div('kicker', yearly() ? fill('Nel {year} {name} ha fatto', { year: r.year, name: plainName(me) }) : fill('A {month} {name} ha fatto', { month, name: plainName(me) })), div('huge', String(r.total)), div('mid', '💩'),
-        div('line', fill('{value} al giorno, su {days} giorni.', { value: number(r.total / r.days, 1), days: r.days }))]],
-      ['#e0902b', '#a0561e', [div('emo', '🏆'), div('kicker', tr('Il giorno migliore')), div('mid', longDate(r.best_day)),
+      [div('kicker', yearly() ? fill('Nel {year} {name} ha fatto', { year: r.year, name: plainName(me) }) : fill('A {month} {name} ha fatto', { month, name: plainName(me) })), div('huge', String(r.total)), div('mid', '💩'),
+        div('line', fill('{value} al giorno, su {days} giorni.', { value: number(r.total / r.days, 1), days: r.days }))],
+      [div('emo', '🏆'), div('kicker', tr('Il giorno migliore')), div('mid', longDate(r.best_day)),
         div('line', fill('con {n} 💩.', { n: r.best_count })), div('gap'), div('kicker', tr('La serie più lunga')),
         div('mid', `${days(r.streak_days)} ${tr('di fila')} 🔥`),
         div('line', run.start === run.end ? shortDate(run.start) : yearly() ? fill('dal {start} al {end}.', { start: shortDate(run.start), end: shortDate(run.end) })
-          : fill('dal {start} al {end} {month}.', { start: +run.start.slice(8), end: +run.end.slice(8), month }))]],
-      ...(r.people > 1 ? [['#2aa3e0', '#2f4f8f', [div('emo', MEDALS[r.place - 1] || '💪'), div('kicker', fill('Nel gruppo {name} è', { name: plainName(me) })),
+          : fill('dal {start} al {end} {month}.', { start: +run.start.slice(8), end: +run.end.slice(8), month }))],
+      ...(r.people > 1 ? [[div('emo', MEDALS[r.place - 1] || '💪'), div('kicker', fill('Nel gruppo {name} è', { name: plainName(me) })),
         div('huge', ordinal(r.place)), div('line', r.ahead === null ? fill('su {total}: nessuno ha fatto di più!', { total: r.people })
-          : fill('su {total}, a {gap} 💩 da {other}.', { total: r.people, gap: r.ahead_gap, other: plainName(r.ahead) }))]]] : []),
-      ['#4caf50', '#2e7d5b', [div('emo', delta > 0 ? '📈' : delta < 0 ? '📉' : '⚖️'), div('kicker', yearly() ? fill('Rispetto al {year}', { year: before }) : fill('Rispetto a {month}', { month: before })),
+          : fill('su {total}, a {gap} 💩 da {other}.', { total: r.people, gap: r.ahead_gap, other: plainName(r.ahead) }))]] : []),
+      [div('emo', delta > 0 ? '📈' : delta < 0 ? '📉' : '⚖️'), div('kicker', yearly() ? fill('Rispetto al {year}', { year: before }) : fill('Rispetto a {month}', { month: before })),
         div('huge', signed),
         div('line', yearly() ? (delta === 0 ? fill('come nel {year}.', { year: before })
           : fill(delta > 0 ? '💩 in più ({n} nel {year}).' : '💩 in meno ({n} nel {year}).', { n: r.previous_total, year: before }))
           : delta === 0 ? fill('come a {month}.', { month: before })
           : fill(delta > 0 ? '💩 in più ({n} a {month}).' : '💩 in meno ({n} a {month}).', { n: r.previous_total, month: before })),
-        ...(r.regularity ? [div('pill', fill('Come va: {label}', { label: tr(r.regularity) }))] : [])]],
+        ...(r.regularity ? [div('pill', fill('Come va: {label}', { label: tr(r.regularity) }))] : [])],
     ];
     // the summary is the very picture the bot sends when sharing, drawn by the server
     const pictureUrl = pictures.get(recap);
@@ -1252,31 +1656,52 @@ function showApp(chatId, data, openOn) {
     // Android): the label says which; without either only the first button (#217)
     const second = canShareFiles ? [button('sharemore', 'share', 'Condividi', saveOrShare)]
       : tg.isVersionAtLeast?.('8.0') ? [button('sharemore', 'download', 'Salva sul telefono', saveOrShare)] : [];
-    screens.push([null, null, [picture, button('share', 'telegram', inGroup ? 'Manda nel gruppo' : 'Manda in chat', shareHere), ...second, note]]);
+    screens.push([picture, button('share', 'telegram', inGroup ? 'Manda nel gruppo' : 'Manda in chat', shareHere), ...second, note]);
     return screens;
   }
 
   const inGroup = Number(chatId) < 0;  // a private chat has the id of the user
   const canShareFiles = !!navigator.canShare?.({ files: [new File([''], 'caccometro.png', { type: 'image/png' })] });
-  const post = action => fetch(recapUrl() + '&to=' + action, { method: 'POST', headers: { Authorization: 'tma ' + tg.initData } })
+  /**
+   * Ask the server to send or link the picture of the recap.
+   * @param {string} action 'chat' to send it in the chat, 'link' for a link to download it.
+   * @returns {Promise<?Response>} The response; null when the request fails.
+   */
+  const post = action => fetch(recapUrl() + '&to=' + action, { method: 'POST', headers: authHeaders() })
     .catch(() => null);
+  /**
+   * Tell the user that the picture was sent.
+   * @param {HTMLElement} note Where to write.
+   * @param {string} text The Italian sentence.
+   */
   const done = (note, text) => { tg.HapticFeedback?.notificationOccurred('success'); note.replaceChildren(tr(text)); };
-  const failed = (note, response) =>
+  /**
+   * Tell the user that the picture could not be sent.
+   * @param {HTMLElement} note Where to write.
+   * @param {?Response} response What the server answered; 429 asks to wait.
+   */
+  const shareFailed = (note, response) =>
     note.replaceChildren(tr(response?.status === 429 ? 'Aspetta qualche secondo e riprova.' : 'Qualcosa è andato storto, riprova.'));
 
-  // the share sheet of the system (WhatsApp, Instagram…) where the web view has one, otherwise Telegram's download
+  /**
+   * Share the picture with the share sheet of the system (WhatsApp, Instagram...) where the web view has one, otherwise download it with Telegram.
+   * @param {HTMLElement} note Where to write what happens.
+   */
   async function saveOrShare(note) {
     const url = pictures.get(recap);
     if (url && canShareFiles)
       return navigator.share({ files: [new File([await (await fetch(url)).blob()], 'caccometro.png', { type: 'image/png' })] }).catch(() => {});
     note.replaceChildren('…');
     const response = await post('link');
-    if (!response?.ok) return failed(note, response);
+    if (!response?.ok) return shareFailed(note, response);
     note.replaceChildren();
     tg.downloadFile({ url: (await response.json()).url, file_name: 'caccometro.png' });
   }
 
-  // the bot sends the picture in this chat: the group, or the private chat with the bot
+  /**
+   * Have the bot send the picture in this chat: the group, or the private chat with the bot.
+   * @param {HTMLElement} note Where to write what happens.
+   */
   async function shareHere(note) {
     note.replaceChildren('…');
     const response = await post('chat');
@@ -1285,15 +1710,16 @@ function showApp(chatId, data, openOn) {
     if (body.error === 'start')
       return note.replaceChildren(tr('Prima avvia il bot in privato, poi riprova.'), el('br'),
         el('button', { onclick: event => { event.stopPropagation(); tg.openTelegramLink(`https://t.me/${body.bot}`); } }, tr('Apri il bot')));
-    note.replaceChildren(tr(response?.status === 429 ? 'Aspetta qualche secondo e riprova.' : 'Qualcosa è andato storto, riprova.'));
+    shareFailed(note, response);
   }
 
   // the bottom colour of each month (0: the year) in charts.RECAP_THEMES, shown while its background loads
   const RECAP_THEMES = ['#1f1b6e', '#1d3566', '#2b2f6e', '#26636f', '#6e4a9e', '#27705a', '#1a64ad', '#10648f', '#9a3f7e', '#6e3418', '#5e2418', '#3b2430', '#13224f'];
+  /** Draw the open screen of the recap: the drawn background of the month (or of the year), panned a little each time. */
   function drawRecap() {
     const screens = recapScreens();
     screen = Math.max(0, Math.min(screen, screens.length - 1));
-    const body = screens[screen][2];
+    const body = screens[screen];
     // the drawn background of the month (or of the year) behind every screen, the picture too, panned a little each time
     story.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, .12), rgba(0, 0, 0, .4)), url(/app/recap/${yearly() ? 'year' : String(recap.month).padStart(2, '0')}.jpg)`;
     story.style.backgroundColor = RECAP_THEMES[yearly() ? 0 : recap.month];
@@ -1306,6 +1732,11 @@ function showApp(chatId, data, openOn) {
       ...(screen < screens.length - 1 ? [el('div', { className: 'hintbar' }, tr('tocca per andare avanti'))] : []));
   }
 
+  /**
+   * Open the recap.
+   * @param {number} at The screen to start from.
+   * @param {Object} which The recap.
+   */
   function openRecap(at, which) {
     recap = which;
     screen = at;
@@ -1318,6 +1749,7 @@ function showApp(chatId, data, openOn) {
     tick();
   }
 
+  /** Close the recap. */
   function closeRecap() {
     if (story.hidden) return;
     story.hidden = true;

@@ -1,14 +1,18 @@
-"""SQLite storage, one database file per chat: schema, migration from the legacy schema, counts and users."""
+"""SQLite storage, one database file per chat: schema, migration from the legacy schema, counts, users and conquests.
+
+Every public function opens the database of the chat it is given, creating or migrating it on first use.
+"""
 
 import os
 import sqlite3
 from datetime import datetime
-from typing import NamedTuple, Optional
+
+import h3
 
 from caccometro.config import PROJECT_DIR, now_rome, period_bounds
-from caccometro.conquest import cell_of
+from caccometro.model import User
 
-# Configurations
+# One database file per chat lives in this folder
 DB_FOLDER = str(PROJECT_DIR / 'db')
 
 # Schema versions (stored in PRAGMA user_version):
@@ -17,33 +21,31 @@ DB_FOLDER = str(PROJECT_DIR / 'db')
 #   3   = conquest game: conquests and last_poop tables (#156)
 #   4   = conquest tiles at h3 resolution 7: every saved conquest recalculated from its location (#174)
 SCHEMA_VERSION = 4
-
-class User(NamedTuple):
-    """A Telegram user known to a chat."""
-    user_id: int
-    username: Optional[str]
-    display_name: str
-
-    @property
-    def name(self):
-        """Plain name for charts and tables: the username if any, otherwise the display name."""
-        return self.username or self.display_name
-
-    @property
-    def mention(self):
-        """Name for messages: '@username' if any, otherwise the display name."""
-        return f"@{self.username}" if self.username else self.display_name
-
+SCHEMA_4_RESOLUTION = 7   # frozen: a later change of conquest.RESOLUTION needs a schema 5
 
 # Database files whose schema has already been checked by this process
 _schema_ready = set()
 
 def _db_path(chat_id):
-    """Path of the database file of a chat."""
+    """Path of the database file of a chat.
+
+    Args:
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        str: the file inside DB_FOLDER.
+    """
     return os.path.join(DB_FOLDER, f'{chat_id}_bot_data.db')
 
 def _connect(chat_id):
-    """Open the database of a chat, creating or migrating its schema on first use."""
+    """Open the database of a chat, creating or migrating its schema on first use.
+
+    Args:
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        sqlite3.Connection: a connection the caller must close.
+    """
     path = _db_path(chat_id)
     if path not in _schema_ready:
         _ensure_schema(path)
@@ -51,17 +53,37 @@ def _connect(chat_id):
     return sqlite3.connect(path, timeout=30)
 
 def _has_legacy_table(conn):
-    """True if user_count still has the legacy layout (rows keyed by username)."""
+    """Tell whether user_count still has the legacy layout (rows keyed by username).
+
+    Args:
+        conn (sqlite3.Connection): an open connection.
+
+    Returns:
+        bool: True for the legacy layout.
+    """
     columns = [row[1] for row in conn.execute("PRAGMA table_info(user_count)")]
     return 'username' in columns
 
 def _has_table(conn, name):
-    """Whether the database has a table called `name`."""
+    """Tell whether the database has a table.
+
+    Args:
+        conn (sqlite3.Connection): an open connection.
+        name (str): the table name.
+
+    Returns:
+        bool: True if the table exists.
+    """
     row = conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)).fetchone()
     return row is not None
 
 def _backup_legacy_database(conn, path):
-    """Keep a copy of the database as it was before the migration (only the first time)."""
+    """Keep a copy of the database as it was before the migration (only the first time).
+
+    Args:
+        conn (sqlite3.Connection): a connection to the database to copy.
+        path (str): the database file; the copy is `<path>.v1.bak`.
+    """
     backup_path = path + '.v1.bak'
     if os.path.exists(backup_path):
         return
@@ -76,6 +98,9 @@ def _ensure_schema(path):
 
     The migration runs in a single transaction. The legacy rows are kept untouched in the
     user_count_legacy table: they are linked to user IDs later, on explicit request.
+
+    Args:
+        path (str): the database file; its folder is created if missing.
     """
     os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
     conn = sqlite3.connect(path, isolation_level=None, timeout=30)  # manual transaction control
@@ -111,8 +136,9 @@ def _ensure_schema(path):
                 conn.execute('CREATE INDEX IF NOT EXISTS idx_conquests_cell ON conquests (cell)')
                 # Time of the last 💩 of each user while its conquest window is unused
                 conn.execute('CREATE TABLE IF NOT EXISTS last_poop (user_id INTEGER PRIMARY KEY, ts INTEGER NOT NULL)')
-                # The tile of every conquest again from its location, at the resolution of the game (rows keep their order)
-                conn.create_function('cell_of', 2, cell_of, deterministic=True)
+                # The tile of every conquest again from its location, at the resolution of schema 4 (rows keep their order)
+                conn.create_function('cell_of', 2, lambda lat, lon: h3.latlng_to_cell(lat, lon, SCHEMA_4_RESOLUTION),
+                                     deterministic=True)
                 conn.execute('UPDATE conquests SET cell = cell_of(lat, lon)')
                 conn.execute(f'PRAGMA user_version = {SCHEMA_VERSION}')
             conn.execute('COMMIT')
@@ -126,7 +152,13 @@ def _merge_into(old_chat_id, new_chat_id):
     """Add the users and counts of the old database to the new one, in one transaction (same user and day: summed).
 
     A marker row in the new database makes it happen once even if the old file could not be set aside afterwards.
-    Returns the number of count rows added, or None if the legacy history of both databases would collide.
+
+    Args:
+        old_chat_id (int): the chat that was upgraded.
+        new_chat_id (int): the supergroup that replaces it.
+
+    Returns:
+        int: the number of count rows added, or None if the legacy history of both databases would collide.
     """
     old_path = _db_path(old_chat_id)
     _connect(old_chat_id).close()  # a legacy layout is migrated first
@@ -166,9 +198,16 @@ def _merge_into(old_chat_id, new_chat_id):
 def migrate_chat(old_chat_id, new_chat_id):
     """Move the database of a group that became a supergroup to its new chat ID.
 
-    Returns 'moved', 'merged', 'no_old' (nothing to move) or 'both_have_data' (nothing changed). A database of
-    the new ID that holds no counts yet (created by a message that arrived first) is replaced. When it already
-    holds counts (the migration was handled late) the old database is added to it, and kept as <old>.merged.
+    A database of the new ID that holds no counts yet (created by a message that arrived first) is replaced.
+    When it already holds counts (the migration was handled late) the old database is added to it, and kept
+    as <old>.merged.
+
+    Args:
+        old_chat_id (int): the chat that was upgraded.
+        new_chat_id (int): the supergroup that replaces it.
+
+    Returns:
+        str: 'moved', 'merged', 'no_old' (nothing to move) or 'both_have_data' (nothing changed).
     """
     old_path, new_path = _db_path(old_chat_id), _db_path(new_chat_id)
     if not os.path.exists(old_path):
@@ -190,16 +229,26 @@ def migrate_chat(old_chat_id, new_chat_id):
     _schema_ready.discard(new_path)
     return 'moved'
 
-# Function to initialize the database
 def init_database(chat_id):
-    """Initialize (or migrate) the SQLite database of a chat if needed."""
+    """Initialize (or migrate) the SQLite database of a chat if needed.
+
+    Args:
+        chat_id (int): the Telegram chat.
+    """
     _connect(chat_id).close()
 
 
 # Settings
 
 def get_language(chat_id):
-    """Language chosen for the chat with /language; None when it was never chosen."""
+    """Language chosen for the chat with /language.
+
+    Args:
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        str: the language code, or None when it was never chosen.
+    """
     conn = _connect(chat_id)
     try:
         if not _has_table(conn, 'settings'):
@@ -210,7 +259,12 @@ def get_language(chat_id):
     return row[0] if row else None
 
 def set_language(chat_id, language):
-    """Store the language of the chat (the settings table is created by the first choice)."""
+    """Store the language of the chat (the settings table is created by the first choice).
+
+    Args:
+        chat_id (int): the Telegram chat.
+        language (str): the language code.
+    """
     conn = _connect(chat_id)
     try:
         conn.execute('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)')
@@ -224,16 +278,39 @@ def set_language(chat_id, language):
 # Users
 
 def _to_user(user_id, username, display_name):
-    """A User from a users row; the user ID stands in for a missing display name."""
+    """Build a User from a users row; the user ID stands in for a missing display name.
+
+    Args:
+        user_id (int): Telegram ID.
+        username (str): the username, or None.
+        display_name (str): the name shown in Telegram, or None.
+
+    Returns:
+        User: the user.
+    """
     return User(user_id, username, display_name or str(user_id))
 
 def _users(conn):
-    """All known users of the chat, by user ID."""
+    """All known users of the chat.
+
+    Args:
+        conn (sqlite3.Connection): an open connection.
+
+    Returns:
+        dict: {user_id: User}.
+    """
     return {user_id: _to_user(user_id, username, display_name)
             for user_id, username, display_name in conn.execute('SELECT user_id, username, display_name FROM users')}
 
 def get_users(chat_id):
-    """Every user known to the chat, as {user_id: User}."""
+    """Every user known to the chat.
+
+    Args:
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        dict: {user_id: User}.
+    """
     conn = _connect(chat_id)
     try:
         return _users(conn)
@@ -241,7 +318,16 @@ def get_users(chat_id):
         conn.close()
 
 def upsert_user(chat_id, user_id, username, display_name):
-    """Record the current username and display name of a user (writes only when something changed)."""
+    """Record the current username and display name of a user (writes only when something changed).
+
+    A username belongs to one account at a time: it is released from any previous holder.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        user_id (int): Telegram ID.
+        username (str): the username, or None.
+        display_name (str): the name shown in Telegram.
+    """
     conn = _connect(chat_id)
     try:
         row = conn.execute('SELECT username, display_name FROM users WHERE user_id = ?', (user_id,)).fetchone()
@@ -261,7 +347,15 @@ def upsert_user(chat_id, user_id, username, display_name):
         conn.close()
 
 def find_user_by_username(chat_id, username):
-    """Find a known user by (case-insensitive) username; None if the bot has never seen it."""
+    """Find a known user by username, ignoring the case.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        username (str): the username without the @.
+
+    Returns:
+        User: the user, or None if the bot has never seen that username.
+    """
     conn = _connect(chat_id)
     try:
         row = conn.execute('SELECT user_id, username, display_name FROM users WHERE username = ? COLLATE NOCASE LIMIT 1',
@@ -274,7 +368,16 @@ def find_user_by_username(chat_id, username):
 # Counts
 
 def get_count(user_id, date, chat_id):
-    """Count of 💩 of a user on a day ('YYYY-MM-DD'); 0 if none."""
+    """Count of 💩 of a user on a day.
+
+    Args:
+        user_id (int): Telegram ID.
+        date (str): the day as 'YYYY-MM-DD'.
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        int: the count, 0 if none.
+    """
     conn = _connect(chat_id)
     try:
         row = conn.execute('SELECT count FROM user_count WHERE user_id = ? AND date = ?', (user_id, date)).fetchone()
@@ -283,11 +386,19 @@ def get_count(user_id, date, chat_id):
     return row[0] if row else 0
 
 def add_count(user_id, date, delta, chat_id):
-    """Add delta (e.g. +1 or -1) to the count of a user on a day, in a single transaction.
+    """Add a change to the count of a user on a day, in a single transaction.
 
     Reading and writing happen under the same write lock, so concurrent updates cannot overwrite
     each other. The count never goes below 0 (a count of 0 removes the row).
-    Returns (old_count, new_count).
+
+    Args:
+        user_id (int): Telegram ID.
+        date (str): the day as 'YYYY-MM-DD'.
+        delta (int): the change, e.g. +1 or -1.
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        (old_count, new_count): the counts before and after the change.
     """
     conn = _connect(chat_id)
     conn.isolation_level = None  # manual transaction control
@@ -312,7 +423,16 @@ def add_count(user_id, date, delta, chat_id):
         conn.close()
 
 def _daily_counts(conn, start_period, end_period):
-    """{user_id: {'YYYY-MM-DD': count}} for every day with at least one 💩 in the period (one query)."""
+    """Counts of every day with at least one 💩 in a period, with one query.
+
+    Args:
+        conn (sqlite3.Connection): an open connection.
+        start_period (str): first day, 'YYYY-MM-DD'.
+        end_period (str): last day, 'YYYY-MM-DD'.
+
+    Returns:
+        dict: {user_id: {'YYYY-MM-DD': count}}.
+    """
     daily = {}
     for user_id, day, count in conn.execute('SELECT user_id, date, count FROM user_count WHERE date BETWEEN ? AND ?',
                                             (start_period, end_period)):
@@ -320,28 +440,50 @@ def _daily_counts(conn, start_period, end_period):
     return daily
 
 def get_daily_counts(chat_id, time_period, date):
-    """Counts of every user for every day of a period ('month' + 'MM-YYYY', or 'year' + 'YYYY').
+    """Counts of every user for every day of a month or a year.
 
-    One query for the whole period. Returns {user_id: {'YYYY-MM-DD': count}}; days without 💩 are absent.
+    Args:
+        chat_id (int): the Telegram chat.
+        time_period (str): 'month' or 'year'.
+        date (str): 'MM-YYYY' for a month, 'YYYY' for a year.
+
+    Returns:
+        dict: {user_id: {'YYYY-MM-DD': count}}; days without 💩 are absent.
     """
     return get_daily_counts_between(chat_id, *period_bounds(time_period, date))
 
 def get_daily_counts_between(chat_id, start_period, end_period):
-    """Like get_daily_counts, for any range of days ('YYYY-MM-DD', both ends included)."""
+    """Like get_daily_counts, for any range of days.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        start_period (str): first day, 'YYYY-MM-DD'.
+        end_period (str): last day, 'YYYY-MM-DD', included.
+
+    Returns:
+        dict: {user_id: {'YYYY-MM-DD': count}}; days without 💩 are absent.
+    """
     conn = _connect(chat_id)
     try:
         return _daily_counts(conn, start_period, end_period)
     finally:
         conn.close()
 
-# Function to get the rank of users based on the count of poop emojis
 def get_rank(chat_id, time_period, date):
-    """Get the rank of users for the specified period, as a list of (User, count) sorted by count."""
+    """Total 💩 of every user in a month or a year, best first.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        time_period (str): 'month' or 'year'.
+        date (str): 'MM-YYYY' for a month, 'YYYY' for a year.
+
+    Returns:
+        list: [(User, total)] sorted by total, then by name.
+    """
     start_period, end_period = period_bounds(time_period, date)
 
     conn = _connect(chat_id)
     try:
-        # Execute SQL query to get the rank based on the time_period
         rows = conn.execute('''SELECT c.user_id, u.username, u.display_name, SUM(c.count) AS partial_count
                                FROM user_count c
                                LEFT JOIN users u ON u.user_id = c.user_id
@@ -353,9 +495,16 @@ def get_rank(chat_id, time_period, date):
         conn.close()
     return [(_to_user(user_id, username, display_name), total) for user_id, username, display_name, total in rows]
 
-# Function to get the records for the specific user
 def get_record(user_id, chat_id):
-    """Get the (date, count) records of a user, sorted by date."""
+    """The counts of one user.
+
+    Args:
+        user_id (int): Telegram ID.
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        list: [(date, count)] sorted by date.
+    """
     conn = _connect(chat_id)
     try:
         return conn.execute('''SELECT date, count
@@ -365,11 +514,14 @@ def get_record(user_id, chat_id):
     finally:
         conn.close()
 
-# Function to get the records of every user of a chat
 def get_all_user_rows(chat_id):
-    """All the (date, count) rows of every user of the chat, read with a single query.
+    """The counts of every user of the chat, read with a single query.
 
-    Returns ({user_id: [(date, count), ...] sorted by date}, {user_id: User}).
+    Args:
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        (rows, users): rows is {user_id: [(date, count), ...] sorted by date}, users is {user_id: User}.
     """
     conn = _connect(chat_id)
     try:
@@ -382,7 +534,15 @@ def get_all_user_rows(chat_id):
     return rows, users
 
 def get_days_since_last_poop(user_id, chat_id):
-    """Days since the last 💩 of the user (0 = today), None without any 💩."""
+    """Days since the last 💩 of a user.
+
+    Args:
+        user_id (int): Telegram ID.
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        int: 0 for today; None when the user never made any 💩.
+    """
     conn = _connect(chat_id)
     try:
         last_day = conn.execute('''SELECT date
@@ -405,7 +565,13 @@ def get_days_since_last_poop(user_id, chat_id):
 # Conquest game
 
 def open_conquest_window(user_id, ts, chat_id):
-    """Remember the time (Unix seconds) of a 💩 of the user: it opens the conquest window."""
+    """Remember the time of a 💩 of the user: it opens the conquest window.
+
+    Args:
+        user_id (int): Telegram ID.
+        ts (int): Unix seconds of the 💩.
+        chat_id (int): the Telegram chat.
+    """
     conn = _connect(chat_id)
     try:
         conn.execute('''INSERT INTO last_poop (user_id, ts) VALUES (?, ?)
@@ -415,11 +581,22 @@ def open_conquest_window(user_id, ts, chat_id):
         conn.close()
 
 def conquer(chat_id, user_id, ts, lat, lon, cell, window):
-    """Conquer `cell` if the user sent a 💩 at most `window` seconds before `ts`; the window is then used up.
+    """Conquer a tile if the user sent a 💩 shortly before; the window is then used up.
 
     One transaction, so two locations of the same window cannot both conquer.
-    Returns (previous_owner, history) or None without an open window. previous_owner is None for a new tile;
-    history is every conquest [(user_id, cell)] in order, the new one last.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        user_id (int): Telegram ID.
+        ts (int): Unix seconds of the location.
+        lat (float): latitude of the location.
+        lon (float): longitude of the location.
+        cell (str): the h3 cell of the location.
+        window (int): seconds the window stays open after the 💩.
+
+    Returns:
+        (previous_owner, history): previous_owner is None for a new tile; history is every conquest
+        [(user_id, cell)] in order, the new one last. None when there is no open window.
     """
     conn = _connect(chat_id)
     conn.isolation_level = None  # manual transaction control
@@ -445,22 +622,28 @@ def conquer(chat_id, user_id, ts, lat, lon, cell, window):
         conn.close()
 
 def _conquests(conn):
-    """Every conquest [(user_id, cell)] in the order the bot handled them."""
+    """Every conquest in the order the bot handled them.
+
+    Args:
+        conn (sqlite3.Connection): an open connection.
+
+    Returns:
+        list: [(user_id, cell)].
+    """
     return conn.execute('SELECT user_id, cell FROM conquests ORDER BY rowid').fetchall()
 
 def get_timed_conquests(chat_id):
-    """Every conquest of the chat [(user_id, ts, cell)] in order, for the seasons."""
+    """Every conquest of the chat, with its time, for the seasons.
+
+    Args:
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        list: [(user_id, ts, cell)] in the order they were made.
+    """
     conn = _connect(chat_id)
     try:
         return conn.execute('SELECT user_id, ts, cell FROM conquests ORDER BY rowid').fetchall()
-    finally:
-        conn.close()
-
-def get_conquests(chat_id):
-    """Every conquest of the chat [(user_id, cell)] in order."""
-    conn = _connect(chat_id)
-    try:
-        return _conquests(conn)
     finally:
         conn.close()
 
@@ -468,9 +651,15 @@ def get_conquests(chat_id):
 # Legacy data (counts recorded by username before the user-ID schema)
 
 def list_legacy_users(chat_id):
-    """Legacy usernames not yet linked to a user, as [(username, total_count)] sorted by name.
+    """The legacy usernames not yet linked to a user.
 
     Usernames that differ only by case are grouped; rows without a username are not listed.
+
+    Args:
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        list: [(username, total_count)] sorted by name.
     """
     conn = _connect(chat_id)
     try:
@@ -485,7 +674,14 @@ def list_legacy_users(chat_id):
         conn.close()
 
 def count_legacy_orphans(chat_id):
-    """Number of legacy rows without a username: they cannot be linked to anybody by name."""
+    """Count the legacy rows without a username: they cannot be linked to anybody by name.
+
+    Args:
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        int: the number of rows.
+    """
     conn = _connect(chat_id)
     try:
         if not _has_table(conn, 'user_count_legacy'):
@@ -495,10 +691,17 @@ def count_legacy_orphans(chat_id):
         conn.close()
 
 def link_legacy_username(chat_id, legacy_username, user_id):
-    """Move the legacy history of a username (case-insensitive) to a user ID.
+    """Move the legacy history of a username to a user ID, ignoring the case.
 
-    Counts of the same day are summed with the ones the user already has. Returns the number
-    of days moved (0 if there is nothing to link, e.g. already linked).
+    Counts of the same day are summed with the ones the user already has.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        legacy_username (str): the old username.
+        user_id (int): Telegram ID of the person it belongs to.
+
+    Returns:
+        int: the number of days moved, 0 if there is nothing to link (for instance already linked).
     """
     conn = _connect(chat_id)
     conn.isolation_level = None  # manual transaction control
@@ -527,7 +730,11 @@ def link_legacy_username(chat_id, legacy_username, user_id):
 def link_legacy_by_username(chat_id):
     """Link every legacy username that matches the username of a known user.
 
-    Returns [(legacy_username, User, days_moved)] for the links that were made.
+    Args:
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        list: [(legacy_username, User, days_moved)] for the links that were made.
     """
     linked = []
     for legacy_username, _ in list_legacy_users(chat_id):
@@ -537,7 +744,14 @@ def link_legacy_by_username(chat_id):
     return linked
 
 def get_first_days(chat_id):
-    """{user_id: 'YYYY-MM-DD'} of the first day with 💩 of every user of the chat."""
+    """The first day with 💩 of every user of the chat.
+
+    Args:
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        dict: {user_id: 'YYYY-MM-DD'}.
+    """
     conn = _connect(chat_id)
     try:
         return dict(conn.execute('SELECT user_id, MIN(date) FROM user_count WHERE count > 0 GROUP BY user_id'))

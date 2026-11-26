@@ -2,10 +2,8 @@
 import random
 from datetime import date, timedelta
 
-import pytest
-
 from caccometro.analysis import Period, analyze_user, forecast_totals, period_statistics
-from caccometro.database import User
+from caccometro.model import User
 
 # Jan 2024: 1,2,1 on days 1-3, then day 7 | Feb: day 10 (x3) | Mar: day 1
 ROWS = [
@@ -18,6 +16,14 @@ APRIL = date(2024, 4, 15)
 
 
 def iso(day):
+    """A date as 'YYYY-MM-DD'.
+
+    Args:
+        day (date): the date.
+
+    Returns:
+        str: the text.
+    """
     return day.isoformat()
 
 
@@ -235,8 +241,8 @@ def test_forecast_on_the_last_day_is_the_total():
 
 
 def test_regularity_reads_the_spread_of_the_days():
-    from caccometro.analysis import regularity
-    assert regularity([1] * 28) == "molto regolare"                      # the same every day
-    assert regularity([1, 1, 2, 1, 0, 2, 0] * 4) == "abbastanza regolare"
-    assert regularity([0, 0, 0, 4, 0, 0, 3] * 4) == "a sbalzi"            # long pauses, then many at once
-    assert regularity([1] * 13) is None and regularity([1, 0, 0, 0] * 4) is None   # too few days, too few 💩
+    from caccometro.analysis import _regularity
+    assert _regularity([1] * 28) == "molto regolare"                      # the same every day
+    assert _regularity([1, 1, 2, 1, 0, 2, 0] * 4) == "abbastanza regolare"
+    assert _regularity([0, 0, 0, 4, 0, 0, 3] * 4) == "a sbalzi"            # long pauses, then many at once
+    assert _regularity([1] * 13) is None and _regularity([1, 0, 0, 0] * 4) is None   # too few days, too few 💩

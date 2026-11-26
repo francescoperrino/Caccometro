@@ -5,7 +5,7 @@ Pure functions, like analysis.py: the trophies are computed from the stored coun
 from datetime import date, datetime
 from typing import NamedTuple, Optional
 
-from caccometro.analysis import Period, _parse, _runs
+from caccometro.analysis import Period, consecutive_runs, parse_counts
 from caccometro.config import ROME_TZ
 from caccometro.conquest import holdings
 
@@ -13,18 +13,31 @@ STREAK_STEP = 15   # a streak trophy every 15 consecutive days: 15, 30, 45, ...
 
 
 class Winners(NamedTuple):
-    """Who made the most 💩 in a month or a year (ties: all of them) and how many."""
+    """Who made the most 💩 in a month or a year (ties: all of them) and how many.
+
+    Attributes:
+        total (int): the 💩 of the winner or winners.
+        user_ids (list): the user IDs with that total, sorted.
+    """
     total: int
     user_ids: list
 
 
 class UserTrophies(NamedTuple):
-    """The trophies of one user, in chronological order."""
-    streaks: list   # [(Period, days)]: runs of at least STREAK_STEP days
-    months: list    # [(year, month)]: months won
-    years: list     # [year]: years won
-    conqueror: tuple = ()   # [(year, quarter)]: seasons with the most conquests
-    king: tuple = ()        # [(year, quarter)]: seasons ended as king of the hill
+    """The trophies of one user, in chronological order.
+
+    Attributes:
+        streaks (list): [(Period, days)], runs of at least STREAK_STEP days.
+        months (list): [(year, month)], months won.
+        years (list): [year], years won.
+        conqueror (tuple): [(year, quarter)], seasons with the most conquests.
+        king (tuple): [(year, quarter)], seasons ended as king of the hill.
+    """
+    streaks: list
+    months: list
+    years: list
+    conqueror: tuple = ()
+    king: tuple = ()
 
     @property
     def streak_trophies(self):
@@ -32,27 +45,50 @@ class UserTrophies(NamedTuple):
         return sum(days // STREAK_STEP for _, days in self.streaks)
 
 
-def streak_runs(rows):
-    """[(Period, days)] of the runs worth at least one trophy. rows: [(date 'YYYY-MM-DD', count)]."""
-    counts = _parse(rows)
-    return [(Period(run.start, run.end), run.days) for run in _runs(sorted(counts), counts)
+def _streak_runs(rows):
+    """The runs of days with 💩 that are worth at least one trophy.
+
+    Args:
+        rows (list): [(date 'YYYY-MM-DD', count)] of one user.
+
+    Returns:
+        list: [(Period, days)] of the runs of at least STREAK_STEP days.
+    """
+    counts = parse_counts(rows)
+    return [(Period(run.start, run.end), run.days) for run in consecutive_runs(sorted(counts), counts)
             if run.days >= STREAK_STEP]
 
 
 def new_streak_trophy(rows, today: date) -> Optional[int]:
-    """Days of the run ending today if today makes them a multiple of STREAK_STEP; None otherwise."""
-    counts = _parse(rows)
+    """The length of the run that earns a trophy today, if any.
+
+    Args:
+        rows (list): [(date 'YYYY-MM-DD', count)] of one user.
+        today: the current date.
+
+    Returns:
+        int: days of the run ending today if today makes them a multiple of STREAK_STEP; None otherwise.
+    """
+    counts = parse_counts(rows)
     if today not in counts:
         return None
-    last = _runs(sorted(day for day in counts if day <= today), counts)[-1]
+    last = consecutive_runs(sorted(day for day in counts if day <= today), counts)[-1]
     return last.days if last.days % STREAK_STEP == 0 else None
 
 
 def _winners(users_rows, period_of):
-    """{period: Winners} of every period with 💩; period_of maps a date to its period."""
+    """Who made the most 💩 in every period with 💩.
+
+    Args:
+        users_rows (dict): {user_id: [(date, count)]}.
+        period_of (callable): maps a date to its period (a month, a year).
+
+    Returns:
+        dict: {period: Winners}.
+    """
     totals = {}
     for user_id, rows in users_rows.items():
-        for day, count in _parse(rows).items():
+        for day, count in parse_counts(rows).items():
             per_user = totals.setdefault(period_of(day), {})
             per_user[user_id] = per_user.get(user_id, 0) + count
     result = {}
@@ -63,33 +99,68 @@ def _winners(users_rows, period_of):
 
 
 def monthly_winners(users_rows, today: date):
-    """{(year, month): Winners} of the completed months. users_rows: {user_id: [(date, count)]}."""
+    """Who won every completed month.
+
+    Args:
+        users_rows (dict): {user_id: [(date, count)]}.
+        today: the current date; the month it falls in is not completed.
+
+    Returns:
+        dict: {(year, month): Winners}.
+    """
     current = (today.year, today.month)
     return {month: winners for month, winners in _winners(users_rows, lambda d: (d.year, d.month)).items()
             if month < current}
 
 
 def yearly_winners(users_rows, today: date):
-    """{year: Winners} of the completed years."""
+    """Who won every completed year.
+
+    Args:
+        users_rows (dict): {user_id: [(date, count)]}.
+        today: the current date; the year it falls in is not completed.
+
+    Returns:
+        dict: {year: Winners}.
+    """
     return {year: winners for year, winners in _winners(users_rows, lambda d: d.year).items() if year < today.year}
 
 
 class SeasonResult(NamedTuple):
-    """Titles of a season (a calendar quarter in Italian time) of the conquest game."""
-    conquests: int      # how many tiles the top conqueror(s) took during the season, stolen ones included
-    conquerors: list    # user IDs with that many conquests (a tie gives the title to all of them)
-    king: int           # user ID holding the most tiles at the end of the season (on a tie the sitting king keeps it)
+    """Titles of a season (a calendar quarter in Italian time) of the conquest game.
+
+    Attributes:
+        conquests (int): how many tiles the top conqueror or conquerors took during the season, stolen ones included.
+        conquerors (list): user IDs with that many conquests (a tie gives the title to all of them).
+        king (int): user ID holding the most tiles at the end of the season (on a tie the sitting king keeps it).
+    """
+    conquests: int
+    conquerors: list
+    king: int
 
 
 def season_of(day: date):
-    """(year, quarter 1-4) of a day."""
+    """The season of a day.
+
+    Args:
+        day: the day.
+
+    Returns:
+        (year, quarter): the quarter is 1 to 4.
+    """
     return day.year, (day.month - 1) // 3 + 1
 
 
 def season_results(history):
-    """{season: SeasonResult} of every season with a conquest. history: [(user_id, ts, cell)] in the order handled.
+    """The titles of every season with a conquest.
 
     The king of a season comes from replaying the history up to its last conquest; the last season is "so far".
+
+    Args:
+        history (list): [(user_id, ts, cell)] in the order the conquests were handled.
+
+    Returns:
+        dict: {season: SeasonResult}.
     """
     # owners: tile -> current owner; per_season: season -> {user ID: conquests}; last: season -> index of its last conquest
     owners, per_season, last = {}, {}, {}
@@ -109,7 +180,16 @@ def season_results(history):
 
 
 def trophies_by_user(users_rows, today: date, history=()):
-    """{user_id: UserTrophies} of the users with at least one trophy. history: conquests [(user_id, ts, cell)]."""
+    """The trophies of every user who has at least one.
+
+    Args:
+        users_rows (dict): {user_id: [(date, count)]}.
+        today: the current date; unfinished months, years and seasons give no trophy.
+        history (list): conquests [(user_id, ts, cell)].
+
+    Returns:
+        dict: {user_id: UserTrophies}.
+    """
     months, years = {}, {}
     for month, winners in sorted(monthly_winners(users_rows, today).items()):
         for user_id in winners.user_ids:
@@ -125,7 +205,7 @@ def trophies_by_user(users_rows, today: date, history=()):
             king.setdefault(season_result.king, []).append(season)
     result = {}
     for user_id in set(users_rows) | set(conqueror) | set(king):
-        trophies = UserTrophies(streak_runs(users_rows.get(user_id, [])), months.get(user_id, []),
+        trophies = UserTrophies(_streak_runs(users_rows.get(user_id, [])), months.get(user_id, []),
                                 years.get(user_id, []), conqueror.get(user_id, []), king.get(user_id, []))
         if any(trophies):
             result[user_id] = trophies

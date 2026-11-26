@@ -1,21 +1,25 @@
 """Trophies (#6): streaks every 15 days, 💩 of the month and of the year, /trophies and the midnight announcement."""
-import asyncio
 from datetime import date, datetime, timedelta, timezone
 
-from caccometro import announce, commands, database, messages
+from caccometro import announce, cmd_records, database, messages
 from caccometro.analysis import Period
 from caccometro.formatting import format_group_trophies, format_new_period, format_user_trophies
 from caccometro.trophies import (SeasonResult, UserTrophies, Winners, monthly_winners, new_streak_trophy, season_results,
-                                 streak_runs, trophies_by_user, yearly_winners)
-from conftest import make_context, make_update, uid
-
-
-def run(coro):
-    return asyncio.run(coro)
+                                 _streak_runs, trophies_by_user, yearly_winners)
+from conftest import make_context, make_update, run
 
 
 def days_from(start, n, count=1):
-    """n consecutive days from `start` ('YYYY-MM-DD'), each with `count` 💩, as stored rows."""
+    """Consecutive days as stored rows.
+
+    Args:
+        start (str): the first day, 'YYYY-MM-DD'.
+        n (int): how many days.
+        count (int): the 💩 of each day.
+
+    Returns:
+        list: [(date, count)].
+    """
     first = date.fromisoformat(start)
     return [((first + timedelta(days=i)).isoformat(), count) for i in range(n)]
 
@@ -24,14 +28,14 @@ def days_from(start, n, count=1):
 
 def test_streak_runs_keep_only_runs_of_at_least_15_days():
     rows = days_from("2026-01-01", 14) + days_from("2026-02-01", 47)
-    runs = streak_runs(rows)
+    runs = _streak_runs(rows)
     assert [days for _, days in runs] == [47]
     assert UserTrophies(runs, [], []).streak_trophies == 3
 
 
 def test_days_without_poop_break_the_streak():
     rows = days_from("2026-01-01", 10) + [("2026-01-11", 0)] + days_from("2026-01-12", 10)
-    assert streak_runs(rows) == []
+    assert _streak_runs(rows) == []
 
 
 def test_new_streak_trophy_on_every_multiple_of_15():
@@ -139,8 +143,17 @@ def test_poop_without_milestone_has_no_trophy(seed, monkeypatch):
 # ---------------------------------------------------------------- /trophies
 
 def trophies_text(*args, **update_kwargs):
+    """Run /trophies and return the text of its reply.
+
+    Args:
+        *args: the arguments of the command.
+        **update_kwargs: more arguments for make_update().
+
+    Returns:
+        str: the reply.
+    """
     upd = make_update(**update_kwargs)
-    run(commands.trophies_command(upd, make_context(*args)))
+    run(cmd_records.trophies_command(upd, make_context(*args)))
     return upd.message.reply_text.call_args[0][0]
 
 
@@ -173,19 +186,19 @@ def test_trophies_rejects_extra_arguments(seed):
 def test_chat_ids_from_the_database_files(chat_id, isolated_folders):
     (isolated_folders / "db" / "-1001_bot_data.db.v1.bak").write_bytes(b"")
     (isolated_folders / "db" / "42_bot_data.db").write_bytes(b"")
-    assert announce.chat_ids() == [chat_id, 42]
+    assert announce._chat_ids() == [chat_id, 42]
 
 
 def test_announcement_of_the_month_just_ended(seed, chat_id):
     seed({"mario": {"2026-10-03": 4}, "luigi": {"2026-10-04": 2, "2026-11-01": 9}})
-    text = announce.announcement(chat_id, date(2026, 11, 1))
+    text = announce._announcement(chat_id, date(2026, 11, 1))
     assert "ottobre 2026 è finito" in text
     assert "*@mario* con 4 💩" in text
 
 
 def test_no_announcement_when_the_month_had_no_poop(seed, chat_id):
     seed({"mario": {"2026-09-03": 4}})
-    assert announce.announcement(chat_id, date(2026, 11, 1)) is None
+    assert announce._announcement(chat_id, date(2026, 11, 1)) is None
 
 
 def test_dry_run_prints_without_sending(seed, capsys, monkeypatch):
@@ -207,15 +220,15 @@ def test_nothing_happens_when_it_is_not_the_first_day(seed, monkeypatch):
 def test_wait_for_midnight_only_when_it_is_close(monkeypatch):
     slept = []
     monkeypatch.setattr(announce.time, "sleep", slept.append)
-    announce.wait_for_midnight(datetime(2026, 11, 30, 23, 0))   # winter: the task starts at 23:00
-    announce.wait_for_midnight(datetime(2026, 7, 1, 0, 0, 5))   # summer: it is already midnight
+    announce._wait_for_midnight(datetime(2026, 11, 30, 23, 0))   # winter: the task starts at 23:00
+    announce._wait_for_midnight(datetime(2026, 7, 1, 0, 0, 5))   # summer: it is already midnight
     assert slept == [3600]
 
 
 def test_wait_for_midnight_returns_the_midnight_it_waited_for(monkeypatch):
     monkeypatch.setattr(announce.time, "sleep", lambda seconds: None)
-    assert announce.wait_for_midnight(datetime(2026, 11, 30, 23, 0)) == datetime(2026, 12, 1)
-    assert announce.wait_for_midnight(datetime(2026, 7, 1, 0, 0, 5)) is None
+    assert announce._wait_for_midnight(datetime(2026, 11, 30, 23, 0)) == datetime(2026, 12, 1)
+    assert announce._wait_for_midnight(datetime(2026, 7, 1, 0, 0, 5)) is None
 
 
 def test_announces_for_the_new_day_even_if_the_clock_is_still_before_midnight(monkeypatch):
@@ -224,7 +237,7 @@ def test_announces_for_the_new_day_even_if_the_clock_is_still_before_midnight(mo
     monkeypatch.setattr(announce.time, "sleep", lambda seconds: None)
     clock = iter([datetime(2026, 11, 30, 23, 0), datetime(2026, 11, 30, 23, 59, 59)])
     monkeypatch.setattr(announce, "now_rome", lambda: next(clock))
-    monkeypatch.setattr(announce, "announce", lambda today, dry_run=False: days.append(today))
+    monkeypatch.setattr(announce, "_announce", lambda today, dry_run=False: days.append(today))
     monkeypatch.setattr(announce.asyncio, "run", lambda value: None)
     announce.main([])
     assert days == [date(2026, 12, 1)]
@@ -249,7 +262,7 @@ def test_send_failures_do_not_stop_the_other_chats(seed, chat_id, monkeypatch, i
 
     buttons = []
     monkeypatch.setattr(announce, "application", type("App", (), {"bot": FakeBot()})())
-    run(announce.announce(date(2026, 11, 1)))
+    run(announce._announce(date(2026, 11, 1)))
     assert sent == [chat_id]
     assert buttons[0].endswith(f"/app?startapp={chat_id}_recap")   # the button opens the recap of the month (#195)
 
@@ -257,6 +270,16 @@ def test_send_failures_do_not_stop_the_other_chats(seed, chat_id, monkeypatch, i
 # ---------------------------------------------------------------- conquest seasons (#129)
 
 def ts(year, month, day):
+    """The Unix time of a day at noon.
+
+    Args:
+        year (int): the year.
+        month (int): the month.
+        day (int): the day.
+
+    Returns:
+        int: the seconds.
+    """
     return int(datetime(year, month, day, 12).timestamp())
 
 
@@ -311,5 +334,5 @@ def test_announcement_on_the_first_day_of_a_quarter_includes_the_season(seed, ch
                  (next(iter(users)), ts(2026, 9, 10)))
     conn.commit()
     conn.close()
-    assert "Stagione luglio–settembre 2026 finita" in announce.announcement(chat_id, date(2026, 10, 1))
-    assert "Stagione" not in (announce.announcement(chat_id, date(2026, 11, 1)) or "")
+    assert "Stagione luglio–settembre 2026 finita" in announce._announcement(chat_id, date(2026, 10, 1))
+    assert "Stagione" not in (announce._announcement(chat_id, date(2026, 11, 1)) or "")

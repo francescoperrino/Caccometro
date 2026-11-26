@@ -11,15 +11,25 @@ import pytest
 from telegram.error import Forbidden
 
 from caccometro import __version__, bot, conquest, database, miniapp, trophies, webhook
-from conftest import CHAT_ID, uid
+from caccometro.model import User
+from conftest import BOT_USER, CHAT_ID, uid
 
 TOKEN = os.environ["BOT_TOKEN"]
 USER_ID = 42
-BOT_USER = {"id": 7, "is_bot": True, "first_name": "Caccometro", "username": "caccometro_test_bot"}
 
 
 def init_data(user_id=USER_ID, auth_date=None, token=TOKEN, **extra):
-    """initData signed like Telegram does (the test user is made up)."""
+    """initData signed like Telegram does (the test user is made up).
+
+    Args:
+        user_id (int): the user.
+        auth_date (float): when it was signed; None for now.
+        token (str): the token that signs it.
+        **extra: more fields.
+
+    Returns:
+        str: the URL-encoded initData.
+    """
     fields = {"auth_date": str(int(auth_date or time.time())),
               "user": json.dumps({"id": user_id, "first_name": "Mario"}), **extra}
     check = "\n".join(f"{k}={v}" for k, v in sorted(fields.items()))
@@ -48,7 +58,14 @@ def test_direct_link_opens_the_mini_app_on_the_chat():
 
 @pytest.fixture
 def telegram(monkeypatch):
-    """Telegram answers getMe, getChat and getChatMember; `status` sets the membership."""
+    """Telegram answers getMe, getChat and getChatMember; `status` sets the membership.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): pytest's fixture.
+
+    Returns:
+        dict: the state, with 'status' and the 'calls' made.
+    """
     state = {"status": "member", "calls": []}
 
     async def fake_post(endpoint, data=None, **kwargs):
@@ -72,10 +89,25 @@ def telegram(monkeypatch):
 
 @pytest.fixture
 def client():
+    """The Flask test client.
+
+    Returns:
+        flask.testing.FlaskClient: the client.
+    """
     return webhook.app.test_client()
 
 
 def get(client, path, data=None):
+    """GET a path signed as a Mini App user.
+
+    Args:
+        client (flask.testing.FlaskClient): the test client.
+        path (str): the path.
+        data (str): the initData; None for a valid one.
+
+    Returns:
+        flask.Response: the response.
+    """
     return client.get(path, headers={"Authorization": "tma " + (data if data is not None else init_data())})
 
 
@@ -118,7 +150,7 @@ def test_mini_app_page_is_served(client):
 
 
 def test_conquest_data_sends_outlines_and_owners_at_every_zoom_but_no_locations():
-    users = {1: database.User(1, "anna", "Anna"), 2: database.User(2, None, "Bruno")}
+    users = {1: User(1, "anna", "Anna"), 2: User(2, None, "Bruno")}
     cell = conquest.cell_of(45.46, 9.19)
     other = conquest.cell_of(45.60, 9.40)
     data = miniapp.conquest_data([(1, 1_700_000_000, cell), (2, 1_700_000_100, cell), (1, 1_700_000_200, other),
@@ -175,7 +207,7 @@ def test_season_boards_follow_the_rules_of_the_season_titles():
     a, b = conquest.cell_of(45.46, 9.19), conquest.cell_of(45.60, 9.40)
     q1, q2 = 1_767_225_600 + 86_400, 1_775_000_000 + 86_400   # made-up times: January and April 2026
     timed = [(1, q1, a), (1, q1 + 1, a), (2, q1 + 2, b), (2, q2, a), (1, q2 + 1, b)]
-    boards = miniapp.season_boards(timed)
+    boards = miniapp._season_boards(timed)
     assert [(x["year"], x["quarter"]) for x in boards] == [(2026, 1), (2026, 2)]
     assert boards[0]["conquests"] == {1: 1, 2: 1} and boards[0]["held"] == {1: 1, 2: 1}  # retaking your own tile counts nothing
     assert boards[1]["conquests"] == {2: 1, 1: 1} and boards[1]["held"] == {2: 1, 1: 1}

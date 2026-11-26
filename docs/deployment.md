@@ -129,7 +129,7 @@ flowchart TD
     style hosting fill:#f3e4d0,stroke:#cbbca9,stroke-dasharray:5 5,color:#7a6a5c
 ```
 
-The replies go out through the hosting proxy, which sometimes answers 503 for a few seconds: `RetryingRequest` tries again ([architecture.md](architecture.md#path-of-a-message)).
+The replies go out through the hosting proxy, which sometimes answers 503 for a few seconds: `_RetryingRequest` tries again ([architecture.md](architecture.md#path-of-a-message)).
 
 ### 1. Code and dependencies
 

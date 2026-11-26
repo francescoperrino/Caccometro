@@ -4,26 +4,42 @@ import time
 from pathlib import Path
 
 import pytest
-from telegram import Update
 from telegram.error import NetworkError
-from telegram.ext import Application
 from unittest.mock import AsyncMock
 
 from caccometro import bot, config, webhook
 from caccometro import database
-from conftest import CHAT_ID
+from conftest import BOT_USER, CHAT_ID
 
 SECRET = {"X-Telegram-Bot-Api-Secret-Token": "test-secret"}   # as Telegram sends it
 
-BOT_USER = {"id": 7, "is_bot": True, "first_name": "Caccometro", "username": "caccometro_test_bot"}
 
 
 def message_dict(text="ok"):
+    """The message Telegram answers to sendMessage.
+
+    Args:
+        text (str): the text.
+
+    Returns:
+        dict: the message.
+    """
     return {"message_id": 2, "date": 1700000000, "text": text,
             "chat": {"id": CHAT_ID, "type": "group", "title": "g"}}
 
 
 def telegram_update(text="💩", update_id=1, user_id=42, username="mario"):
+    """The update Telegram posts to the webhook for a message.
+
+    Args:
+        text (str): the text.
+        update_id (int): the update ID.
+        user_id (int): the sender.
+        username (str): the username of the sender.
+
+    Returns:
+        dict: the update.
+    """
     return {"update_id": update_id,
             "message": {"message_id": update_id, "date": int(time.time()), "text": text,
                         "chat": {"id": CHAT_ID, "type": "group", "title": "g"},
@@ -32,7 +48,14 @@ def telegram_update(text="💩", update_id=1, user_id=42, username="mario"):
 
 @pytest.fixture
 def telegram_calls(monkeypatch):
-    """Replace the HTTP layer of the bot: records the API methods called, answers like Telegram."""
+    """Replace the HTTP layer of the bot: records the API methods called, answers like Telegram.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): pytest's fixture.
+
+    Returns:
+        list: the methods called.
+    """
     calls = []
 
     async def fake_post(endpoint, data=None, **kwargs):
@@ -47,7 +70,11 @@ def telegram_calls(monkeypatch):
 
 
 def cycle(bot):
-    """What the webhook does around every update."""
+    """What the webhook does around every update.
+
+    Args:
+        bot: the application bot, started and stopped.
+    """
     asyncio.run(bot.initialize())
     asyncio.run(bot.shutdown())
 

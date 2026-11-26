@@ -3,7 +3,7 @@ import asyncio
 import sqlite3
 from datetime import datetime, timedelta, timezone
 
-from caccometro import commands, conquest, database, messages
+from caccometro import cmd_conquests, cmd_counts, conquest, database, messages
 from conftest import make_context, make_update, uid
 
 MILAN, ROME = (45.4642, 9.19), (41.9028, 12.4964)
@@ -11,13 +11,34 @@ T0 = datetime(2026, 11, 19, 10, 0, tzinfo=timezone.utc)
 
 
 def send(name, text=None, location=None, at=T0, chat_type="group"):
-    """A message of `name` handled by the bot; returns the reply text."""
+    """A message of a user handled by the bot.
+
+    Args:
+        name (str): the user.
+        text (str): the text of the message.
+        location (telegram.Location): the location of a location message.
+        at (datetime): when the message was sent.
+        chat_type (str): 'group' or 'private'.
+
+    Returns:
+        str: the reply text.
+    """
     upd = make_update(text=text, username=name, user_id=uid(name), location=location, date=at, chat_type=chat_type)
     asyncio.run(messages.handle_message(upd, make_context()))
     return upd.message.reply_text.call_args.args[0]
 
 
 def poop_and_conquer(name, location, at=T0):
+    """A 💩 followed a minute later by a location.
+
+    Args:
+        name (str): the user.
+        location (telegram.Location): where.
+        at (datetime): when the 💩 was sent.
+
+    Returns:
+        str: the reply to the location.
+    """
     send(name, "💩", at=at)
     return send(name, location=location, at=at + timedelta(minutes=1))
 
@@ -53,18 +74,30 @@ def test_cells_are_resolution_6():
     assert conquest.cell_of(*MILAN) != conquest.cell_of(*ROME)
 
 
+def conquests(chat_id):
+    """Every conquest of the chat, in order.
+
+    Args:
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        list: [(user_id, cell)].
+    """
+    return [(user_id, cell) for user_id, _, cell in database.get_timed_conquests(chat_id)]
+
+
 # the window
 
 def test_a_location_without_a_poop_conquers_nothing(chat_id):
     assert send("mario", location=MILAN) == "Prima la 💩, poi la conquista 😏"
-    assert database.get_conquests(chat_id) == []
+    assert conquests(chat_id) == []
 
 
 def test_a_location_within_15_minutes_conquers_once(chat_id):
     send("mario", "💩")
     assert send("mario", location=MILAN, at=T0 + timedelta(minutes=15)).startswith("🚩")
     assert send("mario", location=ROME, at=T0 + timedelta(minutes=16)) == "Prima la 💩, poi la conquista 😏"
-    assert len(database.get_conquests(chat_id)) == 1
+    assert len(conquests(chat_id)) == 1
 
 
 def test_the_window_closes_after_15_minutes_and_does_not_go_backwards(chat_id):
@@ -74,7 +107,7 @@ def test_the_window_closes_after_15_minutes_and_does_not_go_backwards(chat_id):
 
 
 def test_add_poop_does_not_open_the_window(chat_id):
-    asyncio.run(commands.add_poop_command(make_update(username="mario", user_id=uid("mario")), make_context("oggi")))
+    asyncio.run(cmd_counts.add_poop_command(make_update(username="mario", user_id=uid("mario")), make_context("oggi")))
     assert send("mario", location=MILAN) == "Prima la 💩, poi la conquista 😏"
 
 
@@ -100,22 +133,22 @@ def test_new_stolen_and_defended_tiles_and_the_king(chat_id):
 
 
 def test_conquests_command(chat_id, monkeypatch):
-    monkeypatch.setattr(commands, "now_rome", lambda: datetime(2026, 11, 20, 12))
+    monkeypatch.setattr(cmd_conquests, "now_rome", lambda: datetime(2026, 11, 20, 12))
     poop_and_conquer("mario", MILAN)
     poop_and_conquer("luigi", ROME, T0 + timedelta(hours=1))
     upd = make_update(username="mario", user_id=uid("mario"))
-    asyncio.run(commands.conquests_command(upd, make_context()))
+    asyncio.run(cmd_conquests.conquests_command(upd, make_context()))
     assert upd.message.reply_text.call_args.args[0] == (
         "🗺️ *Conquiste*\n\n🥇 *@mario 👑*: 1 🚩\n🥇 *@luigi*: 1 🚩\n"
         "\n🚩 Stagione ottobre–dicembre 2026: conquistatore *@mario* e *@luigi* (1), re *@mario*")
     upd = make_update(username="luigi", user_id=uid("luigi"))
-    asyncio.run(commands.conquests_command(upd, make_context("io")))
+    asyncio.run(cmd_conquests.conquests_command(upd, make_context("io")))
     assert upd.message.reply_text.call_args.args[0] == "🗺️ @luigi: 1 zone tenute, 1 visitate."
 
 
 def test_conquests_command_without_conquests(chat_id):
     upd = make_update()
-    asyncio.run(commands.conquests_command(upd, make_context()))
+    asyncio.run(cmd_conquests.conquests_command(upd, make_context()))
     assert upd.message.reply_text.call_args.args[0].startswith("Nessuna zona conquistata.")
 
 
@@ -131,7 +164,7 @@ def test_a_version_2_database_gets_the_conquest_tables(tmp_path):
                           PRAGMA user_version = 2;""")
     conn.close()
     assert database.get_count(1, "2026-11-01", -4004) == 2
-    assert database.get_conquests(-4004) == []
+    assert conquests(-4004) == []
     assert sqlite3.connect(path).execute("PRAGMA user_version").fetchone()[0] == database.SCHEMA_VERSION
 
 
@@ -147,8 +180,8 @@ def test_a_version_3_database_gets_its_conquests_recalculated_at_the_new_resolut
     conn.execute("PRAGMA user_version = 3")
     conn.commit()
     conn.close()
-    assert database.get_conquests(-4005) == [(u, conquest.cell_of(lat, lon)) for u, _, lat, lon in rows]  # same order
-    assert {h3.get_resolution(cell) for _, cell in database.get_conquests(-4005)} == {conquest.RESOLUTION}
+    assert conquests(-4005) == [(u, conquest.cell_of(lat, lon)) for u, _, lat, lon in rows]  # same order
+    assert {h3.get_resolution(cell) for _, cell in conquests(-4005)} == {conquest.RESOLUTION}
     assert sqlite3.connect(path).execute("PRAGMA user_version").fetchone()[0] == database.SCHEMA_VERSION
 
 
@@ -161,5 +194,5 @@ def test_a_supergroup_merge_keeps_the_conquests():
     database.open_conquest_window(1, 300, old)  # window still open when the group is upgraded
     database.add_count(1, "2026-11-02", 1, new)
     assert database.migrate_chat(old, new) == "merged"
-    assert database.get_conquests(new) == [(1, "c1")]
+    assert conquests(new) == [(1, "c1")]
     assert database.conquer(new, 1, 400, 45.0, 9.0, "c2", conquest.WINDOW_SECONDS) is not None

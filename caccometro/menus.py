@@ -1,4 +1,4 @@
-"""Command names and menu descriptions in Italian and English; the menu of a chat follows its language (#152)."""
+"""Command names and menu descriptions in Italian and English; the menu of a chat follows its language."""
 import logging
 
 from telegram import BotCommandScopeChat, BotCommandScopeChatAdministrators
@@ -43,18 +43,32 @@ ADMIN_ONLY = {'link_history'}   # only in the administrators' menus
 
 
 def menu(language, admins=False):
-    """(command, description) pairs of the menu in 'en' or 'it'; the admins' menu adds the admin-only commands."""
+    """The menu of the commands in a language.
+
+    Args:
+        language (str): 'en' or 'it'.
+        admins (bool): True for the menu of the administrators, which adds the admin-only commands.
+
+    Returns:
+        list: [(command, description)].
+    """
     english = language == 'en'
     return [(en if english else it, en_text if english else it_text)
             for en, it, en_text, it_text in MENU if admins or en not in ADMIN_ONLY]
 
 
 async def set_chat_menu(bot, chat_id, language, group):
-    """Show the menu of one chat in `language`, whatever the app language of who opens it.
+    """Show the menu of one chat in a language, whatever the app language of who opens it.
 
     Without a language_code the chat scope wins over the global menus of every language. A group needs the admins'
     menu too: for them the chat scope comes before all_chat_administrators, so they would lose /link_history.
     A failure leaves the global menus: it is logged, and sending /language again repairs it.
+
+    Args:
+        bot (telegram.Bot): the bot.
+        chat_id (int): the Telegram chat.
+        language (str): 'en' or 'it'.
+        group (bool): True for a group, which also gets the administrators' menu.
     """
     try:
         await bot.set_my_commands(menu(language), scope=BotCommandScopeChat(chat_id))

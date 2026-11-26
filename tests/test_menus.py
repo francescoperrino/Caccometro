@@ -7,19 +7,35 @@ import pytest
 from telegram import BotCommandScopeChat, BotCommandScopeChatAdministrators
 from telegram.error import NetworkError
 
-from caccometro import commands, database, menus, messages
+from caccometro import cmd_settings, database, menus, messages
 from conftest import make_context, make_update
 
 
 def language(*args, member_status="administrator", chat_type="group"):
-    """Send /language and return (update, context)."""
+    """Send /language.
+
+    Args:
+        *args: the arguments of the command.
+        member_status (str): the status of the sender in the chat.
+        chat_type (str): 'group' or 'private'.
+
+    Returns:
+        (update, context): what the command ran with.
+    """
     upd, ctx = make_update(chat_type=chat_type), make_context(*args, member_status=member_status)
-    asyncio.run(commands.language_command(upd, ctx))
+    asyncio.run(cmd_settings.language_command(upd, ctx))
     return upd, ctx
 
 
 def menus_set(ctx):
-    """{scope type: [command names]} of every set_my_commands call."""
+    """The menus a command set.
+
+    Args:
+        ctx (types.SimpleNamespace): the context the command ran with.
+
+    Returns:
+        dict: {scope type: [command names]} of every set_my_commands call.
+    """
     return {call.kwargs["scope"].type: [name for name, _ in call.args[0]] for call in ctx.bot.set_my_commands.call_args_list}
 
 
@@ -54,13 +70,23 @@ def test_a_failed_menu_keeps_the_language_and_the_reply(chat_id, caplog):
     upd, ctx = make_update(), make_context("en", member_status="administrator")
     ctx.bot.set_my_commands.side_effect = NetworkError("httpx.ProxyError: 503 Service Unavailable")
     with caplog.at_level(logging.WARNING, logger="caccometro"):
-        asyncio.run(commands.language_command(upd, ctx))
+        asyncio.run(cmd_settings.language_command(upd, ctx))
     assert database.get_language(chat_id) == "en"
     upd.message.reply_text.assert_called_once_with("From now on I speak English 🇬🇧")
     assert "Could not set the menu" in caplog.text
 
 
 def migrate(language=None, old=-100, new=-1001):
+    """Handle the migration of a group to a supergroup.
+
+    Args:
+        language (str): the language chosen in the old chat; None for none.
+        old (int): the old chat.
+        new (int): the new chat.
+
+    Returns:
+        types.SimpleNamespace: the context the handler ran with.
+    """
     if language:
         database.set_language(old, language)
     upd, ctx = make_update(chat_id=new), make_context()

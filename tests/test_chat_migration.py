@@ -10,18 +10,35 @@ OLD, NEW = -100, -1001
 
 
 def seed_counts(chat_id, count=1):
+    """Give a user one day of counts in a chat.
+
+    Args:
+        chat_id (int): the Telegram chat.
+        count (int): the 💩 of the day.
+    """
     database.upsert_user(chat_id, 1, "mario", "Mario")
     database.add_count(1, "2024-03-10", count, chat_id)
 
 
 def migrate(new_chat_id=NEW, old_chat_id=OLD):
+    """Handle the message Telegram sends in the new chat when a group becomes a supergroup.
+
+    Args:
+        new_chat_id (int): the supergroup.
+        old_chat_id (int): the group it replaces.
+    """
     upd = make_update(chat_id=new_chat_id)
     upd.message.migrate_from_chat_id = old_chat_id
     asyncio.run(messages.handle_migration(upd, make_context()))
 
 
 def migrate_from_the_old_chat(old_chat_id=OLD, new_chat_id=NEW):
-    """The twin message, sent in the old chat."""
+    """Handle the twin message, sent in the old chat.
+
+    Args:
+        old_chat_id (int): the group.
+        new_chat_id (int): the supergroup that replaces it.
+    """
     upd = make_update(chat_id=old_chat_id)
     upd.message.migrate_from_chat_id = None
     upd.message.migrate_to_chat_id = new_chat_id

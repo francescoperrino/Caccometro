@@ -19,17 +19,23 @@ MARKERS = ("<!-- drawn by tools/draw_dependencies.py: start -->", "<!-- drawn by
 # Layers from top to bottom. EVERYWHERE is imported by almost every module: its arrows would hide the others.
 LAYERS = [
     ("start", "🚪 Entry points", ["__main__", "webhook", "announce"]),
-    ("telegram", "✈️ Telegram: updates, commands, Mini App", ["bot", "commands", "messages", "chat", "menus", "miniapp"]),
+    ("telegram", "✈️ Telegram: updates, commands, Mini App", ["bot", "cmd_leaderboards", "cmd_records", "cmd_counts", "cmd_conquests", "cmd_settings",
+                                                         "arguments", "messages", "chat", "menus", "miniapp"]),
     ("replies", "💬 Replies: texts, charts, maps", ["formatting", "charts", "maps"]),
     ("rules", "🧮 Rules: pure functions", ["analysis", "trophies", "conquest"]),
     ("storage", "🗄️ Storage", ["database"]),
+    ("types", "🧱 Shared types", ["model"]),
 ]
 EVERYWHERE = ["config", "i18n"]
 SKIPPED = ["__init__"]   # only the version
 
 
 def imports():
-    """{module: set of the modules of the package it imports}."""
+    """The modules of the package that each module imports.
+
+    Returns:
+        dict: {module: set of the modules it imports}.
+    """
     names = {path.stem for path in PACKAGE.glob("*.py")}
     found = {}
     for name in sorted(names):
@@ -46,9 +52,12 @@ def imports():
 
 
 def used_units():
-    """{(module, imported module): set of the names of the second that the first uses: functions, classes, constants}.
+    """The names of a module that another one uses: functions, classes and constants.
 
     A unit is used when it is imported by name (from caccometro.x import f) or called as x.f.
+
+    Returns:
+        dict: {(module, imported module): set of the names of the second that the first uses}.
     """
     trees = {path.stem: ast.parse(path.read_text(encoding="utf-8")) for path in PACKAGE.glob("*.py")}
     defined = {module: {node.name for node in tree.body
@@ -77,10 +86,18 @@ def used_units():
 
 
 def cycles(graph):
-    """Each import cycle once, as a list of modules, found by a depth-first search."""
+    """Find the import cycles.
+
+    Args:
+        graph (dict): {module: set of the modules it imports}.
+
+    Returns:
+        list: each cycle once, as a list of modules, found by a depth-first search.
+    """
     found, path = [], []
 
     def visit(node):
+        """Follow the imports of a module, remembering the path; record a cycle when the path meets itself."""
         if node in path:
             cycle = path[path.index(node):]
             start = cycle.index(min(cycle))
@@ -99,6 +116,11 @@ def cycles(graph):
 
 
 def render():
+    """Draw the dependency diagram, with a sentence that explains it and the list of import cycles.
+
+    Returns:
+        str: the Markdown for docs/architecture.md.
+    """
     graph = imports()
     placed = [name for _, _, names in LAYERS for name in names] + EVERYWHERE + SKIPPED
     missing = sorted(set(graph) - set(placed))
@@ -134,7 +156,14 @@ def render():
 
 
 def updated(text):
-    """`text` of docs/architecture.md with the diagram between the markers replaced."""
+    """Put the diagram in the text of docs/architecture.md.
+
+    Args:
+        text (str): the text of the page.
+
+    Returns:
+        str: the text with the diagram between the markers replaced.
+    """
     start = text.index(MARKERS[0]) + len(MARKERS[0])
     end = text.index(MARKERS[1])
     newline = "\r\n" if "\r\n" in text else "\n"

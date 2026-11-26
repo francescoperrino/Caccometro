@@ -11,7 +11,7 @@ sys.path.insert(0, str(REPO))
 
 from caccometro import i18n, maps  # noqa: E402
 from caccometro.conquest import cell_of  # noqa: E402
-from caccometro.database import User  # noqa: E402
+from caccometro.model import User  # noqa: E402
 
 OUT = REPO / "assets" / "screenshots"
 PEOPLE = {1: User(1, "giulia", "Giulia"), 2: User(2, "marco", "Marco"), 3: User(3, None, "Anna")}  # Anna: no username
@@ -25,6 +25,7 @@ CONQUESTS = [  # (latitude, longitude, user_id), in order: the last one is the c
 
 
 def main():
+    """Draw the four conquest maps of the README, in Italian and English, from fake conquests."""
     history = [(user_id, cell_of(lat, lon)) for lat, lon, user_id in CONQUESTS]
     for language in ("it", "en"):
         i18n.use(language)

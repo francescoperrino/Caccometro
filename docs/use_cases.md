@@ -10,7 +10,7 @@ The views come from the code, not from a run: every branch appears, whether or n
 
 ## `/start`
 
-Entry point: `commands.start_command`
+Entry point: `cmd_settings.start_command`
 
 ```mermaid
 ---
@@ -49,18 +49,18 @@ flowchart LR
     accTitle: Communication diagram, /start
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_settings("<b>cmd_settings.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
-    telegram -->|"1.#nbsp;start_command"| commands
-    commands -->|"2.#nbsp;register_sender"| chat
+    telegram -->|"1.#nbsp;start_command"| cmd_settings
+    cmd_settings -->|"2.#nbsp;register_sender"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6.#nbsp;init_database"| database
-    commands -->|"7.#nbsp;reply_text"| telegram
+    chat -.->|"5.#nbsp;sender"| cmd_settings
+    cmd_settings -->|"6.#nbsp;init_database"| database
+    cmd_settings -->|"7.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database step
+    class cmd_settings,chat,database step
     class telegram person
 ```
 
@@ -96,20 +96,20 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /start
-    accDescr: The calls between the modules in time order, starting from commands.start_command
+    accDescr: The calls between the modules in time order, starting from cmd_settings.start_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_settings as cmd_settings.py
     participant chat as chat.py
     participant database as database.py
     rect rgb(255, 250, 243)
-        telegram->>commands: start_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_settings: start_command(update, context)
+        cmd_settings->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
-        commands->>database: init_database(update.message.chat_id)
-        commands->>telegram: reply_text(tr('Ciao, sono 🤖 *Caccometro* 🤖.\nMan...)
+        chat-->>cmd_settings: sender
+        cmd_settings->>database: init_database(update.message.chat_id)
+        cmd_settings->>telegram: reply_text(tr('Ciao, sono 🤖 *Caccometro* 🤖.\nMan...)
     end
 ```
 
@@ -118,19 +118,15 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `database.init_database`
-  - `conquest.cell_of` (see above)
 
 </details>
 
 ## `/leaderboard_month` (`/classifica_mese`)
 
-Entry point: `commands.leaderboard_month_command`
+Entry point: `cmd_leaderboards.leaderboard_month_command`
 
 ```mermaid
 ---
@@ -169,28 +165,32 @@ flowchart LR
     accTitle: Communication diagram, /leaderboard_month (/classifica_mese)
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_leaderboards("<b>cmd_leaderboards.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
-    analysis("<b>analysis.py</b>")
+    arguments("<b>arguments.py</b>")
     formatting("<b>formatting.py</b>")
+    analysis("<b>analysis.py</b>")
     charts("<b>charts.py</b>")
-    telegram -->|"1.#nbsp;leaderboard_month_command"| commands
-    commands -->|"2.#nbsp;register_sender<br/>19.#nbsp;escape_md<br/>27.#nbsp;reply_chart"| chat
-    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6, 10.#nbsp;reply_text"| telegram
-    commands -->|"7.#nbsp;get_rank<br/>9.#nbsp;list_legacy_users<br/>11.#nbsp;get_all_user_rows<br/>15.#nbsp;get_daily_counts_between<br/>24.#nbsp;get_daily_counts"| database
-    database -.->|"8.#nbsp;rank<br/>12.#nbsp;(rows_by_user, _)<br/>16.#nbsp;recent<br/>25.#nbsp;daily_counts"| commands
-    commands -->|"13.#nbsp;analyze_user<br/>17.#nbsp;forecast_totals"| analysis
-    commands -->|"14.#nbsp;flame<br/>20.#nbsp;bold<br/>21.#nbsp;tie_positions<br/>22.#nbsp;standing_lines"| formatting
-    analysis -.->|"18.#nbsp;forecast"| commands
-    formatting -.->|"23.#nbsp;standing"| commands
-    commands -->|"26.#nbsp;generate_rank_chart"| charts
-    chat -->|"28, 29.#nbsp;reply_photo<br/>30.#nbsp;reply_text"| telegram
+    telegram -->|"1.#nbsp;leaderboard_month_command"| cmd_leaderboards
+    cmd_leaderboards -->|"2.#nbsp;register_sender<br/>11.#nbsp;legacy_hint<br/>22.#nbsp;escape_md<br/>30.#nbsp;reply_chart"| chat
+    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>12.#nbsp;list_legacy_users"| database
+    chat -.->|"5.#nbsp;sender"| cmd_leaderboards
+    cmd_leaderboards -->|"6.#nbsp;period_from_args"| arguments
+    arguments -->|"7.#nbsp;reply_text"| telegram
+    arguments -.->|"8.#nbsp;date"| cmd_leaderboards
+    cmd_leaderboards -->|"9.#nbsp;get_rank<br/>14.#nbsp;get_all_user_rows<br/>18.#nbsp;get_daily_counts_between<br/>27.#nbsp;get_daily_counts"| database
+    database -.->|"10.#nbsp;rank<br/>15.#nbsp;(rows_by_user, _)<br/>19.#nbsp;recent<br/>28.#nbsp;daily_counts"| cmd_leaderboards
+    cmd_leaderboards -->|"13.#nbsp;reply_text"| telegram
+    cmd_leaderboards -->|"16.#nbsp;flame<br/>23.#nbsp;ranked_line<br/>24.#nbsp;tie_positions<br/>25.#nbsp;standing_lines"| formatting
+    cmd_leaderboards -->|"17.#nbsp;analyze_users<br/>20.#nbsp;forecast_totals"| analysis
+    analysis -.->|"21.#nbsp;forecast"| cmd_leaderboards
+    formatting -.->|"26.#nbsp;standing"| cmd_leaderboards
+    cmd_leaderboards -->|"29.#nbsp;generate_rank_chart"| charts
+    chat -->|"31, 32.#nbsp;reply_photo<br/>33.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database,analysis,formatting,charts step
+    class cmd_leaderboards,chat,database,arguments,formatting,analysis,charts step
     class telegram person
 ```
 
@@ -226,54 +226,55 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /leaderboard_month (/classifica_mese)
-    accDescr: The calls between the modules in time order, starting from commands.leaderboard_month_command
+    accDescr: The calls between the modules in time order, starting from cmd_leaderboards.leaderboard_month_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_leaderboards as cmd_leaderboards.py
     participant chat as chat.py
     participant database as database.py
-    participant analysis as analysis.py
+    participant arguments as arguments.py
     participant formatting as formatting.py
+    participant analysis as analysis.py
     participant charts as charts.py
     rect rgb(255, 250, 243)
-        telegram->>commands: leaderboard_month_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_leaderboards: leaderboard_month_command(update, context)
+        cmd_leaderboards->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
+        chat-->>cmd_leaderboards: sender
+        cmd_leaderboards->>arguments: period_from_args(update, context.args, time_period)
         opt date is None
-            commands->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+            arguments->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
         end
-        commands->>database: get_rank(update.message.chat_id, time_period, ...)
-        database-->>commands: rank
+        arguments-->>cmd_leaderboards: date
+        cmd_leaderboards->>database: get_rank(update.message.chat_id, time_period, ...)
+        database-->>cmd_leaderboards: rank
         opt not rank
-            commands->>database: list_legacy_users(chat_id)
-            commands->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
-            Note over commands: returns
+            cmd_leaderboards->>chat: legacy_hint(update.message.chat_id)
+            chat->>database: list_legacy_users(chat_id)
+            cmd_leaderboards->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
+            Note over cmd_leaderboards: returns
         end
         opt start_period <= today.isoformat() <= ...
-            commands->>database: get_all_user_rows(update.message.chat_id)
-            database-->>commands: (rows_by_user, _)
-            commands->>analysis: analyze_user(rows, today)
-            commands->>formatting: flame(analyze_user(rows, today).status)
-            commands->>database: get_daily_counts_between(update.message.chat_id, (today - time...)
-            database-->>commands: recent
-            commands->>analysis: forecast_totals({user.user_id: total for user, total ...)
-            analysis-->>commands: forecast
+            cmd_leaderboards->>database: get_all_user_rows(update.message.chat_id)
+            database-->>cmd_leaderboards: (rows_by_user, _)
+            cmd_leaderboards->>formatting: flame(records.status)
+            cmd_leaderboards->>analysis: analyze_users(rows_by_user, today)
+            cmd_leaderboards->>database: get_daily_counts_between(update.message.chat_id, (today - time...)
+            database-->>cmd_leaderboards: recent
+            cmd_leaderboards->>analysis: forecast_totals({user.user_id: total for user, total ...)
+            analysis-->>cmd_leaderboards: forecast
         end
-        commands->>chat: escape_md(user.mention)
-        opt position in MEDALS
-            commands->>formatting: bold(name)
-            Note over commands: returns
-        end
-        commands->>formatting: tie_positions([t for _, t in rank])
-        commands->>formatting: standing_lines([(user.user_id, total) for user, tota...)
-        formatting-->>commands: standing
-        commands->>database: get_daily_counts(update.message.chat_id, time_period, ...)
-        database-->>commands: daily_counts
-        commands->>charts: generate_rank_chart(rank, daily_counts, time_period, date...)
-        commands->>chat: reply_chart(update, generate_rank_chart(rank, dai...)
-        opt fits_caption(message)
+        cmd_leaderboards->>chat: escape_md(user.mention)
+        cmd_leaderboards->>formatting: ranked_line(position, names[user.user_id] + flame...)
+        cmd_leaderboards->>formatting: tie_positions([t for _, t in rank])
+        cmd_leaderboards->>formatting: standing_lines([(user.user_id, total) for user, tota...)
+        formatting-->>cmd_leaderboards: standing
+        cmd_leaderboards->>database: get_daily_counts(update.message.chat_id, time_period, ...)
+        database-->>cmd_leaderboards: daily_counts
+        cmd_leaderboards->>charts: generate_rank_chart(rank, daily_counts, time_period, date...)
+        cmd_leaderboards->>chat: reply_chart(update, generate_rank_chart(rank, dai...)
+        opt _fits_caption(message)
             chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
             Note over chat: returns
         end
@@ -285,56 +286,41 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `commands.leaderboard_command`
-  - `chat.register_sender`
-    - `database.get_language`
-      - `conquest.cell_of`
-    - `chat.register_user`
-      - `chat.display_name_of`
-      - `database.upsert_user`
-        - `conquest.cell_of` (see above)
-  - `commands.period_from_args`
-  - `database.get_rank`
-    - `conquest.cell_of` (see above)
-  - `commands.legacy_hint`
-    - `database.list_legacy_users`
-      - `conquest.cell_of` (see above)
-  - `database.get_all_user_rows`
-    - `conquest.cell_of` (see above)
-  - `formatting.flame`
+- `chat.register_sender`
+  - `database.get_language`
+  - `chat.register_user`
+    - `database.upsert_user`
+- `arguments.period_from_args`
+- `database.get_rank`
+- `chat.legacy_hint`
+  - `database.list_legacy_users`
+- `database.get_all_user_rows`
+- `formatting.flame`
+- `analysis.analyze_users`
   - `analysis.analyze_user`
-  - `database.get_daily_counts_between`
-    - `conquest.cell_of` (see above)
-  - `analysis.forecast_totals`
-  - `chat.escape_md`
-  - `commands.ranked_line`
-    - `formatting.bold`
-  - `formatting.tie_positions`
-  - `formatting.standing_lines`
-  - `database.get_daily_counts`
-    - `database.get_daily_counts_between` (see above)
-  - `chat.reply_chart`
-    - `chat.fits_caption`
-  - `charts.generate_rank_chart`
-    - `charts.period_info`
-    - `charts.last_day_shown`
-    - `charts.chart_label`
-    - `charts.sorted_by_name`
-    - `charts.short_name`
-    - `charts.user_style`
-    - `charts.positions`
-    - `charts.emoji`
-    - `charts.fine_vlines`
-    - `charts.layered_grid`
-    - `charts.add_cards`
-    - `charts.png_bytes`
-      - `charts.add_watermark`
+    - `analysis.parse_counts`
+    - `analysis.consecutive_runs`
+- `database.get_daily_counts_between`
+- `analysis.forecast_totals`
+- `chat.escape_md`
+- `formatting.ranked_line`
+- `formatting.tie_positions`
+- `formatting.standing_lines`
+- `database.get_daily_counts`
+  - `database.get_daily_counts_between` (see above)
+- `chat.reply_chart`
+- `charts.generate_rank_chart`
+  - `charts.chart_label`
+  - `charts.sorted_by_name`
+  - `charts.short_name`
+  - `charts.add_cards`
+  - `charts.png_bytes`
 
 </details>
 
 ## `/leaderboard_year` (`/classifica_anno`)
 
-Entry point: `commands.leaderboard_year_command`
+Entry point: `cmd_leaderboards.leaderboard_year_command`
 
 ```mermaid
 ---
@@ -373,28 +359,32 @@ flowchart LR
     accTitle: Communication diagram, /leaderboard_year (/classifica_anno)
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_leaderboards("<b>cmd_leaderboards.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
-    analysis("<b>analysis.py</b>")
+    arguments("<b>arguments.py</b>")
     formatting("<b>formatting.py</b>")
+    analysis("<b>analysis.py</b>")
     charts("<b>charts.py</b>")
-    telegram -->|"1.#nbsp;leaderboard_year_command"| commands
-    commands -->|"2.#nbsp;register_sender<br/>19.#nbsp;escape_md<br/>27.#nbsp;reply_chart"| chat
-    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6, 10.#nbsp;reply_text"| telegram
-    commands -->|"7.#nbsp;get_rank<br/>9.#nbsp;list_legacy_users<br/>11.#nbsp;get_all_user_rows<br/>15.#nbsp;get_daily_counts_between<br/>24.#nbsp;get_daily_counts"| database
-    database -.->|"8.#nbsp;rank<br/>12.#nbsp;(rows_by_user, _)<br/>16.#nbsp;recent<br/>25.#nbsp;daily_counts"| commands
-    commands -->|"13.#nbsp;analyze_user<br/>17.#nbsp;forecast_totals"| analysis
-    commands -->|"14.#nbsp;flame<br/>20.#nbsp;bold<br/>21.#nbsp;tie_positions<br/>22.#nbsp;standing_lines"| formatting
-    analysis -.->|"18.#nbsp;forecast"| commands
-    formatting -.->|"23.#nbsp;standing"| commands
-    commands -->|"26.#nbsp;generate_rank_chart"| charts
-    chat -->|"28, 29.#nbsp;reply_photo<br/>30.#nbsp;reply_text"| telegram
+    telegram -->|"1.#nbsp;leaderboard_year_command"| cmd_leaderboards
+    cmd_leaderboards -->|"2.#nbsp;register_sender<br/>11.#nbsp;legacy_hint<br/>22.#nbsp;escape_md<br/>30.#nbsp;reply_chart"| chat
+    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>12.#nbsp;list_legacy_users"| database
+    chat -.->|"5.#nbsp;sender"| cmd_leaderboards
+    cmd_leaderboards -->|"6.#nbsp;period_from_args"| arguments
+    arguments -->|"7.#nbsp;reply_text"| telegram
+    arguments -.->|"8.#nbsp;date"| cmd_leaderboards
+    cmd_leaderboards -->|"9.#nbsp;get_rank<br/>14.#nbsp;get_all_user_rows<br/>18.#nbsp;get_daily_counts_between<br/>27.#nbsp;get_daily_counts"| database
+    database -.->|"10.#nbsp;rank<br/>15.#nbsp;(rows_by_user, _)<br/>19.#nbsp;recent<br/>28.#nbsp;daily_counts"| cmd_leaderboards
+    cmd_leaderboards -->|"13.#nbsp;reply_text"| telegram
+    cmd_leaderboards -->|"16.#nbsp;flame<br/>23.#nbsp;ranked_line<br/>24.#nbsp;tie_positions<br/>25.#nbsp;standing_lines"| formatting
+    cmd_leaderboards -->|"17.#nbsp;analyze_users<br/>20.#nbsp;forecast_totals"| analysis
+    analysis -.->|"21.#nbsp;forecast"| cmd_leaderboards
+    formatting -.->|"26.#nbsp;standing"| cmd_leaderboards
+    cmd_leaderboards -->|"29.#nbsp;generate_rank_chart"| charts
+    chat -->|"31, 32.#nbsp;reply_photo<br/>33.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database,analysis,formatting,charts step
+    class cmd_leaderboards,chat,database,arguments,formatting,analysis,charts step
     class telegram person
 ```
 
@@ -430,54 +420,55 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /leaderboard_year (/classifica_anno)
-    accDescr: The calls between the modules in time order, starting from commands.leaderboard_year_command
+    accDescr: The calls between the modules in time order, starting from cmd_leaderboards.leaderboard_year_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_leaderboards as cmd_leaderboards.py
     participant chat as chat.py
     participant database as database.py
-    participant analysis as analysis.py
+    participant arguments as arguments.py
     participant formatting as formatting.py
+    participant analysis as analysis.py
     participant charts as charts.py
     rect rgb(255, 250, 243)
-        telegram->>commands: leaderboard_year_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_leaderboards: leaderboard_year_command(update, context)
+        cmd_leaderboards->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
+        chat-->>cmd_leaderboards: sender
+        cmd_leaderboards->>arguments: period_from_args(update, context.args, time_period)
         opt date is None
-            commands->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+            arguments->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
         end
-        commands->>database: get_rank(update.message.chat_id, time_period, ...)
-        database-->>commands: rank
+        arguments-->>cmd_leaderboards: date
+        cmd_leaderboards->>database: get_rank(update.message.chat_id, time_period, ...)
+        database-->>cmd_leaderboards: rank
         opt not rank
-            commands->>database: list_legacy_users(chat_id)
-            commands->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
-            Note over commands: returns
+            cmd_leaderboards->>chat: legacy_hint(update.message.chat_id)
+            chat->>database: list_legacy_users(chat_id)
+            cmd_leaderboards->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
+            Note over cmd_leaderboards: returns
         end
         opt start_period <= today.isoformat() <= ...
-            commands->>database: get_all_user_rows(update.message.chat_id)
-            database-->>commands: (rows_by_user, _)
-            commands->>analysis: analyze_user(rows, today)
-            commands->>formatting: flame(analyze_user(rows, today).status)
-            commands->>database: get_daily_counts_between(update.message.chat_id, (today - time...)
-            database-->>commands: recent
-            commands->>analysis: forecast_totals({user.user_id: total for user, total ...)
-            analysis-->>commands: forecast
+            cmd_leaderboards->>database: get_all_user_rows(update.message.chat_id)
+            database-->>cmd_leaderboards: (rows_by_user, _)
+            cmd_leaderboards->>formatting: flame(records.status)
+            cmd_leaderboards->>analysis: analyze_users(rows_by_user, today)
+            cmd_leaderboards->>database: get_daily_counts_between(update.message.chat_id, (today - time...)
+            database-->>cmd_leaderboards: recent
+            cmd_leaderboards->>analysis: forecast_totals({user.user_id: total for user, total ...)
+            analysis-->>cmd_leaderboards: forecast
         end
-        commands->>chat: escape_md(user.mention)
-        opt position in MEDALS
-            commands->>formatting: bold(name)
-            Note over commands: returns
-        end
-        commands->>formatting: tie_positions([t for _, t in rank])
-        commands->>formatting: standing_lines([(user.user_id, total) for user, tota...)
-        formatting-->>commands: standing
-        commands->>database: get_daily_counts(update.message.chat_id, time_period, ...)
-        database-->>commands: daily_counts
-        commands->>charts: generate_rank_chart(rank, daily_counts, time_period, date...)
-        commands->>chat: reply_chart(update, generate_rank_chart(rank, dai...)
-        opt fits_caption(message)
+        cmd_leaderboards->>chat: escape_md(user.mention)
+        cmd_leaderboards->>formatting: ranked_line(position, names[user.user_id] + flame...)
+        cmd_leaderboards->>formatting: tie_positions([t for _, t in rank])
+        cmd_leaderboards->>formatting: standing_lines([(user.user_id, total) for user, tota...)
+        formatting-->>cmd_leaderboards: standing
+        cmd_leaderboards->>database: get_daily_counts(update.message.chat_id, time_period, ...)
+        database-->>cmd_leaderboards: daily_counts
+        cmd_leaderboards->>charts: generate_rank_chart(rank, daily_counts, time_period, date...)
+        cmd_leaderboards->>chat: reply_chart(update, generate_rank_chart(rank, dai...)
+        opt _fits_caption(message)
             chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
             Note over chat: returns
         end
@@ -489,56 +480,41 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `commands.leaderboard_command`
-  - `chat.register_sender`
-    - `database.get_language`
-      - `conquest.cell_of`
-    - `chat.register_user`
-      - `chat.display_name_of`
-      - `database.upsert_user`
-        - `conquest.cell_of` (see above)
-  - `commands.period_from_args`
-  - `database.get_rank`
-    - `conquest.cell_of` (see above)
-  - `commands.legacy_hint`
-    - `database.list_legacy_users`
-      - `conquest.cell_of` (see above)
-  - `database.get_all_user_rows`
-    - `conquest.cell_of` (see above)
-  - `formatting.flame`
+- `chat.register_sender`
+  - `database.get_language`
+  - `chat.register_user`
+    - `database.upsert_user`
+- `arguments.period_from_args`
+- `database.get_rank`
+- `chat.legacy_hint`
+  - `database.list_legacy_users`
+- `database.get_all_user_rows`
+- `formatting.flame`
+- `analysis.analyze_users`
   - `analysis.analyze_user`
-  - `database.get_daily_counts_between`
-    - `conquest.cell_of` (see above)
-  - `analysis.forecast_totals`
-  - `chat.escape_md`
-  - `commands.ranked_line`
-    - `formatting.bold`
-  - `formatting.tie_positions`
-  - `formatting.standing_lines`
-  - `database.get_daily_counts`
-    - `database.get_daily_counts_between` (see above)
-  - `chat.reply_chart`
-    - `chat.fits_caption`
-  - `charts.generate_rank_chart`
-    - `charts.period_info`
-    - `charts.last_day_shown`
-    - `charts.chart_label`
-    - `charts.sorted_by_name`
-    - `charts.short_name`
-    - `charts.user_style`
-    - `charts.positions`
-    - `charts.emoji`
-    - `charts.fine_vlines`
-    - `charts.layered_grid`
-    - `charts.add_cards`
-    - `charts.png_bytes`
-      - `charts.add_watermark`
+    - `analysis.parse_counts`
+    - `analysis.consecutive_runs`
+- `database.get_daily_counts_between`
+- `analysis.forecast_totals`
+- `chat.escape_md`
+- `formatting.ranked_line`
+- `formatting.tie_positions`
+- `formatting.standing_lines`
+- `database.get_daily_counts`
+  - `database.get_daily_counts_between` (see above)
+- `chat.reply_chart`
+- `charts.generate_rank_chart`
+  - `charts.chart_label`
+  - `charts.sorted_by_name`
+  - `charts.short_name`
+  - `charts.add_cards`
+  - `charts.png_bytes`
 
 </details>
 
 ## `/stats_month` (`/statistiche_mese`)
 
-Entry point: `commands.stats_month_command`
+Entry point: `cmd_leaderboards.stats_month_command`
 
 ```mermaid
 ---
@@ -577,28 +553,32 @@ flowchart LR
     accTitle: Communication diagram, /stats_month (/statistiche_mese)
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_leaderboards("<b>cmd_leaderboards.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
+    arguments("<b>arguments.py</b>")
     analysis("<b>analysis.py</b>")
     formatting("<b>formatting.py</b>")
     charts("<b>charts.py</b>")
-    telegram -->|"1.#nbsp;stats_month_command"| commands
-    commands -->|"2.#nbsp;register_sender<br/>14.#nbsp;escape_md<br/>23.#nbsp;reply_chart"| chat
-    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6, 13.#nbsp;reply_text"| telegram
-    commands -->|"7.#nbsp;get_daily_counts<br/>9.#nbsp;get_users<br/>12.#nbsp;list_legacy_users<br/>19.#nbsp;get_first_days"| database
-    database -.->|"8.#nbsp;daily_counts"| commands
-    commands -->|"10.#nbsp;period_statistics<br/>20.#nbsp;period_regularity"| analysis
-    analysis -.->|"11.#nbsp;statistics<br/>21.#nbsp;label"| commands
-    commands -->|"15.#nbsp;bold<br/>16.#nbsp;tie_positions<br/>17.#nbsp;standing_lines"| formatting
-    formatting -.->|"18.#nbsp;standing"| commands
-    commands -->|"22.#nbsp;generate_statistics_chart"| charts
-    chat -->|"24, 25.#nbsp;reply_photo<br/>26.#nbsp;reply_text"| telegram
+    telegram -->|"1.#nbsp;stats_month_command"| cmd_leaderboards
+    cmd_leaderboards -->|"2.#nbsp;register_sender<br/>14.#nbsp;legacy_hint<br/>17.#nbsp;escape_md<br/>26.#nbsp;reply_chart"| chat
+    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>15.#nbsp;list_legacy_users"| database
+    chat -.->|"5.#nbsp;sender"| cmd_leaderboards
+    cmd_leaderboards -->|"6.#nbsp;period_from_args"| arguments
+    arguments -->|"7.#nbsp;reply_text"| telegram
+    arguments -.->|"8.#nbsp;date"| cmd_leaderboards
+    cmd_leaderboards -->|"9.#nbsp;get_daily_counts<br/>11.#nbsp;get_users<br/>22.#nbsp;get_first_days"| database
+    database -.->|"10.#nbsp;daily_counts"| cmd_leaderboards
+    cmd_leaderboards -->|"12.#nbsp;period_statistics<br/>23.#nbsp;period_regularity"| analysis
+    analysis -.->|"13.#nbsp;statistics<br/>24.#nbsp;label"| cmd_leaderboards
+    cmd_leaderboards -->|"16.#nbsp;reply_text"| telegram
+    cmd_leaderboards -->|"18.#nbsp;ranked_line<br/>19.#nbsp;tie_positions<br/>20.#nbsp;standing_lines"| formatting
+    formatting -.->|"21.#nbsp;standing"| cmd_leaderboards
+    cmd_leaderboards -->|"25.#nbsp;generate_statistics_chart"| charts
+    chat -->|"27, 28.#nbsp;reply_photo<br/>29.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database,analysis,formatting,charts step
+    class cmd_leaderboards,chat,database,arguments,analysis,formatting,charts step
     class telegram person
 ```
 
@@ -634,50 +614,51 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /stats_month (/statistiche_mese)
-    accDescr: The calls between the modules in time order, starting from commands.stats_month_command
+    accDescr: The calls between the modules in time order, starting from cmd_leaderboards.stats_month_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_leaderboards as cmd_leaderboards.py
     participant chat as chat.py
     participant database as database.py
+    participant arguments as arguments.py
     participant analysis as analysis.py
     participant formatting as formatting.py
     participant charts as charts.py
     rect rgb(255, 250, 243)
-        telegram->>commands: stats_month_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_leaderboards: stats_month_command(update, context)
+        cmd_leaderboards->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
+        chat-->>cmd_leaderboards: sender
+        cmd_leaderboards->>arguments: period_from_args(update, context.args, time_period)
         opt date is None
-            commands->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+            arguments->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
         end
-        commands->>database: get_daily_counts(chat_id, time_period, date)
-        database-->>commands: daily_counts
-        commands->>database: get_users(chat_id)
-        commands->>analysis: period_statistics(daily_counts, get_users(chat_id), *pe...)
-        analysis-->>commands: statistics
+        arguments-->>cmd_leaderboards: date
+        cmd_leaderboards->>database: get_daily_counts(chat_id, time_period, date)
+        database-->>cmd_leaderboards: daily_counts
+        cmd_leaderboards->>database: get_users(chat_id)
+        cmd_leaderboards->>analysis: period_statistics(daily_counts, get_users(chat_id), *pe...)
+        analysis-->>cmd_leaderboards: statistics
         opt not statistics
-            commands->>database: list_legacy_users(chat_id)
-            commands->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
-            Note over commands: returns
+            cmd_leaderboards->>chat: legacy_hint(update.message.chat_id)
+            chat->>database: list_legacy_users(chat_id)
+            cmd_leaderboards->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
+            Note over cmd_leaderboards: returns
         end
-        commands->>chat: escape_md(s['user'].mention)
-        opt position in MEDALS
-            commands->>formatting: bold(name)
-            Note over commands: returns
-        end
-        commands->>formatting: tie_positions([round(s['mean'], 2) for s in statist...)
-        commands->>formatting: standing_lines([(s['user'].user_id, round(s['mean'],...)
-        formatting-->>commands: standing
+        cmd_leaderboards->>chat: escape_md(s['user'].mention)
+        cmd_leaderboards->>formatting: ranked_line(position, names[s['user'].user_id], f...)
+        cmd_leaderboards->>formatting: tie_positions([round(s['mean'], 2) for s in statist...)
+        cmd_leaderboards->>formatting: standing_lines([(s['user'].user_id, round(s['mean'],...)
+        formatting-->>cmd_leaderboards: standing
         opt sender.user_id in names
-            commands->>database: get_first_days(chat_id)
-            commands->>analysis: period_regularity(daily_counts, get_first_days(chat_id)...)
-            analysis-->>commands: label
+            cmd_leaderboards->>database: get_first_days(chat_id)
+            cmd_leaderboards->>analysis: period_regularity(daily_counts, get_first_days(chat_id)...)
+            analysis-->>cmd_leaderboards: label
         end
-        commands->>charts: generate_statistics_chart(statistics, daily_counts, time_period...)
-        commands->>chat: reply_chart(update, generate_statistics_chart(sta...)
-        opt fits_caption(message)
+        cmd_leaderboards->>charts: generate_statistics_chart(statistics, daily_counts, time_period...)
+        cmd_leaderboards->>chat: reply_chart(update, generate_statistics_chart(sta...)
+        opt _fits_caption(message)
             chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
             Note over chat: returns
         end
@@ -689,55 +670,36 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `commands.stats_command`
-  - `chat.register_sender`
-    - `database.get_language`
-      - `conquest.cell_of`
-    - `chat.register_user`
-      - `chat.display_name_of`
-      - `database.upsert_user`
-        - `conquest.cell_of` (see above)
-  - `commands.period_from_args`
-  - `database.get_daily_counts`
-    - `database.get_daily_counts_between`
-      - `conquest.cell_of` (see above)
-  - `analysis.period_statistics`
-  - `database.get_users`
-    - `conquest.cell_of` (see above)
-  - `commands.legacy_hint`
-    - `database.list_legacy_users`
-      - `conquest.cell_of` (see above)
-  - `chat.escape_md`
-  - `commands.ranked_line`
-    - `formatting.bold`
-  - `formatting.tie_positions`
-  - `formatting.standing_lines`
-  - `analysis.period_regularity`
-    - `analysis.regularity`
-  - `database.get_first_days`
-    - `conquest.cell_of` (see above)
-  - `chat.reply_chart`
-    - `chat.fits_caption`
-  - `charts.generate_statistics_chart`
-    - `charts.period_info`
-    - `charts.chart_label`
-    - `charts.sorted_by_name`
-    - `charts.last_day_shown`
-    - `charts.user_style`
-    - `charts.normal_pdf`
-    - `charts.short_name`
-    - `charts.decimal`
-    - `charts.fine_vlines`
-    - `charts.layered_grid`
-    - `charts.add_cards`
-    - `charts.png_bytes`
-      - `charts.add_watermark`
+- `chat.register_sender`
+  - `database.get_language`
+  - `chat.register_user`
+    - `database.upsert_user`
+- `arguments.period_from_args`
+- `database.get_daily_counts`
+  - `database.get_daily_counts_between`
+- `analysis.period_statistics`
+- `database.get_users`
+- `chat.legacy_hint`
+  - `database.list_legacy_users`
+- `chat.escape_md`
+- `formatting.ranked_line`
+- `formatting.tie_positions`
+- `formatting.standing_lines`
+- `analysis.period_regularity`
+- `database.get_first_days`
+- `chat.reply_chart`
+- `charts.generate_statistics_chart`
+  - `charts.chart_label`
+  - `charts.sorted_by_name`
+  - `charts.short_name`
+  - `charts.add_cards`
+  - `charts.png_bytes`
 
 </details>
 
 ## `/stats_year` (`/statistiche_anno`)
 
-Entry point: `commands.stats_year_command`
+Entry point: `cmd_leaderboards.stats_year_command`
 
 ```mermaid
 ---
@@ -776,28 +738,32 @@ flowchart LR
     accTitle: Communication diagram, /stats_year (/statistiche_anno)
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_leaderboards("<b>cmd_leaderboards.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
+    arguments("<b>arguments.py</b>")
     analysis("<b>analysis.py</b>")
     formatting("<b>formatting.py</b>")
     charts("<b>charts.py</b>")
-    telegram -->|"1.#nbsp;stats_year_command"| commands
-    commands -->|"2.#nbsp;register_sender<br/>14.#nbsp;escape_md<br/>23.#nbsp;reply_chart"| chat
-    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6, 13.#nbsp;reply_text"| telegram
-    commands -->|"7.#nbsp;get_daily_counts<br/>9.#nbsp;get_users<br/>12.#nbsp;list_legacy_users<br/>19.#nbsp;get_first_days"| database
-    database -.->|"8.#nbsp;daily_counts"| commands
-    commands -->|"10.#nbsp;period_statistics<br/>20.#nbsp;period_regularity"| analysis
-    analysis -.->|"11.#nbsp;statistics<br/>21.#nbsp;label"| commands
-    commands -->|"15.#nbsp;bold<br/>16.#nbsp;tie_positions<br/>17.#nbsp;standing_lines"| formatting
-    formatting -.->|"18.#nbsp;standing"| commands
-    commands -->|"22.#nbsp;generate_statistics_chart"| charts
-    chat -->|"24, 25.#nbsp;reply_photo<br/>26.#nbsp;reply_text"| telegram
+    telegram -->|"1.#nbsp;stats_year_command"| cmd_leaderboards
+    cmd_leaderboards -->|"2.#nbsp;register_sender<br/>14.#nbsp;legacy_hint<br/>17.#nbsp;escape_md<br/>26.#nbsp;reply_chart"| chat
+    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>15.#nbsp;list_legacy_users"| database
+    chat -.->|"5.#nbsp;sender"| cmd_leaderboards
+    cmd_leaderboards -->|"6.#nbsp;period_from_args"| arguments
+    arguments -->|"7.#nbsp;reply_text"| telegram
+    arguments -.->|"8.#nbsp;date"| cmd_leaderboards
+    cmd_leaderboards -->|"9.#nbsp;get_daily_counts<br/>11.#nbsp;get_users<br/>22.#nbsp;get_first_days"| database
+    database -.->|"10.#nbsp;daily_counts"| cmd_leaderboards
+    cmd_leaderboards -->|"12.#nbsp;period_statistics<br/>23.#nbsp;period_regularity"| analysis
+    analysis -.->|"13.#nbsp;statistics<br/>24.#nbsp;label"| cmd_leaderboards
+    cmd_leaderboards -->|"16.#nbsp;reply_text"| telegram
+    cmd_leaderboards -->|"18.#nbsp;ranked_line<br/>19.#nbsp;tie_positions<br/>20.#nbsp;standing_lines"| formatting
+    formatting -.->|"21.#nbsp;standing"| cmd_leaderboards
+    cmd_leaderboards -->|"25.#nbsp;generate_statistics_chart"| charts
+    chat -->|"27, 28.#nbsp;reply_photo<br/>29.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database,analysis,formatting,charts step
+    class cmd_leaderboards,chat,database,arguments,analysis,formatting,charts step
     class telegram person
 ```
 
@@ -833,50 +799,51 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /stats_year (/statistiche_anno)
-    accDescr: The calls between the modules in time order, starting from commands.stats_year_command
+    accDescr: The calls between the modules in time order, starting from cmd_leaderboards.stats_year_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_leaderboards as cmd_leaderboards.py
     participant chat as chat.py
     participant database as database.py
+    participant arguments as arguments.py
     participant analysis as analysis.py
     participant formatting as formatting.py
     participant charts as charts.py
     rect rgb(255, 250, 243)
-        telegram->>commands: stats_year_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_leaderboards: stats_year_command(update, context)
+        cmd_leaderboards->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
+        chat-->>cmd_leaderboards: sender
+        cmd_leaderboards->>arguments: period_from_args(update, context.args, time_period)
         opt date is None
-            commands->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
+            arguments->>telegram: reply_text(tr('⚠️ Formato data non valido. Usa M...)
         end
-        commands->>database: get_daily_counts(chat_id, time_period, date)
-        database-->>commands: daily_counts
-        commands->>database: get_users(chat_id)
-        commands->>analysis: period_statistics(daily_counts, get_users(chat_id), *pe...)
-        analysis-->>commands: statistics
+        arguments-->>cmd_leaderboards: date
+        cmd_leaderboards->>database: get_daily_counts(chat_id, time_period, date)
+        database-->>cmd_leaderboards: daily_counts
+        cmd_leaderboards->>database: get_users(chat_id)
+        cmd_leaderboards->>analysis: period_statistics(daily_counts, get_users(chat_id), *pe...)
+        analysis-->>cmd_leaderboards: statistics
         opt not statistics
-            commands->>database: list_legacy_users(chat_id)
-            commands->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
-            Note over commands: returns
+            cmd_leaderboards->>chat: legacy_hint(update.message.chat_id)
+            chat->>database: list_legacy_users(chat_id)
+            cmd_leaderboards->>telegram: reply_text(empty.format(date=date) + legacy_hint...)
+            Note over cmd_leaderboards: returns
         end
-        commands->>chat: escape_md(s['user'].mention)
-        opt position in MEDALS
-            commands->>formatting: bold(name)
-            Note over commands: returns
-        end
-        commands->>formatting: tie_positions([round(s['mean'], 2) for s in statist...)
-        commands->>formatting: standing_lines([(s['user'].user_id, round(s['mean'],...)
-        formatting-->>commands: standing
+        cmd_leaderboards->>chat: escape_md(s['user'].mention)
+        cmd_leaderboards->>formatting: ranked_line(position, names[s['user'].user_id], f...)
+        cmd_leaderboards->>formatting: tie_positions([round(s['mean'], 2) for s in statist...)
+        cmd_leaderboards->>formatting: standing_lines([(s['user'].user_id, round(s['mean'],...)
+        formatting-->>cmd_leaderboards: standing
         opt sender.user_id in names
-            commands->>database: get_first_days(chat_id)
-            commands->>analysis: period_regularity(daily_counts, get_first_days(chat_id)...)
-            analysis-->>commands: label
+            cmd_leaderboards->>database: get_first_days(chat_id)
+            cmd_leaderboards->>analysis: period_regularity(daily_counts, get_first_days(chat_id)...)
+            analysis-->>cmd_leaderboards: label
         end
-        commands->>charts: generate_statistics_chart(statistics, daily_counts, time_period...)
-        commands->>chat: reply_chart(update, generate_statistics_chart(sta...)
-        opt fits_caption(message)
+        cmd_leaderboards->>charts: generate_statistics_chart(statistics, daily_counts, time_period...)
+        cmd_leaderboards->>chat: reply_chart(update, generate_statistics_chart(sta...)
+        opt _fits_caption(message)
             chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
             Note over chat: returns
         end
@@ -888,55 +855,36 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `commands.stats_command`
-  - `chat.register_sender`
-    - `database.get_language`
-      - `conquest.cell_of`
-    - `chat.register_user`
-      - `chat.display_name_of`
-      - `database.upsert_user`
-        - `conquest.cell_of` (see above)
-  - `commands.period_from_args`
-  - `database.get_daily_counts`
-    - `database.get_daily_counts_between`
-      - `conquest.cell_of` (see above)
-  - `analysis.period_statistics`
-  - `database.get_users`
-    - `conquest.cell_of` (see above)
-  - `commands.legacy_hint`
-    - `database.list_legacy_users`
-      - `conquest.cell_of` (see above)
-  - `chat.escape_md`
-  - `commands.ranked_line`
-    - `formatting.bold`
-  - `formatting.tie_positions`
-  - `formatting.standing_lines`
-  - `analysis.period_regularity`
-    - `analysis.regularity`
-  - `database.get_first_days`
-    - `conquest.cell_of` (see above)
-  - `chat.reply_chart`
-    - `chat.fits_caption`
-  - `charts.generate_statistics_chart`
-    - `charts.period_info`
-    - `charts.chart_label`
-    - `charts.sorted_by_name`
-    - `charts.last_day_shown`
-    - `charts.user_style`
-    - `charts.normal_pdf`
-    - `charts.short_name`
-    - `charts.decimal`
-    - `charts.fine_vlines`
-    - `charts.layered_grid`
-    - `charts.add_cards`
-    - `charts.png_bytes`
-      - `charts.add_watermark`
+- `chat.register_sender`
+  - `database.get_language`
+  - `chat.register_user`
+    - `database.upsert_user`
+- `arguments.period_from_args`
+- `database.get_daily_counts`
+  - `database.get_daily_counts_between`
+- `analysis.period_statistics`
+- `database.get_users`
+- `chat.legacy_hint`
+  - `database.list_legacy_users`
+- `chat.escape_md`
+- `formatting.ranked_line`
+- `formatting.tie_positions`
+- `formatting.standing_lines`
+- `analysis.period_regularity`
+- `database.get_first_days`
+- `chat.reply_chart`
+- `charts.generate_statistics_chart`
+  - `charts.chart_label`
+  - `charts.sorted_by_name`
+  - `charts.short_name`
+  - `charts.add_cards`
+  - `charts.png_bytes`
 
 </details>
 
 ## `/records` (`/record`)
 
-Entry point: `commands.records_command`
+Entry point: `cmd_records.records_command`
 
 ```mermaid
 ---
@@ -975,25 +923,31 @@ flowchart LR
     accTitle: Communication diagram, /records (/record)
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_records("<b>cmd_records.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
+    arguments("<b>arguments.py</b>")
     analysis("<b>analysis.py</b>")
     formatting("<b>formatting.py</b>")
-    telegram -->|"1.#nbsp;records_command"| commands
-    commands -->|"2.#nbsp;register_sender<br/>8.#nbsp;register_user<br/>16, 24.#nbsp;escape_md"| chat
-    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6.#nbsp;find_user_by_username<br/>10, 23.#nbsp;get_all_user_rows<br/>12.#nbsp;list_legacy_users<br/>19.#nbsp;get_record"| database
-    database -.->|"7.#nbsp;target<br/>11.#nbsp;(rows_by_user, users)<br/>20.#nbsp;rows"| commands
-    commands -->|"9, 13, 18, 21, 29.#nbsp;reply_text"| telegram
-    commands -->|"14.#nbsp;analyze_group<br/>22, 25.#nbsp;analyze_user<br/>26.#nbsp;record_places"| analysis
-    analysis -.->|"15.#nbsp;board"| commands
-    commands -->|"17.#nbsp;format_group_record<br/>27.#nbsp;format_user_record"| formatting
-    formatting -.->|"28.#nbsp;message"| commands
+    telegram -->|"1.#nbsp;records_command"| cmd_records
+    cmd_records -->|"2.#nbsp;register_sender<br/>14, 24.#nbsp;legacy_hint<br/>19, 29.#nbsp;escape_md"| chat
+    chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user<br/>15.#nbsp;list_legacy_users"| database
+    chat -.->|"5.#nbsp;sender"| cmd_records
+    cmd_records -->|"6.#nbsp;resolve_optional_target"| arguments
+    arguments -->|"7.#nbsp;find_user_by_username"| database
+    database -.->|"8.#nbsp;target"| arguments
+    arguments -->|"9.#nbsp;register_user"| chat
+    arguments -.->|"10.#nbsp;(target, error)"| cmd_records
+    cmd_records -->|"11, 16, 21, 25, 34.#nbsp;reply_text"| telegram
+    cmd_records -->|"12, 26.#nbsp;get_all_user_rows<br/>22.#nbsp;get_record"| database
+    database -.->|"13.#nbsp;(rows_by_user, users)<br/>23.#nbsp;rows"| cmd_records
+    cmd_records -->|"17.#nbsp;analyze_group<br/>27.#nbsp;analyze_users<br/>30.#nbsp;analyze_user<br/>31.#nbsp;record_places"| analysis
+    analysis -.->|"18.#nbsp;board<br/>28.#nbsp;people"| cmd_records
+    cmd_records -->|"20.#nbsp;format_group_record<br/>32.#nbsp;format_user_record"| formatting
+    formatting -.->|"33.#nbsp;message"| cmd_records
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database,analysis,formatting step
+    class cmd_records,chat,database,arguments,analysis,formatting step
     class telegram person
 ```
 
@@ -1029,63 +983,68 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /records (/record)
-    accDescr: The calls between the modules in time order, starting from commands.records_command
+    accDescr: The calls between the modules in time order, starting from cmd_records.records_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_records as cmd_records.py
     participant chat as chat.py
     participant database as database.py
+    participant arguments as arguments.py
     participant analysis as analysis.py
     participant formatting as formatting.py
     rect rgb(255, 250, 243)
-        telegram->>commands: records_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_records: records_command(update, context)
+        cmd_records->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
+        chat-->>cmd_records: sender
+        cmd_records->>arguments: resolve_optional_target(update, context, sender, usage)
         opt args and args[0].startswith('@')
-            commands->>database: find_user_by_username(chat_id, username)
-            database-->>commands: target
-            Note over commands: returns
+            arguments->>database: find_user_by_username(chat_id, username)
+            database-->>arguments: target
+            Note over arguments: returns
         end
         opt replied is not None
-            commands->>chat: register_user(chat_id, replied)
-            Note over commands: returns
+            arguments->>chat: register_user(chat_id, replied)
+            Note over arguments: returns
         end
+        arguments-->>cmd_records: (target, error)
         opt error
-            commands->>telegram: reply_text(error)
-            Note over commands: returns
+            cmd_records->>telegram: reply_text(error)
+            Note over cmd_records: returns
         end
         opt target is None
-            commands->>database: get_all_user_rows(chat_id)
-            database-->>commands: (rows_by_user, users)
+            cmd_records->>database: get_all_user_rows(chat_id)
+            database-->>cmd_records: (rows_by_user, users)
             opt not rows_by_user
-                commands->>database: list_legacy_users(chat_id)
-                commands->>telegram: reply_text(tr('🤷 Nessun dato disponibile.') + le...)
-                Note over commands: returns
+                cmd_records->>chat: legacy_hint(chat_id)
+                chat->>database: list_legacy_users(chat_id)
+                cmd_records->>telegram: reply_text(tr('🤷 Nessun dato disponibile.') + le...)
+                Note over cmd_records: returns
             end
-            commands->>analysis: analyze_group(rows_by_user, now_rome().date())
-            analysis-->>commands: board
-            commands->>chat: escape_md(user.mention)
-            commands->>formatting: format_group_record(board, names)
-            commands->>telegram: reply_text(format_group_record(board, names), pa...)
-            Note over commands: returns
+            cmd_records->>analysis: analyze_group(rows_by_user, now_rome().date())
+            analysis-->>cmd_records: board
+            cmd_records->>chat: escape_md(user.mention)
+            cmd_records->>formatting: format_group_record(board, names)
+            cmd_records->>telegram: reply_text(format_group_record(board, names), pa...)
+            Note over cmd_records: returns
         end
-        commands->>database: get_record(target.user_id, chat_id)
-        database-->>commands: rows
+        cmd_records->>database: get_record(target.user_id, chat_id)
+        database-->>cmd_records: rows
         opt not rows
-            Note over commands: legacy_hint() as above
-            commands->>telegram: reply_text(tr('🤷 Nessun dato disponibile per {na...)
-            Note over commands: returns
+            cmd_records->>chat: legacy_hint(update.message.chat_id)
+            cmd_records->>telegram: reply_text(tr('🤷 Nessun dato disponibile per {na...)
+            Note over cmd_records: returns
         end
-        commands->>analysis: analyze_user(user_rows, today)
-        commands->>database: get_all_user_rows(chat_id)
-        commands->>chat: escape_md(target.mention)
-        commands->>analysis: analyze_user(rows, today)
-        commands->>analysis: record_places(target.user_id, people)
-        commands->>formatting: format_user_record(escape_md(target.mention), analyze_us...)
-        formatting-->>commands: message
-        commands->>telegram: reply_text(message, parse_mode='Markdown')
+        cmd_records->>database: get_all_user_rows(chat_id)
+        cmd_records->>analysis: analyze_users(get_all_user_rows(chat_id)[0], today)
+        analysis-->>cmd_records: people
+        cmd_records->>chat: escape_md(target.mention)
+        cmd_records->>analysis: analyze_user(rows, today)
+        cmd_records->>analysis: record_places(target.user_id, people)
+        cmd_records->>formatting: format_user_record(escape_md(target.mention), analyze_us...)
+        formatting-->>cmd_records: message
+        cmd_records->>telegram: reply_text(message, parse_mode='Markdown')
     end
 ```
 
@@ -1094,43 +1053,34 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
-- `commands.resolve_optional_target`
-  - `commands.replied_person`
-  - `commands.resolve_target`
-    - `commands.parse_username_arg`
-    - `commands.invalid_format`
-    - `database.find_user_by_username`
-      - `conquest.cell_of` (see above)
-    - `commands.replied_person` (see above)
-    - `chat.register_user` (see above)
-  - `commands.invalid_format` (see above)
+- `arguments.resolve_optional_target`
+  - `arguments.replied_person`
+  - `arguments.invalid_format`
+  - `database.find_user_by_username`
+  - `chat.register_user` (see above)
 - `database.get_all_user_rows`
-  - `conquest.cell_of` (see above)
-- `commands.legacy_hint`
+- `chat.legacy_hint`
   - `database.list_legacy_users`
-    - `conquest.cell_of` (see above)
 - `analysis.analyze_group`
-  - `analysis.analyze_user`
+  - `analysis.analyze_users`
+    - `analysis.analyze_user`
+      - `analysis.parse_counts`
+      - `analysis.consecutive_runs`
 - `chat.escape_md`
 - `formatting.format_group_record`
-  - `formatting.bold`
 - `database.get_record`
-  - `conquest.cell_of` (see above)
-- `analysis.analyze_user` (see above)
+- `analysis.analyze_users` (see above)
 - `formatting.format_user_record`
-  - `formatting.bold` (see above)
+- `analysis.analyze_user` (see above)
 - `analysis.record_places`
 
 </details>
 
 ## `/trophies` (`/trofei`)
 
-Entry point: `commands.trophies_command`
+Entry point: `cmd_records.trophies_command`
 
 ```mermaid
 ---
@@ -1169,31 +1119,37 @@ flowchart LR
     accTitle: Communication diagram, /trophies (/trofei)
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_records("<b>cmd_records.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
+    arguments("<b>arguments.py</b>")
     trophies("<b>trophies.py</b>")
     analysis("<b>analysis.py</b>")
     conquest("<b>conquest.py</b>")
     formatting("<b>formatting.py</b>")
-    telegram -->|"1.#nbsp;trophies_command"| commands
-    commands -->|"2.#nbsp;register_sender<br/>8.#nbsp;register_user<br/>20, 24.#nbsp;escape_md"| chat
+    telegram -->|"1.#nbsp;trophies_command"| cmd_records
+    cmd_records -->|"2.#nbsp;register_sender<br/>22, 26.#nbsp;escape_md"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6.#nbsp;find_user_by_username<br/>10.#nbsp;get_all_user_rows<br/>12.#nbsp;get_timed_conquests"| database
-    database -.->|"7.#nbsp;target<br/>11.#nbsp;(rows_by_user, users)"| commands
-    commands -->|"9, 27.#nbsp;reply_text"| telegram
-    commands -->|"13.#nbsp;trophies_by_user"| trophies
-    trophies -->|"14, 16.#nbsp;_parse<br/>18.#nbsp;_runs"| analysis
-    trophies -->|"15.#nbsp;holdings"| conquest
-    analysis -.->|"17.#nbsp;counts"| trophies
-    trophies -.->|"19.#nbsp;trophies"| commands
-    commands -->|"21.#nbsp;format_group_trophies<br/>25.#nbsp;format_user_trophies"| formatting
-    formatting -.->|"22, 26.#nbsp;message"| commands
-    commands -->|"23.#nbsp;analyze_user"| analysis
+    chat -.->|"5.#nbsp;sender"| cmd_records
+    cmd_records -->|"6.#nbsp;resolve_optional_target"| arguments
+    arguments -->|"7.#nbsp;find_user_by_username"| database
+    database -.->|"8.#nbsp;target"| arguments
+    arguments -->|"9.#nbsp;register_user"| chat
+    arguments -.->|"10.#nbsp;(target, error)"| cmd_records
+    cmd_records -->|"11, 29.#nbsp;reply_text"| telegram
+    cmd_records -->|"12.#nbsp;get_all_user_rows<br/>14.#nbsp;get_timed_conquests"| database
+    database -.->|"13.#nbsp;(rows_by_user, users)"| cmd_records
+    cmd_records -->|"15.#nbsp;trophies_by_user"| trophies
+    trophies -->|"16, 18.#nbsp;parse_counts<br/>20.#nbsp;consecutive_runs"| analysis
+    trophies -->|"17.#nbsp;holdings"| conquest
+    analysis -.->|"19.#nbsp;counts"| trophies
+    trophies -.->|"21.#nbsp;trophies"| cmd_records
+    cmd_records -->|"23.#nbsp;format_group_trophies<br/>27.#nbsp;format_user_trophies"| formatting
+    formatting -.->|"24, 28.#nbsp;message"| cmd_records
+    cmd_records -->|"25.#nbsp;analyze_user"| analysis
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database,trophies,analysis,conquest,formatting step
+    class cmd_records,chat,database,arguments,trophies,analysis,conquest,formatting step
     class telegram person
 ```
 
@@ -1229,63 +1185,66 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /trophies (/trofei)
-    accDescr: The calls between the modules in time order, starting from commands.trophies_command
+    accDescr: The calls between the modules in time order, starting from cmd_records.trophies_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_records as cmd_records.py
     participant chat as chat.py
     participant database as database.py
+    participant arguments as arguments.py
     participant trophies as trophies.py
     participant analysis as analysis.py
     participant conquest as conquest.py
     participant formatting as formatting.py
     rect rgb(255, 250, 243)
-        telegram->>commands: trophies_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_records: trophies_command(update, context)
+        cmd_records->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
+        chat-->>cmd_records: sender
+        cmd_records->>arguments: resolve_optional_target(update, context, sender, usage)
         opt args and args[0].startswith('@')
-            commands->>database: find_user_by_username(chat_id, username)
-            database-->>commands: target
-            Note over commands: returns
+            arguments->>database: find_user_by_username(chat_id, username)
+            database-->>arguments: target
+            Note over arguments: returns
         end
         opt replied is not None
-            commands->>chat: register_user(chat_id, replied)
-            Note over commands: returns
+            arguments->>chat: register_user(chat_id, replied)
+            Note over arguments: returns
         end
+        arguments-->>cmd_records: (target, error)
         opt error
-            commands->>telegram: reply_text(error)
-            Note over commands: returns
+            cmd_records->>telegram: reply_text(error)
+            Note over cmd_records: returns
         end
-        commands->>database: get_all_user_rows(chat_id)
-        database-->>commands: (rows_by_user, users)
-        commands->>database: get_timed_conquests(chat_id)
-        commands->>trophies: trophies_by_user(rows_by_user, today, get_timed_conque...)
+        cmd_records->>database: get_all_user_rows(chat_id)
+        database-->>cmd_records: (rows_by_user, users)
+        cmd_records->>database: get_timed_conquests(chat_id)
+        cmd_records->>trophies: trophies_by_user(rows_by_user, today, get_timed_conque...)
         loop for (user_id, rows) in users_rows.ite...
-            trophies->>analysis: _parse(rows)
+            trophies->>analysis: parse_counts(rows)
         end
         Note over trophies: _winners() as above
         loop for (season, counts) in per_season.it...
             trophies->>conquest: holdings([(user_id, cell) for user_id, _, cell...)
         end
         loop for user_id in set(users_rows) | set(...
-            trophies->>analysis: _parse(rows)
+            trophies->>analysis: parse_counts(rows)
             analysis-->>trophies: counts
-            trophies->>analysis: _runs(sorted(counts), counts)
+            trophies->>analysis: consecutive_runs(sorted(counts), counts)
         end
-        trophies-->>commands: trophies
+        trophies-->>cmd_records: trophies
         alt target is None
-            commands->>chat: escape_md(user.mention)
-            commands->>formatting: format_group_trophies(trophies, names)
-            formatting-->>commands: message
+            cmd_records->>chat: escape_md(user.mention)
+            cmd_records->>formatting: format_group_trophies(trophies, names)
+            formatting-->>cmd_records: message
         else
-            commands->>analysis: analyze_user(rows, today)
-            commands->>chat: escape_md(target.mention)
-            commands->>formatting: format_user_trophies(escape_md(target.mention), trophies.g...)
-            formatting-->>commands: message
+            cmd_records->>analysis: analyze_user(rows, today)
+            cmd_records->>chat: escape_md(target.mention)
+            cmd_records->>formatting: format_user_trophies(escape_md(target.mention), trophies.g...)
+            formatting-->>cmd_records: message
         end
-        commands->>telegram: reply_text(message, parse_mode='Markdown')
+        cmd_records->>telegram: reply_text(message, parse_mode='Markdown')
     end
 ```
 
@@ -1294,45 +1253,38 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
-- `commands.resolve_optional_target`
-  - `commands.replied_person`
-  - `commands.resolve_target`
-    - `commands.parse_username_arg`
-    - `commands.invalid_format`
-    - `database.find_user_by_username`
-      - `conquest.cell_of` (see above)
-    - `commands.replied_person` (see above)
-    - `chat.register_user` (see above)
-  - `commands.invalid_format` (see above)
+- `arguments.resolve_optional_target`
+  - `arguments.replied_person`
+  - `arguments.invalid_format`
+  - `database.find_user_by_username`
+  - `chat.register_user` (see above)
 - `database.get_all_user_rows`
-  - `conquest.cell_of` (see above)
 - `trophies.trophies_by_user`
   - `trophies.monthly_winners`
+    - `analysis.parse_counts`
   - `trophies.yearly_winners`
+    - `analysis.parse_counts` (see above)
   - `trophies.season_results`
     - `trophies.season_of`
     - `conquest.holdings`
   - `trophies.season_of` (see above)
-  - `trophies.streak_runs`
+  - `analysis.parse_counts` (see above)
+  - `analysis.consecutive_runs`
 - `database.get_timed_conquests`
-  - `conquest.cell_of` (see above)
 - `chat.escape_md`
 - `formatting.format_group_trophies`
-  - `formatting.bold`
 - `analysis.analyze_user`
+  - `analysis.parse_counts` (see above)
+  - `analysis.consecutive_runs` (see above)
 - `formatting.format_user_trophies`
-  - `formatting.bold` (see above)
 
 </details>
 
 ## `/conquests` (`/conquiste`)
 
-Entry point: `commands.conquests_command`
+Entry point: `cmd_conquests.conquests_command`
 
 ```mermaid
 ---
@@ -1371,31 +1323,37 @@ flowchart LR
     accTitle: Communication diagram, /conquests (/conquiste)
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_conquests("<b>cmd_conquests.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
+    arguments("<b>arguments.py</b>")
     conquest("<b>conquest.py</b>")
     formatting("<b>formatting.py</b>")
     trophies("<b>trophies.py</b>")
     maps("<b>maps.py</b>")
-    telegram -->|"1.#nbsp;conquests_command"| commands
-    commands -->|"2.#nbsp;register_sender<br/>8.#nbsp;register_user<br/>16, 19, 27.#nbsp;escape_md<br/>31.#nbsp;reply_charts"| chat
+    telegram -->|"1.#nbsp;conquests_command"| cmd_conquests
+    cmd_conquests -->|"2.#nbsp;register_sender<br/>18, 21, 29.#nbsp;escape_md<br/>33.#nbsp;reply_charts"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6.#nbsp;find_user_by_username<br/>10.#nbsp;get_timed_conquests<br/>14.#nbsp;get_users"| database
-    database -.->|"7.#nbsp;target<br/>11.#nbsp;timed<br/>15.#nbsp;users"| commands
-    commands -->|"9.#nbsp;reply_text"| telegram
-    commands -->|"12.#nbsp;holdings<br/>17, 29.#nbsp;visited<br/>18, 26.#nbsp;mention_of"| conquest
-    conquest -.->|"13.#nbsp;(counts, king)"| commands
-    commands -->|"20.#nbsp;bold<br/>21.#nbsp;tie_positions<br/>28.#nbsp;format_season_line"| formatting
-    commands -->|"22.#nbsp;season_of<br/>24.#nbsp;season_results"| trophies
-    trophies -.->|"23.#nbsp;season"| commands
-    trophies -->|"25.#nbsp;holdings"| conquest
-    commands -->|"30.#nbsp;render"| maps
-    chat -->|"32, 35, 36.#nbsp;reply_text<br/>33, 34.#nbsp;reply_photo<br/>37.#nbsp;reply_media_group"| telegram
+    chat -.->|"5.#nbsp;sender"| cmd_conquests
+    cmd_conquests -->|"6.#nbsp;resolve_optional_target"| arguments
+    arguments -->|"7.#nbsp;find_user_by_username"| database
+    database -.->|"8.#nbsp;target"| arguments
+    arguments -->|"9.#nbsp;register_user"| chat
+    arguments -.->|"10.#nbsp;(target, error)"| cmd_conquests
+    cmd_conquests -->|"11.#nbsp;reply_text"| telegram
+    cmd_conquests -->|"12.#nbsp;get_timed_conquests<br/>16.#nbsp;get_users"| database
+    database -.->|"13.#nbsp;timed<br/>17.#nbsp;users"| cmd_conquests
+    cmd_conquests -->|"14.#nbsp;holdings<br/>19, 31.#nbsp;visited<br/>20, 28.#nbsp;mention_of"| conquest
+    conquest -.->|"15.#nbsp;(counts, king)"| cmd_conquests
+    cmd_conquests -->|"22.#nbsp;ranked_line<br/>23.#nbsp;tie_positions<br/>30.#nbsp;format_season_line"| formatting
+    cmd_conquests -->|"24.#nbsp;season_of<br/>26.#nbsp;season_results"| trophies
+    trophies -.->|"25.#nbsp;season"| cmd_conquests
+    trophies -->|"27.#nbsp;holdings"| conquest
+    cmd_conquests -->|"32.#nbsp;render"| maps
+    chat -->|"34, 37, 38.#nbsp;reply_text<br/>35, 36.#nbsp;reply_photo<br/>39.#nbsp;reply_media_group"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database,conquest,formatting,trophies,maps step
+    class cmd_conquests,chat,database,arguments,conquest,formatting,trophies,maps step
     class telegram person
 ```
 
@@ -1431,74 +1389,74 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /conquests (/conquiste)
-    accDescr: The calls between the modules in time order, starting from commands.conquests_command
+    accDescr: The calls between the modules in time order, starting from cmd_conquests.conquests_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_conquests as cmd_conquests.py
     participant chat as chat.py
     participant database as database.py
+    participant arguments as arguments.py
     participant conquest as conquest.py
     participant formatting as formatting.py
     participant trophies as trophies.py
     participant maps as maps.py
     rect rgb(255, 250, 243)
-        telegram->>commands: conquests_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_conquests: conquests_command(update, context)
+        cmd_conquests->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
+        chat-->>cmd_conquests: sender
+        cmd_conquests->>arguments: resolve_optional_target(update, context, sender, tr('/conquis...)
         opt args and args[0].startswith('@')
-            commands->>database: find_user_by_username(chat_id, username)
-            database-->>commands: target
-            Note over commands: returns
+            arguments->>database: find_user_by_username(chat_id, username)
+            database-->>arguments: target
+            Note over arguments: returns
         end
         opt replied is not None
-            commands->>chat: register_user(chat_id, replied)
-            Note over commands: returns
+            arguments->>chat: register_user(chat_id, replied)
+            Note over arguments: returns
         end
+        arguments-->>cmd_conquests: (target, error)
         opt error
-            commands->>telegram: reply_text(error)
-            Note over commands: returns
+            cmd_conquests->>telegram: reply_text(error)
+            Note over cmd_conquests: returns
         end
-        commands->>database: get_timed_conquests(chat_id)
-        database-->>commands: timed
-        commands->>conquest: holdings(history)
-        conquest-->>commands: (counts, king)
-        commands->>database: get_users(chat_id)
-        database-->>commands: users
+        cmd_conquests->>database: get_timed_conquests(chat_id)
+        database-->>cmd_conquests: timed
+        cmd_conquests->>conquest: holdings(history)
+        conquest-->>cmd_conquests: (counts, king)
+        cmd_conquests->>database: get_users(chat_id)
+        database-->>cmd_conquests: users
         alt target is not None
-            commands->>chat: escape_md(target.mention)
-            commands->>conquest: visited(history, target.user_id)
+            cmd_conquests->>chat: escape_md(target.mention)
+            cmd_conquests->>conquest: visited(history, target.user_id)
         else
             opt not (not counts)
-                commands->>conquest: mention_of(users, user_id)
-                commands->>chat: escape_md(mention_of(users, user_id))
-                opt position in MEDALS
-                    commands->>formatting: bold(name)
-                    Note over commands: returns
-                end
-                commands->>formatting: tie_positions([held for _, held in ranking])
-                commands->>trophies: season_of(now_rome().date())
-                trophies-->>commands: season
-                commands->>trophies: season_results(timed)
+                cmd_conquests->>conquest: mention_of(users, user_id)
+                cmd_conquests->>chat: escape_md(mention_of(users, user_id))
+                cmd_conquests->>formatting: ranked_line(position, escape_md(mention_of(users,...)
+                cmd_conquests->>formatting: tie_positions([held for _, held in ranking])
+                cmd_conquests->>trophies: season_of(now_rome().date())
+                trophies-->>cmd_conquests: season
+                cmd_conquests->>trophies: season_results(timed)
                 loop for (season, counts) in per_season.it...
                     trophies->>conquest: holdings([(user_id, cell) for user_id, _, cell...)
                 end
                 opt season in (results := season_results(...
-                    commands->>conquest: mention_of(users, u)
-                    commands->>chat: escape_md(mention_of(users, u))
-                    commands->>formatting: format_season_line(season, results[season], {u: escape_m...)
+                    cmd_conquests->>conquest: mention_of(users, u)
+                    cmd_conquests->>chat: escape_md(mention_of(users, u))
+                    cmd_conquests->>formatting: format_season_line(season, results[season], {u: escape_m...)
                 end
             end
         end
-        commands->>conquest: visited(history, target.user_id)
-        commands->>maps: render(view, history, users, shown)
-        commands->>chat: reply_charts(update, maps_drawn, message)
+        cmd_conquests->>conquest: visited(history, target.user_id)
+        cmd_conquests->>maps: render(view, history, users, shown)
+        cmd_conquests->>chat: reply_charts(update, maps_drawn, message)
         alt not charts
             chat->>telegram: reply_text(message, parse_mode='Markdown')
         else
             alt len(charts) == 1
-                opt fits_caption(message)
+                opt _fits_caption(message)
                     chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
                     Note over chat: returns
                 end
@@ -1519,30 +1477,19 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
-- `commands.resolve_optional_target`
-  - `commands.replied_person`
-  - `commands.resolve_target`
-    - `commands.parse_username_arg`
-    - `commands.invalid_format`
-    - `database.find_user_by_username`
-      - `conquest.cell_of` (see above)
-    - `commands.replied_person` (see above)
-    - `chat.register_user` (see above)
-  - `commands.invalid_format` (see above)
+- `arguments.resolve_optional_target`
+  - `arguments.replied_person`
+  - `arguments.invalid_format`
+  - `database.find_user_by_username`
+  - `chat.register_user` (see above)
 - `database.get_timed_conquests`
-  - `conquest.cell_of` (see above)
 - `conquest.holdings`
 - `database.get_users`
-  - `conquest.cell_of` (see above)
 - `chat.escape_md`
 - `conquest.visited`
-- `commands.ranked_line`
-  - `formatting.bold`
+- `formatting.ranked_line`
 - `conquest.mention_of`
 - `formatting.tie_positions`
 - `trophies.season_of`
@@ -1550,18 +1497,15 @@ sequenceDiagram
   - `trophies.season_of` (see above)
   - `conquest.holdings` (see above)
 - `formatting.format_season_line`
-  - `formatting.bold` (see above)
 - `maps.render`
 - `chat.reply_charts`
   - `chat.reply_chart`
-    - `chat.fits_caption`
-  - `chat.fits_caption` (see above)
 
 </details>
 
 ## `/app`
 
-Entry point: `commands.app_command`
+Entry point: `cmd_settings.app_command`
 
 ```mermaid
 ---
@@ -1600,20 +1544,20 @@ flowchart LR
     accTitle: Communication diagram, /app
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_settings("<b>cmd_settings.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
     miniapp("<b>miniapp.py</b>")
-    telegram -->|"1.#nbsp;app_command"| commands
-    commands -->|"2.#nbsp;register_sender"| chat
+    telegram -->|"1.#nbsp;app_command"| cmd_settings
+    cmd_settings -->|"2.#nbsp;register_sender"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6.#nbsp;direct_link"| miniapp
-    miniapp -.->|"7.#nbsp;link"| commands
-    commands -->|"8.#nbsp;reply_text"| telegram
+    chat -.->|"5.#nbsp;sender"| cmd_settings
+    cmd_settings -->|"6.#nbsp;direct_link"| miniapp
+    miniapp -.->|"7.#nbsp;link"| cmd_settings
+    cmd_settings -->|"8.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database,miniapp step
+    class cmd_settings,chat,database,miniapp step
     class telegram person
 ```
 
@@ -1649,22 +1593,22 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /app
-    accDescr: The calls between the modules in time order, starting from commands.app_command
+    accDescr: The calls between the modules in time order, starting from cmd_settings.app_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_settings as cmd_settings.py
     participant chat as chat.py
     participant database as database.py
     participant miniapp as miniapp.py
     rect rgb(255, 250, 243)
-        telegram->>commands: app_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_settings: app_command(update, context)
+        cmd_settings->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
-        commands->>miniapp: direct_link(context.bot.username, update.message....)
-        miniapp-->>commands: link
-        commands->>telegram: reply_text(tr('📱 Classifiche, statistiche e mapp...)
+        chat-->>cmd_settings: sender
+        cmd_settings->>miniapp: direct_link(context.bot.username, update.message....)
+        miniapp-->>cmd_settings: link
+        cmd_settings->>telegram: reply_text(tr('📱 Classifiche, statistiche e mapp...)
     end
 ```
 
@@ -1673,18 +1617,15 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `miniapp.direct_link`
 
 </details>
 
 ## `/day_count` (`/conto_giorno`)
 
-Entry point: `commands.day_count_command`
+Entry point: `cmd_counts.day_count_command`
 
 ```mermaid
 ---
@@ -1723,21 +1664,28 @@ flowchart LR
     accTitle: Communication diagram, /day_count (/conto_giorno)
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_counts("<b>cmd_counts.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
+    arguments("<b>arguments.py</b>")
     formatting("<b>formatting.py</b>")
-    telegram -->|"1.#nbsp;day_count_command"| commands
-    commands -->|"2.#nbsp;register_sender<br/>8.#nbsp;register_user"| chat
+    telegram -->|"1.#nbsp;day_count_command"| cmd_counts
+    cmd_counts -->|"2.#nbsp;register_sender"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6.#nbsp;find_user_by_username<br/>11.#nbsp;get_count"| database
-    database -.->|"7.#nbsp;target<br/>12.#nbsp;count"| commands
-    commands -->|"9, 10, 14.#nbsp;reply_text"| telegram
-    commands -->|"13.#nbsp;day_count_sentence"| formatting
+    chat -.->|"5.#nbsp;sender"| cmd_counts
+    cmd_counts -->|"6.#nbsp;target_from_args<br/>12.#nbsp;date_from_arg"| arguments
+    arguments -->|"7.#nbsp;find_user_by_username"| database
+    database -.->|"8.#nbsp;target"| arguments
+    arguments -->|"9.#nbsp;register_user"| chat
+    arguments -->|"10, 13.#nbsp;reply_text"| telegram
+    arguments -.->|"11.#nbsp;found<br/>14.#nbsp;parsed"| cmd_counts
+    cmd_counts -->|"15.#nbsp;get_count"| database
+    database -.->|"16.#nbsp;count"| cmd_counts
+    cmd_counts -->|"17.#nbsp;day_count_sentence"| formatting
+    cmd_counts -->|"18.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database,formatting step
+    class cmd_counts,chat,database,arguments,formatting step
     class telegram person
 ```
 
@@ -1773,41 +1721,46 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /day_count (/conto_giorno)
-    accDescr: The calls between the modules in time order, starting from commands.day_count_command
+    accDescr: The calls between the modules in time order, starting from cmd_counts.day_count_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_counts as cmd_counts.py
     participant chat as chat.py
     participant database as database.py
+    participant arguments as arguments.py
     participant formatting as formatting.py
     rect rgb(255, 250, 243)
-        telegram->>commands: day_count_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_counts: day_count_command(update, context)
+        cmd_counts->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
+        chat-->>cmd_counts: sender
+        cmd_counts->>arguments: target_from_args(update, context.args, sender, usage, ...)
         opt args and args[0].startswith('@')
-            commands->>database: find_user_by_username(chat_id, username)
-            database-->>commands: target
-            Note over commands: returns
+            arguments->>database: find_user_by_username(chat_id, username)
+            database-->>arguments: target
+            Note over arguments: returns
         end
         opt replied is not None
-            commands->>chat: register_user(chat_id, replied)
-            Note over commands: returns
+            arguments->>chat: register_user(chat_id, replied)
+            Note over arguments: returns
         end
         opt error
-            commands->>telegram: reply_text(error)
-            Note over commands: returns
+            arguments->>telegram: reply_text(error)
+            Note over arguments: returns
         end
+        arguments-->>cmd_counts: found
         opt args
+            cmd_counts->>arguments: date_from_arg(update, args[0])
             opt on ValueError
-                commands->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
+                arguments->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
             end
+            arguments-->>cmd_counts: parsed
         end
-        commands->>database: get_count(target.user_id, selected_date, update...)
-        database-->>commands: count
-        commands->>formatting: day_count_sentence(target.mention, day, count)
-        commands->>telegram: reply_text(day_count_sentence(target.mention, da...)
+        cmd_counts->>database: get_count(target.user_id, selected_date, update...)
+        database-->>cmd_counts: count
+        cmd_counts->>formatting: day_count_sentence(target.mention, day, count)
+        cmd_counts->>telegram: reply_text(day_count_sentence(target.mention, da...)
     end
 ```
 
@@ -1816,29 +1769,22 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
-- `commands.resolve_target`
-  - `commands.parse_username_arg`
-  - `commands.invalid_format`
+- `arguments.target_from_args`
+  - `arguments.invalid_format`
   - `database.find_user_by_username`
-    - `conquest.cell_of` (see above)
-  - `commands.replied_person`
+  - `arguments.replied_person`
   - `chat.register_user` (see above)
-- `commands.invalid_format` (see above)
-- `commands.parse_date_arg`
+- `arguments.date_from_arg`
 - `database.get_count`
-  - `conquest.cell_of` (see above)
 - `formatting.day_count_sentence`
 
 </details>
 
 ## `/last_poop` (`/ultima_cacca`)
 
-Entry point: `commands.last_poop_command`
+Entry point: `cmd_counts.last_poop_command`
 
 ```mermaid
 ---
@@ -1877,21 +1823,28 @@ flowchart LR
     accTitle: Communication diagram, /last_poop (/ultima_cacca)
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_counts("<b>cmd_counts.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
+    arguments("<b>arguments.py</b>")
     formatting("<b>formatting.py</b>")
-    telegram -->|"1.#nbsp;last_poop_command"| commands
-    commands -->|"2.#nbsp;register_sender<br/>8.#nbsp;register_user"| chat
+    telegram -->|"1.#nbsp;last_poop_command"| cmd_counts
+    cmd_counts -->|"2.#nbsp;register_sender"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6.#nbsp;find_user_by_username<br/>10.#nbsp;get_days_since_last_poop"| database
-    database -.->|"7.#nbsp;target<br/>11.#nbsp;days"| commands
-    commands -->|"9, 13.#nbsp;reply_text"| telegram
-    commands -->|"12.#nbsp;last_poop_sentence"| formatting
+    chat -.->|"5.#nbsp;sender"| cmd_counts
+    cmd_counts -->|"6.#nbsp;target_from_args"| arguments
+    arguments -->|"7.#nbsp;find_user_by_username"| database
+    database -.->|"8.#nbsp;target"| arguments
+    arguments -->|"9.#nbsp;register_user"| chat
+    arguments -->|"10.#nbsp;reply_text"| telegram
+    arguments -.->|"11.#nbsp;found"| cmd_counts
+    cmd_counts -->|"12.#nbsp;get_days_since_last_poop"| database
+    database -.->|"13.#nbsp;days"| cmd_counts
+    cmd_counts -->|"14.#nbsp;last_poop_sentence"| formatting
+    cmd_counts -->|"15.#nbsp;reply_text"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database,formatting step
+    class cmd_counts,chat,database,arguments,formatting step
     class telegram person
 ```
 
@@ -1927,36 +1880,39 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /last_poop (/ultima_cacca)
-    accDescr: The calls between the modules in time order, starting from commands.last_poop_command
+    accDescr: The calls between the modules in time order, starting from cmd_counts.last_poop_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_counts as cmd_counts.py
     participant chat as chat.py
     participant database as database.py
+    participant arguments as arguments.py
     participant formatting as formatting.py
     rect rgb(255, 250, 243)
-        telegram->>commands: last_poop_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_counts: last_poop_command(update, context)
+        cmd_counts->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
+        chat-->>cmd_counts: sender
+        cmd_counts->>arguments: target_from_args(update, context.args, sender, usage, ...)
         opt args and args[0].startswith('@')
-            commands->>database: find_user_by_username(chat_id, username)
-            database-->>commands: target
-            Note over commands: returns
+            arguments->>database: find_user_by_username(chat_id, username)
+            database-->>arguments: target
+            Note over arguments: returns
         end
         opt replied is not None
-            commands->>chat: register_user(chat_id, replied)
-            Note over commands: returns
+            arguments->>chat: register_user(chat_id, replied)
+            Note over arguments: returns
         end
         opt error
-            commands->>telegram: reply_text(error)
-            Note over commands: returns
+            arguments->>telegram: reply_text(error)
+            Note over arguments: returns
         end
-        commands->>database: get_days_since_last_poop(target.user_id, update.message.chat_id)
-        database-->>commands: days
-        commands->>formatting: last_poop_sentence(target.mention, days)
-        commands->>telegram: reply_text(last_poop_sentence(target.mention, days))
+        arguments-->>cmd_counts: found
+        cmd_counts->>database: get_days_since_last_poop(target.user_id, update.message.chat_id)
+        database-->>cmd_counts: days
+        cmd_counts->>formatting: last_poop_sentence(target.mention, days)
+        cmd_counts->>telegram: reply_text(last_poop_sentence(target.mention, days))
     end
 ```
 
@@ -1965,28 +1921,21 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
-- `commands.resolve_target`
-  - `commands.parse_username_arg`
-  - `commands.invalid_format`
+- `arguments.target_from_args`
+  - `arguments.invalid_format`
   - `database.find_user_by_username`
-    - `conquest.cell_of` (see above)
-  - `commands.replied_person`
+  - `arguments.replied_person`
   - `chat.register_user` (see above)
-- `commands.invalid_format` (see above)
 - `database.get_days_since_last_poop`
-  - `conquest.cell_of` (see above)
 - `formatting.last_poop_sentence`
 
 </details>
 
 ## `/add_poop` (`/aggiungi_cacca`)
 
-Entry point: `commands.add_poop_command`
+Entry point: `cmd_counts.add_poop_command`
 
 ```mermaid
 ---
@@ -2025,22 +1974,29 @@ flowchart LR
     accTitle: Communication diagram, /add_poop (/aggiungi_cacca)
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_counts("<b>cmd_counts.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
+    arguments("<b>arguments.py</b>")
     formatting("<b>formatting.py</b>")
-    telegram -->|"1.#nbsp;add_poop_command"| commands
-    commands -->|"2.#nbsp;register_sender<br/>8.#nbsp;register_user<br/>10.#nbsp;is_chat_admin<br/>16.#nbsp;where"| chat
+    telegram -->|"1.#nbsp;add_poop_command"| cmd_counts
+    cmd_counts -->|"2.#nbsp;register_sender<br/>12.#nbsp;is_chat_admin<br/>20.#nbsp;where"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6.#nbsp;find_user_by_username<br/>14.#nbsp;add_count"| database
-    database -.->|"7.#nbsp;target<br/>15.#nbsp;(old_count, new_count)"| commands
-    commands -->|"9, 12, 13, 17, 19.#nbsp;reply_text"| telegram
-    chat -->|"11.#nbsp;get_chat_member"| telegram
-    commands -->|"18.#nbsp;change_count_sentence"| formatting
+    chat -.->|"5.#nbsp;sender"| cmd_counts
+    cmd_counts -->|"6.#nbsp;target_from_args<br/>15.#nbsp;date_from_arg"| arguments
+    arguments -->|"7.#nbsp;find_user_by_username"| database
+    database -.->|"8.#nbsp;target"| arguments
+    arguments -->|"9.#nbsp;register_user"| chat
+    arguments -->|"10, 16.#nbsp;reply_text"| telegram
+    arguments -.->|"11.#nbsp;found<br/>17.#nbsp;parsed"| cmd_counts
+    chat -->|"13.#nbsp;get_chat_member"| telegram
+    cmd_counts -->|"14, 21, 23.#nbsp;reply_text"| telegram
+    cmd_counts -->|"18.#nbsp;add_count"| database
+    database -.->|"19.#nbsp;(old_count, new_count)"| cmd_counts
+    cmd_counts -->|"22.#nbsp;change_count_sentence"| formatting
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database,formatting step
+    class cmd_counts,chat,database,arguments,formatting step
     class telegram person
 ```
 
@@ -2076,46 +2032,51 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /add_poop (/aggiungi_cacca)
-    accDescr: The calls between the modules in time order, starting from commands.add_poop_command
+    accDescr: The calls between the modules in time order, starting from cmd_counts.add_poop_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_counts as cmd_counts.py
     participant chat as chat.py
     participant database as database.py
+    participant arguments as arguments.py
     participant formatting as formatting.py
     rect rgb(255, 250, 243)
-        telegram->>commands: add_poop_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_counts: add_poop_command(update, context)
+        cmd_counts->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
+        chat-->>cmd_counts: sender
+        cmd_counts->>arguments: target_from_args(update, context.args, sender, usage, ...)
         opt args and args[0].startswith('@')
-            commands->>database: find_user_by_username(chat_id, username)
-            database-->>commands: target
-            Note over commands: returns
+            arguments->>database: find_user_by_username(chat_id, username)
+            database-->>arguments: target
+            Note over arguments: returns
         end
         opt replied is not None
-            commands->>chat: register_user(chat_id, replied)
-            Note over commands: returns
+            arguments->>chat: register_user(chat_id, replied)
+            Note over arguments: returns
         end
         opt error
-            commands->>telegram: reply_text(error)
-            Note over commands: returns
+            arguments->>telegram: reply_text(error)
+            Note over arguments: returns
         end
-        commands->>chat: is_chat_admin(update, context)
+        arguments-->>cmd_counts: found
+        cmd_counts->>chat: is_chat_admin(update, context)
         chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
-        commands->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
+        cmd_counts->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
+        cmd_counts->>arguments: date_from_arg(update, args[0])
         opt on ValueError
-            commands->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
+            arguments->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
         end
-        commands->>database: add_count(target.user_id, selected_date, delta,...)
-        database-->>commands: (old_count, new_count)
-        commands->>chat: where(update)
+        arguments-->>cmd_counts: parsed
+        cmd_counts->>database: add_count(target.user_id, selected_date, delta,...)
+        database-->>cmd_counts: (old_count, new_count)
+        cmd_counts->>chat: where(update)
         alt delta < 0 and old_count == 0
-            commands->>telegram: reply_text(tr('⚠️ Il conteggio di {name} nel gio...)
+            cmd_counts->>telegram: reply_text(tr('⚠️ Il conteggio di {name} nel gio...)
         else
-            commands->>formatting: change_count_sentence(target.mention, date, new_count, delta)
-            commands->>telegram: reply_text(change_count_sentence(target.mention,...)
+            cmd_counts->>formatting: change_count_sentence(target.mention, date, new_count, delta)
+            cmd_counts->>telegram: reply_text(change_count_sentence(target.mention,...)
         end
     end
 ```
@@ -2123,35 +2084,26 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `commands.change_count_command`
-  - `chat.register_sender`
-    - `database.get_language`
-      - `conquest.cell_of`
-    - `chat.register_user`
-      - `chat.display_name_of`
-      - `database.upsert_user`
-        - `conquest.cell_of` (see above)
-  - `commands.resolve_target`
-    - `commands.parse_username_arg`
-    - `commands.invalid_format`
-    - `database.find_user_by_username`
-      - `conquest.cell_of` (see above)
-    - `commands.replied_person`
-    - `chat.register_user` (see above)
-  - `commands.invalid_format` (see above)
-  - `commands.may_change_counts_of`
-    - `chat.is_chat_admin`
-  - `commands.parse_date_arg`
-  - `database.add_count`
-    - `conquest.cell_of` (see above)
-  - `chat.where`
-  - `formatting.change_count_sentence`
+- `chat.register_sender`
+  - `database.get_language`
+  - `chat.register_user`
+    - `database.upsert_user`
+- `arguments.target_from_args`
+  - `arguments.invalid_format`
+  - `database.find_user_by_username`
+  - `arguments.replied_person`
+  - `chat.register_user` (see above)
+- `chat.is_chat_admin`
+- `arguments.date_from_arg`
+- `database.add_count`
+- `chat.where`
+- `formatting.change_count_sentence`
 
 </details>
 
 ## `/remove_poop` (`/togli_cacca`)
 
-Entry point: `commands.remove_poop_command`
+Entry point: `cmd_counts.remove_poop_command`
 
 ```mermaid
 ---
@@ -2190,22 +2142,29 @@ flowchart LR
     accTitle: Communication diagram, /remove_poop (/togli_cacca)
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_counts("<b>cmd_counts.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
+    arguments("<b>arguments.py</b>")
     formatting("<b>formatting.py</b>")
-    telegram -->|"1.#nbsp;remove_poop_command"| commands
-    commands -->|"2.#nbsp;register_sender<br/>8.#nbsp;register_user<br/>10.#nbsp;is_chat_admin<br/>16.#nbsp;where"| chat
+    telegram -->|"1.#nbsp;remove_poop_command"| cmd_counts
+    cmd_counts -->|"2.#nbsp;register_sender<br/>12.#nbsp;is_chat_admin<br/>20.#nbsp;where"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6.#nbsp;find_user_by_username<br/>14.#nbsp;add_count"| database
-    database -.->|"7.#nbsp;target<br/>15.#nbsp;(old_count, new_count)"| commands
-    commands -->|"9, 12, 13, 17, 19.#nbsp;reply_text"| telegram
-    chat -->|"11.#nbsp;get_chat_member"| telegram
-    commands -->|"18.#nbsp;change_count_sentence"| formatting
+    chat -.->|"5.#nbsp;sender"| cmd_counts
+    cmd_counts -->|"6.#nbsp;target_from_args<br/>15.#nbsp;date_from_arg"| arguments
+    arguments -->|"7.#nbsp;find_user_by_username"| database
+    database -.->|"8.#nbsp;target"| arguments
+    arguments -->|"9.#nbsp;register_user"| chat
+    arguments -->|"10, 16.#nbsp;reply_text"| telegram
+    arguments -.->|"11.#nbsp;found<br/>17.#nbsp;parsed"| cmd_counts
+    chat -->|"13.#nbsp;get_chat_member"| telegram
+    cmd_counts -->|"14, 21, 23.#nbsp;reply_text"| telegram
+    cmd_counts -->|"18.#nbsp;add_count"| database
+    database -.->|"19.#nbsp;(old_count, new_count)"| cmd_counts
+    cmd_counts -->|"22.#nbsp;change_count_sentence"| formatting
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database,formatting step
+    class cmd_counts,chat,database,arguments,formatting step
     class telegram person
 ```
 
@@ -2241,46 +2200,51 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /remove_poop (/togli_cacca)
-    accDescr: The calls between the modules in time order, starting from commands.remove_poop_command
+    accDescr: The calls between the modules in time order, starting from cmd_counts.remove_poop_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_counts as cmd_counts.py
     participant chat as chat.py
     participant database as database.py
+    participant arguments as arguments.py
     participant formatting as formatting.py
     rect rgb(255, 250, 243)
-        telegram->>commands: remove_poop_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_counts: remove_poop_command(update, context)
+        cmd_counts->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
+        chat-->>cmd_counts: sender
+        cmd_counts->>arguments: target_from_args(update, context.args, sender, usage, ...)
         opt args and args[0].startswith('@')
-            commands->>database: find_user_by_username(chat_id, username)
-            database-->>commands: target
-            Note over commands: returns
+            arguments->>database: find_user_by_username(chat_id, username)
+            database-->>arguments: target
+            Note over arguments: returns
         end
         opt replied is not None
-            commands->>chat: register_user(chat_id, replied)
-            Note over commands: returns
+            arguments->>chat: register_user(chat_id, replied)
+            Note over arguments: returns
         end
         opt error
-            commands->>telegram: reply_text(error)
-            Note over commands: returns
+            arguments->>telegram: reply_text(error)
+            Note over arguments: returns
         end
-        commands->>chat: is_chat_admin(update, context)
+        arguments-->>cmd_counts: found
+        cmd_counts->>chat: is_chat_admin(update, context)
         chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
-        commands->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
+        cmd_counts->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
+        cmd_counts->>arguments: date_from_arg(update, args[0])
         opt on ValueError
-            commands->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
+            arguments->>telegram: reply_text(tr('⚠️ Errore: {error}').format(error=e))
         end
-        commands->>database: add_count(target.user_id, selected_date, delta,...)
-        database-->>commands: (old_count, new_count)
-        commands->>chat: where(update)
+        arguments-->>cmd_counts: parsed
+        cmd_counts->>database: add_count(target.user_id, selected_date, delta,...)
+        database-->>cmd_counts: (old_count, new_count)
+        cmd_counts->>chat: where(update)
         alt delta < 0 and old_count == 0
-            commands->>telegram: reply_text(tr('⚠️ Il conteggio di {name} nel gio...)
+            cmd_counts->>telegram: reply_text(tr('⚠️ Il conteggio di {name} nel gio...)
         else
-            commands->>formatting: change_count_sentence(target.mention, date, new_count, delta)
-            commands->>telegram: reply_text(change_count_sentence(target.mention,...)
+            cmd_counts->>formatting: change_count_sentence(target.mention, date, new_count, delta)
+            cmd_counts->>telegram: reply_text(change_count_sentence(target.mention,...)
         end
     end
 ```
@@ -2288,35 +2252,26 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `commands.change_count_command`
-  - `chat.register_sender`
-    - `database.get_language`
-      - `conquest.cell_of`
-    - `chat.register_user`
-      - `chat.display_name_of`
-      - `database.upsert_user`
-        - `conquest.cell_of` (see above)
-  - `commands.resolve_target`
-    - `commands.parse_username_arg`
-    - `commands.invalid_format`
-    - `database.find_user_by_username`
-      - `conquest.cell_of` (see above)
-    - `commands.replied_person`
-    - `chat.register_user` (see above)
-  - `commands.invalid_format` (see above)
-  - `commands.may_change_counts_of`
-    - `chat.is_chat_admin`
-  - `commands.parse_date_arg`
-  - `database.add_count`
-    - `conquest.cell_of` (see above)
-  - `chat.where`
-  - `formatting.change_count_sentence`
+- `chat.register_sender`
+  - `database.get_language`
+  - `chat.register_user`
+    - `database.upsert_user`
+- `arguments.target_from_args`
+  - `arguments.invalid_format`
+  - `database.find_user_by_username`
+  - `arguments.replied_person`
+  - `chat.register_user` (see above)
+- `chat.is_chat_admin`
+- `arguments.date_from_arg`
+- `database.add_count`
+- `chat.where`
+- `formatting.change_count_sentence`
 
 </details>
 
 ## `/language` (`/lingua`)
 
-Entry point: `commands.language_command`
+Entry point: `cmd_settings.language_command`
 
 ```mermaid
 ---
@@ -2355,22 +2310,22 @@ flowchart LR
     accTitle: Communication diagram, /language (/lingua)
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_settings("<b>cmd_settings.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
     menus("<b>menus.py</b>")
-    telegram -->|"1.#nbsp;language_command"| commands
-    commands -->|"2.#nbsp;register_sender<br/>7.#nbsp;is_chat_admin<br/>11.#nbsp;where"| chat
+    telegram -->|"1.#nbsp;language_command"| cmd_settings
+    cmd_settings -->|"2.#nbsp;register_sender<br/>7.#nbsp;is_chat_admin<br/>11.#nbsp;where"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender"| commands
-    commands -->|"6, 9, 12.#nbsp;reply_text"| telegram
+    chat -.->|"5.#nbsp;sender"| cmd_settings
+    cmd_settings -->|"6, 9, 12.#nbsp;reply_text"| telegram
     chat -->|"8.#nbsp;get_chat_member"| telegram
-    commands -->|"10.#nbsp;set_language"| database
-    commands -->|"13.#nbsp;set_chat_menu"| menus
+    cmd_settings -->|"10.#nbsp;set_language"| database
+    cmd_settings -->|"13.#nbsp;set_chat_menu"| menus
     menus -->|"14, 15.#nbsp;set_my_commands"| telegram
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database,menus step
+    class cmd_settings,chat,database,menus step
     class telegram person
 ```
 
@@ -2406,33 +2361,33 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /language (/lingua)
-    accDescr: The calls between the modules in time order, starting from commands.language_command
+    accDescr: The calls between the modules in time order, starting from cmd_settings.language_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_settings as cmd_settings.py
     participant chat as chat.py
     participant database as database.py
     participant menus as menus.py
     rect rgb(255, 250, 243)
-        telegram->>commands: language_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_settings: language_command(update, context)
+        cmd_settings->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
+        chat-->>cmd_settings: sender
         opt language not in i18n.LANGUAGES
-            commands->>telegram: reply_text(tr('🌐 La lingua di questa chat è {nam...)
-            Note over commands: returns
+            cmd_settings->>telegram: reply_text(tr('🌐 La lingua di questa chat è {nam...)
+            Note over cmd_settings: returns
         end
-        commands->>chat: is_chat_admin(update, context)
+        cmd_settings->>chat: is_chat_admin(update, context)
         chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
         opt not await is_chat_admin(update, context)
-            commands->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
-            Note over commands: returns
+            cmd_settings->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
+            Note over cmd_settings: returns
         end
-        commands->>database: set_language(update.message.chat_id, language)
-        commands->>chat: where(update)
-        commands->>telegram: reply_text(tr('Da ora parlo italiano 🇮🇹'))
-        commands->>menus: set_chat_menu(context.bot, update.message.chat_id, ...)
+        cmd_settings->>database: set_language(update.message.chat_id, language)
+        cmd_settings->>chat: where(update)
+        cmd_settings->>telegram: reply_text(tr('Da ora parlo italiano 🇮🇹'))
+        cmd_settings->>menus: set_chat_menu(context.bot, update.message.chat_id, ...)
         menus->>telegram: set_my_commands(menu(language), scope=BotCommandScope...)
         opt group
             menus->>telegram: set_my_commands(menu(language, admins=True), scope=Bo...)
@@ -2445,14 +2400,10 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `chat.is_chat_admin`
 - `database.set_language`
-  - `conquest.cell_of` (see above)
 - `chat.where`
 - `menus.set_chat_menu`
   - `menus.menu`
@@ -2461,7 +2412,7 @@ sequenceDiagram
 
 ## `/link_history` (`/collega_storico`)
 
-Entry point: `commands.link_history_command`
+Entry point: `cmd_settings.link_history_command`
 
 ```mermaid
 ---
@@ -2500,20 +2451,23 @@ flowchart LR
     accTitle: Communication diagram, /link_history (/collega_storico)
     accDescr: The modules involved, the functions each one calls in another and what comes back, numbered as in the sequence
     telegram("<b>✈️ Telegram</b>")
-    commands("<b>commands.py</b>")
+    cmd_settings("<b>cmd_settings.py</b>")
     chat("<b>chat.py</b>")
     database("<b>database.py</b>")
-    telegram -->|"1.#nbsp;link_history_command"| commands
-    commands -->|"2.#nbsp;register_sender<br/>14.#nbsp;is_chat_admin<br/>19, 29.#nbsp;where<br/>25.#nbsp;register_user"| chat
+    arguments("<b>arguments.py</b>")
+    telegram -->|"1.#nbsp;link_history_command"| cmd_settings
+    cmd_settings -->|"2.#nbsp;register_sender<br/>14.#nbsp;is_chat_admin<br/>19, 32.#nbsp;where<br/>28.#nbsp;register_user"| chat
     chat -->|"3.#nbsp;get_language<br/>4.#nbsp;upsert_user"| database
-    chat -.->|"5.#nbsp;sender<br/>26.#nbsp;target"| commands
-    commands -->|"6, 20.#nbsp;list_legacy_users<br/>9.#nbsp;find_user_by_username<br/>11.#nbsp;count_legacy_orphans<br/>17.#nbsp;link_legacy_by_username<br/>27.#nbsp;link_legacy_username"| database
-    database -.->|"7.#nbsp;legacy<br/>10.#nbsp;match<br/>12.#nbsp;orphans<br/>18.#nbsp;linked<br/>21.#nbsp;remaining<br/>28.#nbsp;days"| commands
-    commands -->|"8, 13, 16, 22, 23, 24, 30, 31.#nbsp;reply_text"| telegram
+    chat -.->|"5.#nbsp;sender<br/>29.#nbsp;target"| cmd_settings
+    cmd_settings -->|"6, 20.#nbsp;list_legacy_users<br/>9.#nbsp;find_user_by_username<br/>11.#nbsp;count_legacy_orphans<br/>17.#nbsp;link_legacy_by_username<br/>30.#nbsp;link_legacy_username"| database
+    database -.->|"7.#nbsp;legacy<br/>10.#nbsp;match<br/>12.#nbsp;orphans<br/>18.#nbsp;linked<br/>21.#nbsp;remaining<br/>31.#nbsp;days"| cmd_settings
+    cmd_settings -->|"8, 13, 16, 22, 24, 27, 33, 34.#nbsp;reply_text"| telegram
     chat -->|"15.#nbsp;get_chat_member"| telegram
+    cmd_settings -->|"23.#nbsp;invalid_format<br/>25.#nbsp;replied_person"| arguments
+    arguments -.->|"26.#nbsp;replied"| cmd_settings
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
-    class commands,chat,database step
+    class cmd_settings,chat,database,arguments step
     class telegram person
 ```
 
@@ -2549,68 +2503,72 @@ config:
 ---
 sequenceDiagram
     accTitle: Sequence diagram, /link_history (/collega_storico)
-    accDescr: The calls between the modules in time order, starting from commands.link_history_command
+    accDescr: The calls between the modules in time order, starting from cmd_settings.link_history_command
     autonumber
     participant telegram as ✈️ Telegram
-    participant commands as commands.py
+    participant cmd_settings as cmd_settings.py
     participant chat as chat.py
     participant database as database.py
+    participant arguments as arguments.py
     rect rgb(255, 250, 243)
-        telegram->>commands: link_history_command(update, context)
-        commands->>chat: register_sender(update)
+        telegram->>cmd_settings: link_history_command(update, context)
+        cmd_settings->>chat: register_sender(update)
         chat->>database: get_language(update.message.chat_id)
         chat->>database: upsert_user(chat_id, user.user_id, user.username,...)
-        chat-->>commands: sender
+        chat-->>cmd_settings: sender
         opt not args
-            commands->>database: list_legacy_users(chat_id)
-            database-->>commands: legacy
+            cmd_settings->>database: list_legacy_users(chat_id)
+            database-->>cmd_settings: legacy
             opt not legacy
-                commands->>telegram: reply_text(tr('🤷 Non ci sono dati storici da col...)
-                Note over commands: returns
+                cmd_settings->>telegram: reply_text(tr('🤷 Non ci sono dati storici da col...)
+                Note over cmd_settings: returns
             end
             loop for (legacy_username, total) in legacy
-                commands->>database: find_user_by_username(chat_id, legacy_username)
-                database-->>commands: match
+                cmd_settings->>database: find_user_by_username(chat_id, legacy_username)
+                database-->>cmd_settings: match
             end
-            commands->>database: count_legacy_orphans(chat_id)
-            database-->>commands: orphans
-            commands->>telegram: reply_text('\n'.join(lines))
-            Note over commands: returns
+            cmd_settings->>database: count_legacy_orphans(chat_id)
+            database-->>cmd_settings: orphans
+            cmd_settings->>telegram: reply_text('\n'.join(lines))
+            Note over cmd_settings: returns
         end
-        commands->>chat: is_chat_admin(update, context)
+        cmd_settings->>chat: is_chat_admin(update, context)
         chat->>telegram: get_chat_member(update.message.chat_id, update.messag...)
         opt not await is_chat_admin(update, context)
-            commands->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
-            Note over commands: returns
+            cmd_settings->>telegram: reply_text(tr('🔒 Solo gli admin del gruppo posso...)
+            Note over cmd_settings: returns
         end
         opt len(args) == 1 and args[0] == 'auto'
-            commands->>database: link_legacy_by_username(chat_id)
-            database-->>commands: linked
+            cmd_settings->>database: link_legacy_by_username(chat_id)
+            database-->>cmd_settings: linked
             loop for (legacy_username, user, days) in ...
-                commands->>chat: where(update)
+                cmd_settings->>chat: where(update)
             end
-            commands->>database: list_legacy_users(chat_id)
-            database-->>commands: remaining
-            commands->>telegram: reply_text('\n'.join(lines))
-            Note over commands: returns
+            cmd_settings->>database: list_legacy_users(chat_id)
+            database-->>cmd_settings: remaining
+            cmd_settings->>telegram: reply_text('\n'.join(lines))
+            Note over cmd_settings: returns
         end
         opt len(args) != 1
-            commands->>telegram: reply_text(invalid_format(usage))
-            Note over commands: returns
+            cmd_settings->>arguments: invalid_format(usage)
+            cmd_settings->>telegram: reply_text(invalid_format(usage))
+            Note over cmd_settings: returns
         end
+        cmd_settings->>arguments: replied_person(update)
+        arguments-->>cmd_settings: replied
         opt replied is None
-            commands->>telegram: reply_text(tr('⚠️ Rispondi a un messaggio della ...)
-            Note over commands: returns
+            cmd_settings->>telegram: reply_text(tr('⚠️ Rispondi a un messaggio della ...)
+            Note over cmd_settings: returns
         end
-        commands->>chat: register_user(chat_id, replied)
-        chat-->>commands: target
-        commands->>database: link_legacy_username(chat_id, legacy_username, target.user_id)
-        database-->>commands: days
-        commands->>chat: where(update)
+        cmd_settings->>chat: register_user(chat_id, replied)
+        chat-->>cmd_settings: target
+        cmd_settings->>database: link_legacy_username(chat_id, legacy_username, target.user_id)
+        database-->>cmd_settings: days
+        cmd_settings->>chat: where(update)
         alt days == 0
-            commands->>telegram: reply_text(tr('🤷 Nessun dato storico trovato per...)
+            cmd_settings->>telegram: reply_text(tr('🤷 Nessun dato storico trovato per...)
         else
-            commands->>telegram: reply_text(tr('🔗 Collegati {days} giorni di dati...)
+            cmd_settings->>telegram: reply_text(tr('🔗 Collegati {days} giorni di dati...)
         end
     end
 ```
@@ -2620,26 +2578,19 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
 - `database.list_legacy_users`
-  - `conquest.cell_of` (see above)
 - `database.find_user_by_username`
-  - `conquest.cell_of` (see above)
 - `database.count_legacy_orphans`
-  - `conquest.cell_of` (see above)
 - `chat.is_chat_admin`
 - `database.link_legacy_by_username`
   - `database.list_legacy_users` (see above)
   - `database.find_user_by_username` (see above)
   - `database.link_legacy_username`
-    - `conquest.cell_of` (see above)
 - `chat.where`
-- `commands.invalid_format`
-- `commands.replied_person`
+- `arguments.invalid_format`
+- `arguments.replied_person`
 - `chat.register_user` (see above)
 - `database.link_legacy_username` (see above)
 
@@ -2702,7 +2653,7 @@ flowchart LR
     database -.->|"7.#nbsp;(_, count)<br/>23.#nbsp;result<br/>28.#nbsp;users"| messages
     messages -->|"10.#nbsp;poop_sentence<br/>17.#nbsp;format_streak_trophy"| formatting
     messages -->|"12.#nbsp;new_streak_trophy"| trophies
-    trophies -->|"13.#nbsp;_parse<br/>15.#nbsp;_runs"| analysis
+    trophies -->|"13.#nbsp;parse_counts<br/>15.#nbsp;consecutive_runs"| analysis
     analysis -.->|"14.#nbsp;counts"| trophies
     trophies -.->|"16.#nbsp;streak"| messages
     messages -->|"19, 20.#nbsp;reply_text"| telegram
@@ -2776,9 +2727,9 @@ sequenceDiagram
                     opt count == 1
                         messages->>database: get_record(sender.user_id, chat_id)
                         messages->>trophies: new_streak_trophy(get_record(sender.user_id, chat_id), ...)
-                        trophies->>analysis: _parse(rows)
+                        trophies->>analysis: parse_counts(rows)
                         analysis-->>trophies: counts
-                        trophies->>analysis: _runs(sorted((day for day in counts if day ...)
+                        trophies->>analysis: consecutive_runs(sorted((day for day in counts if day ...)
                         trophies-->>messages: streak
                         opt streak is not None
                             messages->>formatting: format_streak_trophy(streak)
@@ -2796,7 +2747,7 @@ sequenceDiagram
         else
             alt update.message.sticker
                 opt emoji == '💩' or emoji == '🚽'
-                    Note over messages: record_poop() as above
+                    Note over messages: _record_poop() as above
                     messages->>telegram: reply_text(response, parse_mode='Markdown')
                 end
             else
@@ -2826,7 +2777,7 @@ sequenceDiagram
                         chat->>telegram: reply_text(message, parse_mode='Markdown')
                     else
                         alt len(charts) == 1
-                            opt fits_caption(message)
+                            opt _fits_caption(message)
                                 chat->>telegram: reply_photo(chart, caption=message, parse_mode='M...)
                                 Note over chat: returns
                             end
@@ -2850,57 +2801,34 @@ sequenceDiagram
 
 - `chat.register_sender`
   - `database.get_language`
-    - `conquest.cell_of`
   - `chat.register_user`
-    - `chat.display_name_of`
     - `database.upsert_user`
-      - `conquest.cell_of` (see above)
-- `messages.record_poop`
-  - `database.add_count`
-    - `conquest.cell_of` (see above)
-  - `database.open_conquest_window`
-    - `conquest.cell_of` (see above)
-  - `formatting.poop_sentence`
-    - `formatting.poop_pool`
-  - `chat.escape_md`
-  - `trophies.new_streak_trophy`
-  - `database.get_record`
-    - `conquest.cell_of` (see above)
-  - `formatting.format_streak_trophy`
-- `chat.escape_md` (see above)
-- `messages.record_conquest`
-  - `database.conquer`
-    - `conquest.cell_of` (see above)
-  - `conquest.cell_of` (see above)
-  - `conquest.holdings`
-  - `database.get_users`
-    - `conquest.cell_of` (see above)
-  - `chat.escape_md` (see above)
-  - `conquest.mention_of`
+- `database.add_count`
+- `database.open_conquest_window`
+- `formatting.poop_sentence`
+- `chat.escape_md`
+- `trophies.new_streak_trophy`
+  - `analysis.parse_counts`
+  - `analysis.consecutive_runs`
+- `database.get_record`
+- `formatting.format_streak_trophy`
+- `database.conquer`
+- `conquest.cell_of`
+- `conquest.holdings`
+- `database.get_users`
+- `conquest.mention_of`
 - `chat.reply_charts`
   - `chat.reply_chart`
-    - `chat.fits_caption`
-  - `chat.fits_caption` (see above)
 - `maps.render`
 - `maps.zoom_map`
   - `maps.owners`
-  - `maps.tile_xy`
-  - `maps.legend_and_colors`
-    - `conquest.holdings` (see above)
-    - `charts.chart_label`
-    - `charts.short_name`
-    - `conquest.mention_of` (see above)
-    - `charts.sorted_by_name`
-  - `maps.draw`
-    - `maps.basemap`
-      - `maps.cached_tile`
-      - `maps.trim_cache`
-    - `maps.outline`
-      - `maps.tile_xy` (see above)
-    - `charts.add_cards`
-    - `maps.jpeg`
-    - `charts.png_bytes`
-      - `charts.add_watermark`
+  - `conquest.holdings` (see above)
+  - `charts.chart_label`
+  - `charts.short_name`
+  - `conquest.mention_of` (see above)
+  - `charts.sorted_by_name`
+  - `charts.add_cards`
+  - `charts.png_bytes`
 
 </details>
 
@@ -3017,9 +2945,7 @@ sequenceDiagram
 <summary>Call tree</summary>
 
 - `database.migrate_chat`
-  - `conquest.cell_of`
 - `database.get_language`
-  - `conquest.cell_of` (see above)
 - `menus.set_chat_menu`
   - `menus.menu`
 
@@ -3174,7 +3100,7 @@ flowchart LR
     trophies("<b>trophies.py</b>")
     analysis("<b>analysis.py</b>")
     miniapp_page -->|"1.#nbsp;api_chat"| webhook
-    webhook -->|"2.#nbsp;user_of<br/>3.#nbsp;known_chats<br/>4.#nbsp;is_member<br/>12.#nbsp;conquest_data<br/>28.#nbsp;records_data<br/>36.#nbsp;recaps"| miniapp
+    webhook -->|"2.#nbsp;user_of<br/>3.#nbsp;known_chats<br/>4.#nbsp;is_member<br/>12.#nbsp;conquest_data<br/>28.#nbsp;records_data<br/>37.#nbsp;recaps"| miniapp
     miniapp -->|"5.#nbsp;get_chat_member"| telegram
     miniapp -.->|"6.#nbsp;member"| webhook
     webhook -->|"7.#nbsp;get_all_user_rows<br/>9.#nbsp;get_timed_conquests<br/>11.#nbsp;get_language"| database
@@ -3183,15 +3109,16 @@ flowchart LR
     conquest -.->|"14.#nbsp;(counts, king)<br/>27.#nbsp;(held, king)"| miniapp
     miniapp -->|"15.#nbsp;owners<br/>17.#nbsp;grouped"| maps
     maps -.->|"16.#nbsp;tiles<br/>18.#nbsp;owner_of"| miniapp
-    miniapp -->|"20, 24.#nbsp;season_of<br/>22.#nbsp;season_results<br/>31.#nbsp;trophies_by_user"| trophies
+    miniapp -->|"20, 24.#nbsp;season_of<br/>22.#nbsp;season_results<br/>32.#nbsp;trophies_by_user"| trophies
     trophies -.->|"21, 25.#nbsp;season"| miniapp
     trophies -->|"23.#nbsp;holdings"| conquest
-    miniapp -->|"29.#nbsp;analyze_user<br/>30.#nbsp;analyze_group<br/>40.#nbsp;recap"| analysis
-    trophies -->|"32, 33.#nbsp;_parse<br/>35.#nbsp;_runs"| analysis
-    analysis -.->|"34.#nbsp;counts"| trophies
-    miniapp -->|"37.#nbsp;get_daily_counts_between<br/>39.#nbsp;get_first_days"| database
-    database -.->|"38.#nbsp;daily"| miniapp
-    webhook -.->|"41.#nbsp;HTTP response"| miniapp_page
+    miniapp -->|"29.#nbsp;analyze_users<br/>31.#nbsp;analyze_group<br/>41.#nbsp;recap"| analysis
+    analysis -.->|"30.#nbsp;people"| miniapp
+    trophies -->|"33, 34.#nbsp;parse_counts<br/>36.#nbsp;consecutive_runs"| analysis
+    analysis -.->|"35.#nbsp;counts"| trophies
+    miniapp -->|"38.#nbsp;get_daily_counts_between<br/>40.#nbsp;get_first_days"| database
+    database -.->|"39.#nbsp;daily"| miniapp
+    webhook -.->|"42.#nbsp;HTTP response"| miniapp_page
     classDef step fill:#fffaf3,stroke:#eadccb,stroke-width:2px,color:#3b2a1e
     classDef person fill:#5c4f42,stroke:#5c4f42,color:#fffaf3
     class webhook,miniapp,database,conquest,maps,trophies,analysis step
@@ -3278,17 +3205,18 @@ sequenceDiagram
             conquest-->>miniapp: (held, king)
         end
         webhook->>miniapp: records_data(rows_by_user, today, timed)
-        miniapp->>analysis: analyze_user(rows, today)
+        miniapp->>analysis: analyze_users(rows_by_user, today)
+        analysis-->>miniapp: people
         miniapp->>analysis: analyze_group(rows_by_user, today)
         miniapp->>trophies: trophies_by_user(rows_by_user, today, timed)
         loop for (user_id, rows) in users_rows.ite...
-            trophies->>analysis: _parse(rows)
+            trophies->>analysis: parse_counts(rows)
         end
         Note over trophies: _winners() as above
         loop for user_id in set(users_rows) | set(...
-            trophies->>analysis: _parse(rows)
+            trophies->>analysis: parse_counts(rows)
             analysis-->>trophies: counts
-            trophies->>analysis: _runs(sorted(counts), counts)
+            trophies->>analysis: consecutive_runs(sorted(counts), counts)
         end
         webhook->>miniapp: recaps(chat_id, user_id, today)
         miniapp->>database: get_daily_counts_between(chat_id, start.isoformat(), end.isofo...)
@@ -3303,17 +3231,12 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `webhook.member_chat`
-  - `webhook.mini_app_user`
-    - `miniapp.user_of`
-  - `miniapp.known_chats`
-  - `miniapp.is_member`
+- `miniapp.user_of`
+- `miniapp.known_chats`
+- `miniapp.is_member`
 - `database.get_all_user_rows`
-  - `conquest.cell_of`
 - `database.get_timed_conquests`
-  - `conquest.cell_of` (see above)
 - `database.get_language`
-  - `conquest.cell_of` (see above)
 - `miniapp.conquest_data`
   - `conquest.holdings`
   - `maps.owners`
@@ -3323,30 +3246,29 @@ sequenceDiagram
   - `trophies.season_results`
     - `trophies.season_of` (see above)
     - `conquest.holdings` (see above)
-  - `miniapp.season_boards`
-    - `trophies.season_of` (see above)
-    - `conquest.holdings` (see above)
 - `miniapp.records_data`
-  - `analysis.analyze_user`
-  - `miniapp.plain`
+  - `analysis.analyze_users`
+    - `analysis.analyze_user`
+      - `analysis.parse_counts`
+      - `analysis.consecutive_runs`
   - `analysis.analyze_group`
-    - `analysis.analyze_user` (see above)
+    - `analysis.analyze_users` (see above)
   - `trophies.trophies_by_user`
     - `trophies.monthly_winners`
+      - `analysis.parse_counts` (see above)
     - `trophies.yearly_winners`
+      - `analysis.parse_counts` (see above)
     - `trophies.season_results` (see above)
     - `trophies.season_of` (see above)
-    - `trophies.streak_runs`
+    - `analysis.parse_counts` (see above)
+    - `analysis.consecutive_runs` (see above)
 - `miniapp.recaps`
-  - `miniapp.plain` (see above)
   - `miniapp.recap_data`
     - `database.get_daily_counts_between`
-      - `conquest.cell_of` (see above)
     - `analysis.recap`
+      - `analysis.consecutive_runs` (see above)
       - `analysis.period_regularity`
-        - `analysis.regularity`
     - `database.get_first_days`
-      - `conquest.cell_of` (see above)
 
 </details>
 
@@ -3482,24 +3404,17 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `webhook.member_chat`
-  - `webhook.mini_app_user`
-    - `miniapp.user_of`
-  - `miniapp.known_chats`
-  - `miniapp.is_member`
+- `miniapp.user_of`
+- `miniapp.known_chats`
+- `miniapp.is_member`
 - `miniapp.period_data`
   - `database.get_rank`
-    - `conquest.cell_of`
   - `database.get_daily_counts_between`
-    - `conquest.cell_of` (see above)
   - `analysis.forecast_totals`
   - `analysis.period_statistics`
   - `database.get_users`
-    - `conquest.cell_of` (see above)
   - `database.get_first_days`
-    - `conquest.cell_of` (see above)
   - `analysis.period_regularity`
-    - `analysis.regularity`
 
 </details>
 
@@ -3557,7 +3472,7 @@ flowchart LR
     announce -->|"2.#nbsp;get_language<br/>3.#nbsp;get_all_user_rows<br/>11.#nbsp;get_timed_conquests"| database
     database -.->|"4.#nbsp;(rows_by_user, users)"| announce
     announce -->|"5.#nbsp;monthly_winners<br/>7.#nbsp;yearly_winners<br/>9.#nbsp;season_of<br/>12.#nbsp;season_results"| trophies
-    trophies -->|"6.#nbsp;_parse"| analysis
+    trophies -->|"6.#nbsp;parse_counts"| analysis
     announce -->|"8.#nbsp;escape_md"| chat
     trophies -.->|"10.#nbsp;key"| announce
     trophies -->|"13.#nbsp;holdings"| conquest
@@ -3616,13 +3531,13 @@ sequenceDiagram
     participant miniapp as miniapp.py
     rect rgb(255, 250, 243)
         task->>announce: main(argv)
-        loop for chat_id in chat_ids()
+        loop for chat_id in _chat_ids()
             announce->>database: get_language(chat_id)
             announce->>database: get_all_user_rows(chat_id)
             database-->>announce: (rows_by_user, users)
             announce->>trophies: monthly_winners(rows_by_user, today)
             loop for (user_id, rows) in users_rows.ite...
-                trophies->>analysis: _parse(rows)
+                trophies->>analysis: parse_counts(rows)
             end
             announce->>trophies: yearly_winners(rows_by_user, today)
             Note over trophies: _winners() as above
@@ -3653,26 +3568,19 @@ sequenceDiagram
 <details>
 <summary>Call tree</summary>
 
-- `announce.wait_for_midnight`
-- `announce.announce`
-  - `announce.chat_ids`
-  - `announce.announcement`
-    - `database.get_language`
-      - `conquest.cell_of`
-    - `database.get_all_user_rows`
-      - `conquest.cell_of` (see above)
-    - `trophies.monthly_winners`
-    - `trophies.yearly_winners`
-    - `chat.escape_md`
-    - `trophies.season_of`
-    - `trophies.season_results`
-      - `trophies.season_of` (see above)
-      - `conquest.holdings`
-    - `database.get_timed_conquests`
-      - `conquest.cell_of` (see above)
-    - `formatting.format_new_period`
-      - `formatting.bold`
-  - `announce.recap_button`
-    - `miniapp.direct_link`
+- `database.get_language`
+- `database.get_all_user_rows`
+- `trophies.monthly_winners`
+  - `analysis.parse_counts`
+- `trophies.yearly_winners`
+  - `analysis.parse_counts` (see above)
+- `chat.escape_md`
+- `trophies.season_of`
+- `trophies.season_results`
+  - `trophies.season_of` (see above)
+  - `conquest.holdings`
+- `database.get_timed_conquests`
+- `formatting.format_new_period`
+- `miniapp.direct_link`
 
 </details>

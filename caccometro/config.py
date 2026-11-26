@@ -23,28 +23,38 @@ MONTH_NAMES = ['', 'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
 
 
 def now_rome():
-    """Current date/time in Rome, without tzinfo (comparable with the naive datetimes used in the code).
+    """Current date and time in Rome, without tzinfo (comparable with the naive datetimes used in the code).
 
-    The server runs in UTC: datetime.now() would return the wrong day
-    between 22:00/23:00 and midnight in Italy.
+    The server runs in UTC: datetime.now() would return the wrong day between 22:00/23:00 and midnight in Italy.
+
+    Returns:
+        datetime: the current Italian time.
     """
     return datetime.now(ROME_TZ).replace(tzinfo=None)
 
 
 def period_bounds(time_period, date):
-    """Start and end date (storing format) of a month ('MM-YYYY') or year ('YYYY')."""
+    """Start and end date of a month or a year.
+
+    Args:
+        time_period (str): 'month' or 'year'.
+        date (str): the month as 'MM-YYYY' (the leading zero is optional) or the year as 'YYYY'.
+
+    Returns:
+        (start, end): both as 'YYYY-MM-DD', end included.
+
+    Raises:
+        ValueError: `time_period` is neither 'month' nor 'year'.
+    """
     if time_period == 'month':
-        # Parse the input date for monthly rank (format: month-year)
         date_parts = date.split('-')
-        month_str = date_parts[0].zfill(2)  # Add leading zero, if necessary
+        month_str = date_parts[0].zfill(2)
         year_str = date_parts[1]
         start_period = datetime.strptime(f'{month_str}-{year_str}', '%m-%Y').strftime(STORING_FORMAT)
-        # Get the end of the month
         end_period = datetime.strptime(f'{month_str}-{year_str}', '%m-%Y')\
                         .replace(day=calendar.monthrange(int(year_str), int(month_str))[1])\
                         .strftime(STORING_FORMAT)
     elif time_period == 'year':
-        # Parse the input date for yearly rank (format: year)
         start_period = datetime.strptime(f'01-01-{date}', '%d-%m-%Y').strftime(STORING_FORMAT)
         end_period = datetime.strptime(f'31-12-{date}', '%d-%m-%Y').strftime(STORING_FORMAT)
     else:

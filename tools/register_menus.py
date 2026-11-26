@@ -12,8 +12,7 @@ import sys
 
 import httpx
 
-from bot_version import bot_token
-from deploy import DOMAIN, FILES, REPO, token
+from deploy import DOMAIN, REPO, bot_token, server_env
 
 sys.path.insert(0, str(REPO))
 from caccometro.menus import menu  # noqa: E402
@@ -23,15 +22,28 @@ SCOPES = ('default', 'all_private_chats', 'all_group_chats', 'all_chat_administr
 
 
 def main(which, app_url=None):
+    """Register the menus on one bot and read them back; set the menu button if there is a URL for it.
+
+    Args:
+        which (str): 'dev' or 'prod'.
+        app_url (str): the URL of the Mini App for the menu button; None for the one of production, or none for dev.
+    """
     if which == 'prod':
-        env = httpx.get(f"{FILES}/.env", headers={"Authorization": f"Token {token()}"}, timeout=60)
-        env.raise_for_status()
-        env = env.text
+        env = server_env()
     else:
         env = (REPO / ".env").read_text(encoding="utf-8")
     api = f"https://api.telegram.org/bot{bot_token(env)}/"
 
     def call(method, **body):
+        """Call a method of the Bot API; exit with an error message when it fails.
+
+        Args:
+            method (str): the method name.
+            **body: the JSON parameters.
+
+        Returns:
+            The result of the method.
+        """
         answer = httpx.post(api + method, json=body, timeout=30).json()
         if not answer["ok"]:
             sys.exit(f"{method} failed: {answer.get('description')}")

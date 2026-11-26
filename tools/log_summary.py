@@ -4,7 +4,7 @@ Usage: python tools/log_summary.py (settings: see deploy.py)
 Meant for the nightly cron job, after backup_db.py. The summary is also kept in logs/summary_<date>.txt and the
 downloaded logs in logs/logs_<date>.tar.gz (the last 30 of each).
 Reads the bot log (caccometro.log, mostly the "Update N done" line of every update) and the web server logs
-(access, error and server log). One private Telegram message, like a failed backup (see backup_db.alert), lists the
+(access, error and server log). One private Telegram message, like a failed backup (see alert.py), lists the
 reasons to look: a lost reply, a kind of error never seen (logs/seen_kinds.txt) or repeated, a slow update, lines in
 the web server error log.
 """
@@ -24,7 +24,7 @@ STAMP = re.compile(r"^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)")  # error and server log
 RESTART = "WSGI app 0 (mountpoint='') ready"  # the server log line of every start of the app (deploy, reload)
 UPTIME_CHECK = "UptimeRobot"
 REFUSED = "Webhook call without the right secret token"  # counted from the 403s of the access log instead
-# Normalized messages (see kind) that are expected: the hosting proxy answers 503 now and then (see RetryingRequest).
+# Normalized messages (see kind) that are expected: the hosting proxy answers 503 now and then (see bot._RetryingRequest).
 KNOWN = (
     'Update "N" caused error "httpx.ProxyError: N Service Unavailable"',
     "Error in webhook: httpx.ProxyError: N Service Unavailable",
@@ -35,22 +35,57 @@ KEEP = 30
 
 
 def kind(message):
-    """The message without what changes from one occurrence to the next (numbers, usernames)."""
+    """The message without what changes from one occurrence to the next (numbers, usernames).
+
+    Args:
+        message (str): a log message.
+
+    Returns:
+        str: the message with numbers as N and usernames as @U.
+    """
     return re.sub(r"\d+", "N", re.sub(r"@\w+", "@U", message))
 
 
 def utc_to_rome(when):
+    """A UTC time as Italian time.
+
+    Args:
+        when (datetime): a naive datetime in UTC.
+
+    Returns:
+        datetime: the same moment as a naive datetime in Rome.
+    """
     return when.replace(tzinfo=timezone.utc).astimezone(ROME).replace(tzinfo=None)
 
 
 def seconds(ms):
+    """Milliseconds as text.
+
+    Args:
+        ms (int): the milliseconds.
+
+    Returns:
+        str: for instance '1.5 s'.
+    """
     return f"{ms / 1000:.1f} s"
 
 
 def summarize(bot_lines, access_lines, since, until, seen=(), error_lines=(), server_lines=()):
-    """Return (text, new kinds, reasons for an alert).
+    """Summarize a window of the logs.
 
     Times are naive Rome time; lines of tracebacks do not match RECORD and are skipped.
+
+    Args:
+        bot_lines (list): the lines of caccometro.log.
+        access_lines (list): the lines of the access log.
+        since (datetime): the start of the window.
+        until (datetime): the end of the window.
+        seen (iterable): the kinds of error already reported.
+        error_lines (list): the lines of the error log.
+        server_lines (list): the lines of the server log.
+
+    Returns:
+        (text, new kinds, reasons): the summary, the kinds of error never seen, and the reasons for an alert.
     """
     retries = refused = 0
     kinds = Counter()
@@ -104,7 +139,14 @@ def summarize(bot_lines, access_lines, since, until, seen=(), error_lines=(), se
             del kinds[h500]
 
     def in_window(lines):
-        """The lines of a UTC log that start with a time inside the window, with the time in Rome."""
+        """The lines of a UTC log that start with a time inside the window, with the time in Rome.
+
+        Args:
+            lines (list): the lines of the log.
+
+        Yields:
+            (datetime, str): the time in Rome and the line.
+        """
         for line in lines:
             m = STAMP.match(line)
             if m and since <= (when := utc_to_rome(datetime.fromisoformat(m[1]))) <= until:
@@ -148,7 +190,14 @@ def summarize(bot_lines, access_lines, since, until, seen=(), error_lines=(), se
 
 
 def archive(logs, names, day, keep=KEEP):
-    """Keep a compressed copy of the downloaded logs in logs/logs_<day>.tar.gz, the last `keep` of them."""
+    """Keep a compressed copy of the downloaded logs in logs/logs_<day>.tar.gz, the last `keep` of them.
+
+    Args:
+        logs (pathlib.Path): the logs folder.
+        names (iterable): the files to put in the archive.
+        day (datetime): the date of the archive.
+        keep (int): how many archives to keep.
+    """
     with tarfile.open(logs / f"logs_{day:%Y%m%d}.tar.gz", "w:gz") as tar:
         for name in names:
             tar.add(logs / name, arcname=name)
@@ -157,7 +206,8 @@ def archive(logs, names, day, keep=KEEP):
 
 
 def main():
-    from backup_db import alert
+    """Download the logs, print the summary, keep it and the logs, and send an alert when something needs a look."""
+    from alert import alert
     from deploy import REPO
     import fetch_logs
 

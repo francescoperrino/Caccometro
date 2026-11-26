@@ -1,22 +1,25 @@
 """One database read per command instead of one per user and day; atomic count updates."""
-import asyncio
 import threading
 
 import pytest
 
-from caccometro import commands, messages
+from caccometro import cmd_counts, cmd_leaderboards, messages
 from caccometro import database
 from caccometro import charts, i18n
-from conftest import make_context, make_update, uid
-
-
-def run(coro):
-    return asyncio.run(coro)
+from caccometro.model import User
+from conftest import make_context, make_update, run, uid
 
 
 @pytest.fixture
 def connections(monkeypatch):
-    """Counts how many database connections are opened."""
+    """Count how many database connections are opened.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): pytest's fixture.
+
+    Returns:
+        dict: {'n': the number of connections opened}.
+    """
     counter = {"n": 0}
     real_connect = database._connect
 
@@ -29,6 +32,12 @@ def connections(monkeypatch):
 
 
 def seed_busy_chat(seed, names=("mario", "luigi", "anna", "giulia", "carlo")):
+    """Fill the chat with the same four days for each of the users.
+
+    Args:
+        seed (callable): the fixture that registers users and counts.
+        names (tuple): the users.
+    """
     seed({name: {"2024-03-10": 2, "2024-03-20": 1, "2024-07-01": 3, "2024-12-31": 1} for name in names})
 
 
@@ -66,10 +75,10 @@ def test_daily_counts_and_rank_read_the_database_once_each(seed, chat_id, connec
 
 
 @pytest.mark.parametrize("command,arg", [
-    (commands.leaderboard_year_command, "2024"),
-    (commands.leaderboard_month_command, "03-2024"),
-    (commands.stats_year_command, "2024"),
-    (commands.stats_month_command, "03-2024"),
+    (cmd_leaderboards.leaderboard_year_command, "2024"),
+    (cmd_leaderboards.leaderboard_month_command, "03-2024"),
+    (cmd_leaderboards.stats_year_command, "2024"),
+    (cmd_leaderboards.stats_month_command, "03-2024"),
 ])
 def test_chart_commands_use_a_handful_of_connections(seed, connections, command, arg):
     seed_busy_chat(seed)
@@ -83,7 +92,19 @@ def test_chart_commands_use_a_handful_of_connections(seed, connections, command,
 # ---------------------------------------------------------------- charts built from the daily counts
 
 def table_of_rank_chart(monkeypatch, rank, daily, period, date, chat_id):
-    """Run generate_rank_chart and return the text of its table."""
+    """Run generate_rank_chart and return the text of its table.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): pytest's fixture.
+        rank (list): [(User, total)].
+        daily (dict): {user_id: {'YYYY-MM-DD': count}}.
+        period (str): 'month' or 'year'.
+        date (str): 'MM-YYYY' or 'YYYY'.
+        chat_id (int): the Telegram chat.
+
+    Returns:
+        list: the rows of the table, each a list of cell texts.
+    """
     captured = {}
     real_png = charts.png_bytes
 
@@ -121,7 +142,7 @@ def test_month_table_shows_daily_and_total_counts(seed, chat_id, monkeypatch):
 
 
 def test_rank_chart_tolerates_a_user_without_daily_counts(chat_id, isolated_folders):
-    rank = [(database.User(uid("mario"), "mario", "Mario"), 0)]
+    rank = [(User(uid("mario"), "mario", "Mario"), 0)]
     assert charts.generate_rank_chart(rank, {}, "month", "03-2024").startswith(b"\x89PNG")
 
 
@@ -179,7 +200,7 @@ def test_concurrent_increments_are_not_lost(chat_id):
 def test_remove_poop_from_one_goes_to_zero(chat_id, seed):
     seed({"mario": {"2024-03-10": 1}})
     upd = make_update()
-    run(commands.remove_poop_command(upd, make_context("10-03-2024")))
+    run(cmd_counts.remove_poop_command(upd, make_context("10-03-2024")))
     assert "0 💩" in upd.message.reply_text.call_args[0][0]
     assert database.get_count(uid("mario"), "2024-03-10", chat_id) == 0
 
@@ -187,7 +208,7 @@ def test_remove_poop_from_one_goes_to_zero(chat_id, seed):
 def test_remove_poop_at_zero_is_refused(chat_id, seed):
     seed({"mario": {}})
     upd = make_update()
-    run(commands.remove_poop_command(upd, make_context("10-03-2024")))
+    run(cmd_counts.remove_poop_command(upd, make_context("10-03-2024")))
     assert "era già 0" in upd.message.reply_text.call_args[0][0]
     assert database.get_record(uid("mario"), chat_id) == []
 
@@ -195,14 +216,14 @@ def test_remove_poop_at_zero_is_refused(chat_id, seed):
 def test_add_poop_reports_the_new_count(chat_id, seed):
     seed({"mario": {"2024-03-10": 2}})
     upd = make_update()
-    run(commands.add_poop_command(upd, make_context("10-03-2024")))
+    run(cmd_counts.add_poop_command(upd, make_context("10-03-2024")))
     assert "3 💩" in upd.message.reply_text.call_args[0][0]
 
 
 def test_poop_messages_sent_at_the_same_time_are_all_counted(chat_id):
     today = database.now_rome().strftime("%Y-%m-%d")
-    sender = database.User(uid("mario"), "mario", "Mario")
-    threads = [threading.Thread(target=messages.record_poop, args=(sender, chat_id)) for _ in range(12)]
+    sender = User(uid("mario"), "mario", "Mario")
+    threads = [threading.Thread(target=messages._record_poop, args=(sender, chat_id)) for _ in range(12)]
     for thread in threads:
         thread.start()
     for thread in threads:
@@ -216,4 +237,4 @@ def test_the_year_table_follows_the_language_of_the_chat(seed, chat_id, monkeypa
     table = table_of_rank_chart(monkeypatch, database.get_rank(chat_id, "year", "2024"),
                                 database.get_daily_counts(chat_id, "year", "2024"), "year", "2024", chat_id)
     assert table[0][1:4] == ["jan", "feb", "mar"] and table[0][-1] == "Total"
-    assert charts.decimal(1.25) == "1.25"
+    assert charts._decimal(1.25) == "1.25"

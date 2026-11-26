@@ -1,12 +1,11 @@
 """/records of the whole group: who holds each record and who leads right now."""
-import asyncio
 import random
 from datetime import date, timedelta
 
-from caccometro import commands
+from caccometro import cmd_records
 from caccometro import database
 from caccometro.analysis import Holder, Leaders, Period, analyze_group, analyze_user
-from conftest import make_context, make_tg_user, make_update, uid
+from conftest import make_context, make_tg_user, make_update, run, uid
 from caccometro.formatting import format_group_record
 
 TODAY = date(2024, 4, 15)
@@ -19,11 +18,15 @@ EX = [("2023-01-05", 4), ("2023-01-06", 1)]       # left the group a year ago
 ROWS = {"mario": MARIO, "luigi": LUIGI, "anna": ANNA, "ex": EX}
 
 
-def run(coro):
-    return asyncio.run(coro)
-
-
 def keys(leaders):
+    """The keys of the holders of a record.
+
+    Args:
+        leaders (Leaders): the record.
+
+    Returns:
+        list: the keys.
+    """
     return [holder.key for holder in leaders.holders]
 
 
@@ -164,12 +167,27 @@ def test_get_all_user_rows_reads_the_database_once(seed, chat_id, monkeypatch):
 # ---------------------------------------------------------------- command
 
 def record(*args, reply_to=None, username="mario"):
+    """Run /records and return the text of its reply.
+
+    Args:
+        *args: the arguments of the command.
+        reply_to: the author of the message being replied to; None for no reply.
+        username (str): the sender.
+
+    Returns:
+        str: the reply.
+    """
     upd = make_update(username=username, reply_to=reply_to)
-    run(commands.records_command(upd, make_context(*args)))
+    run(cmd_records.records_command(upd, make_context(*args)))
     return upd.message.reply_text.call_args[0][0]
 
 
 def seed_group(seed):
+    """Fill the chat with two users, one active today and one that stopped.
+
+    Args:
+        seed (callable): the fixture that registers users and counts.
+    """
     today = database.now_rome().date()
     day = lambda n: (today - timedelta(days=n)).strftime("%Y-%m-%d")      # noqa: E731
     seed({"mario": {day(0): 2, day(1): 1, "2020-01-10": 3, "2020-02-10": 1},

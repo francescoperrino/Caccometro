@@ -8,16 +8,23 @@ import asyncio
 
 import pytest
 
-from caccometro import commands, database
+from caccometro import cmd_records, database, formatting
 from caccometro.chat import escape_md
-from caccometro.formatting import ESCAPED, bold
+from caccometro.formatting import ESCAPED, _bold
 from conftest import make_context, make_update
 
 NAME = "Mario_*[x"
 
 
 def bold_segments(text):
-    """The bold segments of a legacy Markdown text; fails if an escaped character is inside one or a `*` is left open."""
+    """The bold segments of a legacy Markdown text; fails if an escaped character is inside one or a `*` is left open.
+
+    Args:
+        text (str): the message.
+
+    Returns:
+        list: the text of each bold segment.
+    """
     segments, current = [], None
     for part in ESCAPED.split(text):
         if ESCAPED.fullmatch(part):
@@ -36,17 +43,26 @@ def bold_segments(text):
 
 
 def test_the_escaped_character_stays_outside_the_bold():
-    assert bold(escape_md("@mario_rossi")) == "*@mario*\\_*rossi*"
-    assert bold(escape_md(NAME)) == "*Mario*\\_\\*\\[*x*"
-    assert bold("plain") == "*plain*"
+    assert _bold(escape_md("@mario_rossi")) == "*@mario*\\_*rossi*"
+    assert _bold(escape_md(NAME)) == "*Mario*\\_\\*\\[*x*"
+    assert _bold("plain") == "*plain*"
 
 
 @pytest.mark.parametrize("name", ["@mario_rossi", "a*b", "a`b", "a[b", "_x_", "**", "[x](y)", "a_ _b", NAME])
 def test_bold_is_well_formed(name):
-    bold_segments(f"🥇 {bold(escape_md(name))}: 5")
+    bold_segments(f"🥇 {_bold(escape_md(name))}: 5")
 
 
 def run(command, *args):
+    """Run a command for a user without username and return the text of its reply.
+
+    Args:
+        command (callable): the handler.
+        *args: the arguments of the command.
+
+    Returns:
+        str: the reply.
+    """
     upd = make_update(username=None, user_id=5, full_name=NAME)
     asyncio.run(command(upd, make_context(*args)))
     return upd.message.reply_text.call_args[0][0]
@@ -55,7 +71,7 @@ def run(command, *args):
 def test_messages_with_the_name_in_bold_are_well_formed(chat_id):
     database.upsert_user(chat_id, 5, None, NAME)
     database.add_count(5, "2024-03-10", 2, chat_id)
-    bold_segments(commands.ranked_line(1, escape_md(NAME), 2))
-    for command, args in ((commands.records_command, ()), (commands.records_command, ("io",)),
-                          (commands.trophies_command, ()), (commands.trophies_command, ("io",))):
+    bold_segments(formatting.ranked_line(1, escape_md(NAME), 2))
+    for command, args in ((cmd_records.records_command, ()), (cmd_records.records_command, ("io",)),
+                          (cmd_records.trophies_command, ()), (cmd_records.trophies_command, ("io",))):
         assert bold_segments(run(command, *args)), (command, args)

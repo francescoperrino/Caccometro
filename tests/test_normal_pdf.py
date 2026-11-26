@@ -1,4 +1,4 @@
-"""charts.normal_pdf replaces scipy.stats.norm.pdf (scipy is no longer a dependency)."""
+"""charts._normal_pdf replaces scipy.stats.norm.pdf (scipy is no longer a dependency)."""
 import numpy as np
 import pytest
 
@@ -13,20 +13,20 @@ def test_matches_scipy_when_scipy_is_available(mean, std):
     except ImportError:
         pytest.skip("scipy is not installed")
     x = np.linspace(mean - 5 * std, mean + 5 * std, 101)
-    assert np.allclose(charts.normal_pdf(x, mean, std), norm.pdf(x, mean, std), rtol=1e-12, atol=0)
-    assert np.isclose(charts.normal_pdf(mean, mean, std), norm.pdf(mean, mean, std), rtol=1e-12)
+    assert np.allclose(charts._normal_pdf(x, mean, std), norm.pdf(x, mean, std), rtol=1e-12, atol=0)
+    assert np.isclose(charts._normal_pdf(mean, mean, std), norm.pdf(mean, mean, std), rtol=1e-12)
 
 
 def test_known_values_without_scipy():
     # standard normal: density at 0 is 1/sqrt(2*pi); at 1 it is exp(-1/2)/sqrt(2*pi)
-    assert charts.normal_pdf(0, 0, 1) == pytest.approx(0.3989422804014327)
-    assert charts.normal_pdf(1, 0, 1) == pytest.approx(0.24197072451914337)
-    assert charts.normal_pdf(5, 3, 2) == pytest.approx(0.3989422804014327 / 2 * np.exp(-0.5))
+    assert charts._normal_pdf(0, 0, 1) == pytest.approx(0.3989422804014327)
+    assert charts._normal_pdf(1, 0, 1) == pytest.approx(0.24197072451914337)
+    assert charts._normal_pdf(5, 3, 2) == pytest.approx(0.3989422804014327 / 2 * np.exp(-0.5))
 
 
 def test_peak_is_at_the_mean_and_area_is_one():
     x = np.linspace(-30, 30, 60001)
-    p = charts.normal_pdf(x, 1.5, 2.0)
+    p = charts._normal_pdf(x, 1.5, 2.0)
     assert x[np.argmax(p)] == pytest.approx(1.5, abs=1e-3)
     area = float(np.sum((p[:-1] + p[1:]) / 2 * np.diff(x)))      # trapezoid rule
     assert area == pytest.approx(1.0, abs=1e-6)

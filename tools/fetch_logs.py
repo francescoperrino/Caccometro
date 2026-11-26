@@ -3,11 +3,8 @@
 Usage: python tools/fetch_logs.py (settings: see deploy.py)
 Old rotated logs (*.gz) stay on the server; they are rarely needed.
 """
-from pathlib import Path
 
-import httpx
-
-from deploy import DOMAIN, FILES, HOST, REPO, USER, expiry_warning, token
+from deploy import DOMAIN, FILES, HOST, REPO, USER, expiry_warning, hosting_client
 
 LOGS = {
     "caccometro.log": f"{FILES}/caccometro.log",
@@ -17,10 +14,14 @@ LOGS = {
 }
 
 def main():
-    """Download the logs; return the names that could not be downloaded."""
+    """Download the logs into logs/.
+
+    Returns:
+        list: the names of the logs that could not be downloaded.
+    """
     (REPO / "logs").mkdir(exist_ok=True)
     failed = []
-    with httpx.Client(headers={"Authorization": f"Token {token()}"}, timeout=120) as client:
+    with hosting_client(120) as client:
         for name, url in LOGS.items():
             r = client.get(url)
             if r.status_code != 200:

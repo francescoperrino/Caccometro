@@ -15,26 +15,56 @@ TREE = "  __main__.py"  # a line found only in the architecture tree
 
 
 def read(name):
+    """The text of a file of the repository.
+
+    Args:
+        name (str): the path from the root.
+
+    Returns:
+        str: the content.
+    """
     return (ROOT / name).read_text(encoding="utf-8")
 
 
 @pytest.fixture
 def readme():
+    """The text of README.md.
+
+    Returns:
+        str: the content.
+    """
     return read("README.md")
 
 
 @pytest.fixture
 def deployment():
+    """The text of docs/deployment.md.
+
+    Returns:
+        str: the content.
+    """
     return read("docs/deployment.md")
 
 
 @pytest.fixture
 def architecture():
+    """The text of docs/architecture.md.
+
+    Returns:
+        str: the content.
+    """
     return read("docs/architecture.md")
 
 
 def tool(name):
-    """The script tools/<name>.py as a module (tools/ is not a package)."""
+    """The script tools/<name>.py as a module (tools/ is not a package).
+
+    Args:
+        name (str): the script name without the extension.
+
+    Returns:
+        module: the loaded module.
+    """
     import importlib.util
     spec = importlib.util.spec_from_file_location(name, ROOT / "tools" / f"{name}.py")
     module = importlib.util.module_from_spec(spec)
@@ -43,13 +73,28 @@ def tool(name):
 
 
 def code_block_containing(readme, marker):
-    """The fenced block that contains the first occurrence of `marker`."""
+    """The fenced block that contains the first occurrence of a text.
+
+    Args:
+        readme (str): the page.
+        marker (str): the text to look for.
+
+    Returns:
+        str: the content of the block.
+    """
     at = readme.index(marker)
     return readme[readme.rindex("```", 0, at) + 3:readme.index("```", at)]
 
 
 def handled_commands(language):
-    """The names of the commands in 'it' or 'en' (bot.COMMANDS: English name, Italian name, handler)."""
+    """The names of the commands in a language (bot.COMMANDS: English name, Italian name, handler).
+
+    Args:
+        language (str): 'it' or 'en'.
+
+    Returns:
+        set: the names.
+    """
     from caccometro.bot import COMMANDS
     return {names[0 if language == "en" else 1] for names in COMMANDS}
 
@@ -144,6 +189,15 @@ def test_every_mermaid_diagram_has_the_style_of_the_docs():
 
 def test_the_dependency_diagram_matches_the_imports(architecture):
     assert tool("draw_dependencies").updated(architecture) == architecture, "the diagram is stale: run python tools/draw_dependencies.py"
+
+
+def test_modules_import_only_from_their_layer_or_lower_ones():
+    deps = tool("draw_dependencies")
+    level = {name: i for i, (_, _, names) in enumerate(deps.LAYERS) for name in names}
+    wrong = [f"{name} -> {dep}" for name, imported in deps.imports().items() if name in level
+             for dep in imported if dep in level and level[dep] < level[name]]
+    shared = [f"{name} -> {dep}" for name in deps.EVERYWHERE for dep in deps.imports()[name] if dep not in deps.EVERYWHERE]
+    assert not wrong + shared, f"imports against the layers of tools/draw_dependencies.py: {wrong + shared}"
 
 
 @pytest.mark.parametrize("name", ["README.md", "README.it.md"])
